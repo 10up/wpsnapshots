@@ -1,0 +1,25 @@
+{
+  "name": "10up/wpprojects",
+  "description": "A project syncing tool for WordPress.",
+  "keywords": ["wordpress"],
+  "minimum-stability": "dev",
+  "license": ["MIT"],
+  "authors": [
+    {
+      "name": "Taylor Lovett",
+      "email": "taylorl@get10up.com"
+    }
+  ],
+  "require": {
+    "symfony/console": "^3.3",
+    "aws/aws-sdk-php": "2.*"
+  },
+  "bin": [
+    "bin/wpprojects"
+  ],
+  "autoload": {
+    "psr-4": {
+      "WPProjects\\": "./src/classes"
+    }
+  }
+}
