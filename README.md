@@ -1,22 +1,22 @@
 # WP Projects (beta)
 
-WP Projects is a project syncing tool for WordPress operated via the command line empowering developers to easily push instances of projects into the cloud for sharing with team members. Team members can pull project instances into existing WordPress installs such that everything "just works". No more downloading files, SQL dumps, fixing table prefixes, running search/replace commands, etc. WP Projects even works with multisite.
+WP Projects is a project syncing tool for WordPress, operated via the command line, empowering developers to easily push instances of projects into the cloud for sharing with team members. Team members can pull project instances into existing WordPress installs such that everything "just works". No more downloading files, SQL dumps, fixing table prefixes, running search/replace commands, etc. WP Projects even works with multisite.
 
 ## How Does It Work?
 
-WP Projects stores projects in a centralized repository (AWS). Users setup up WP Projects with their team's AWS credentials. Users can then push, pull, and search for project instances. When a user pushes a project instance, an instance of their current environment (wp-content/ and database) is pushed to Amazon. When a project instance is pulled, files are pulled from the cloud replacing wp-content/ and data is intelligently merged into the database.
+WP Projects stores projects in a centralized repository (AWS). Users setup up WP Projects with their team's AWS credentials. Users can then push, pull, and search for project instances. When a user pushes a project instance, an instance of their current environment (`wp-content/` and database) is pushed to Amazon. When a project instance is pulled, files are pulled from the cloud replacing `wp-content/` and data is intelligently merged into the database.
 
-Projects files (wp-content/) and WordPress database tables are stored in Amazon S3. General project data is stored in Amazon DynamoDB.
+Projects files (`wp-content/`) and WordPress database tables are stored in Amazon S3. General project data is stored in Amazon DynamoDB.
 
 ## Install
 
-WP Projects is easiest to use as a global Composer package. Right now, it is available only as a private 10up package. Assuming you have Composer installed and SSH keys setup within Github/10up organiziation, do the following:
+WP Projects is easiest to use as a global Composer package. Right now, it is available only as a private 10up package. Assuming you have Composer installed and SSH keys setup within GitHub/10up organiziation, do the following:
 
 1. Add the 10up/wpprojects repository as a global Composer repository:
   ```
   composer global config repositories.wpprojects vcs https://github.com/10up/wpprojects
   ```
-2. Lower your global minimum Composer stability to `dev`. This is necessary since WPProjects is beta software.
+2. Lower your global minimum Composer stability to `dev`. This is necessary since WP Projects is beta software.
   ```
   composer global config minimum-stability dev
   ```
