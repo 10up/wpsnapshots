@@ -200,12 +200,22 @@ class Push extends Command {
 		 */
 		$project_instance = ConnectionManager::instance()->db->insertProjectInstance( $project_config, $temp_path . '/data.sql' );
 
+		if ( Utils\is_error( $project_instance ) ) {
+			$output->writeln( '<error>Could not add project instance to database.</error>' );
+			exit;
+		}
+
 		$output->writeln( 'Upload files and database to repository...' );
 
 		/**
 		 * Put files on S3
 		 */
-		ConnectionManager::instance()->s3->putProjectInstance( $project_instance, $temp_path . '/data.sql', $temp_path . '/files.tar.gz' );
+		$s3_add = ConnectionManager::instance()->s3->putProjectInstance( $project_instance, $temp_path . '/data.sql', $temp_path . '/files.tar.gz' );
+
+		if ( Utils\is_error( $s3_add ) ) {
+			$output->writeln( '<error>Could not upload files to S3.</error>' );
+			exit;
+		}
 
 		Utils\remove_temp_folder();
 
