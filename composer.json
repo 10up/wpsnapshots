@@ -2,7 +2,6 @@
   "name": "10up/wpprojects",
   "description": "A project syncing tool for WordPress.",
   "keywords": ["wordpress"],
-  "minimum-stability": "dev",
   "license": ["MIT"],
   "authors": [
     {
