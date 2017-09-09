@@ -54,19 +54,12 @@ WP Projects revolves around pushing, pulling, and searching for project instance
 Documentation for each operation is as follows:
 
 1. __wpprojects push (<--no-uploads)__ - Must be run from root of installed WordPress instance.
-
   This command pushes an instance of the current project to the repository. Data about the project (name, author, environment, etc.) is stored in a `wpprojects.json` file. Project instances are searchable by name and author so set these carefully. The push command will prompt you to create the file, if one doesn't already exist. The command will return a project instance ID once it's finished that you could pass to a team member.
-
 2. __wpprojects pull <instance-id>__ - Must be run from root of installed WordPress instance.
-
   This command pulls an existing project instance from the repository into your current WordPress install replacing your database and `wp-content` directory entirely. The command will interactively prompt you to map URLs to be search and replaced. If the project instance is a multisite, you will have to map URLs interactively for each blog in the network.
-
 3. __wpprojects search <search-text>__
-
   This command searches the repository for project instances. `<search-text>` will be compared against project names and authors.
-
 4. __wpprojects delete <instance-id>__
-
   This command deletes a project instance from the repository.
 
 ## Windows
