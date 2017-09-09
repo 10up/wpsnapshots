@@ -6,7 +6,7 @@ use \Symfony\Component\Console\Application;
 
 require_once __DIR__ . '/utils.php';
 
-$app = new Application( 'WPProjects - A tool for syncing WordPress projects.', '@package_version@' );
+$app = new Application( 'WPProjects - A tool for syncing WordPress projects.' '0.1' );
 
 /**
  * Register commands
