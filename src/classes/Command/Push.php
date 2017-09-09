@@ -199,8 +199,6 @@ class Push extends Command {
 
 		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar -zcvf ../.wpprojects/files.tar.gz . ' . $maybe_uploads );
 
-		$output->writeln( 'Cleaning up temp files...' );
-
 		$output->writeln( 'Adding project instance to database...' );
 
 		/**
@@ -224,6 +222,8 @@ class Push extends Command {
 			$output->writeln( '<error>Could not upload files to S3.</error>' );
 			exit;
 		}
+
+		$output->writeln( 'Cleaning up temp files...' );
 
 		Utils\remove_temp_folder();
 
