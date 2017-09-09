@@ -200,8 +200,6 @@ class Push extends Command {
 		 */
 		$project_instance = ConnectionManager::instance()->db->insertProjectInstance( $project_config, $temp_path . '/data.sql' );
 
-		exit;
-
 		$output->writeln( 'Upload files and database to repository...' );
 
 		/**
