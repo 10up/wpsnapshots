@@ -26,6 +26,7 @@ class Push extends Command {
 	protected function configure() {
 		$this->setName( 'push' );
 		$this->setDescription( 'Push an instance of a project to a repository' );
+		$this->addOption( 'no-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed project instance.' );
 	}
 
 	/**
@@ -189,7 +190,14 @@ class Push extends Command {
 
 		$output->writeln( 'Saving file back up...' );
 
-		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar -zcvf ../.wpprojects/files.tar.gz .' );
+		$no_uploads = $input->getOption( 'no-uploads' );
+
+		$maybe_uploads = '';
+		if ( $no_uploads ) {
+			$maybe_uploads = ' --exclude="uploads"';
+		}
+
+		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar -zcvf ../.wpprojects/files.tar.gz . ' . $maybe_uploads );
 
 		$output->writeln( 'Cleaning up temp files...' );
 
