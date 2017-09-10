@@ -25,7 +25,7 @@ class Push extends Command {
 	 */
 	protected function configure() {
 		$this->setName( 'push' );
-		$this->setDescription( 'Push an instance of a project to a repository' );
+		$this->setDescription( 'Push a project instance to a repository' );
 		$this->addOption( 'no-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed project instance.' );
 		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 	}

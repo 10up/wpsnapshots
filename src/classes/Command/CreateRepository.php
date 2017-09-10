@@ -24,7 +24,7 @@ class CreateRepository extends Command {
 	 */
 	protected function configure() {
 		$this->setName( 'create-repository' );
-		$this->setDescription( 'Setup WPProjects repository on S3' );
+		$this->setDescription( 'Setup WP Projects repository.' );
 	}
 
 	/**

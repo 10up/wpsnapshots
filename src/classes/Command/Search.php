@@ -25,7 +25,7 @@ class Search extends Command {
 	 */
 	protected function configure() {
 		$this->setName( 'search' );
-		$this->setDescription( 'Search for projects within a repository.' );
+		$this->setDescription( 'Search for project instances within a repository.' );
 		$this->addArgument( 'search-text', InputArgument::REQUIRED, 'Text to search against project instances.' );
 	}
 

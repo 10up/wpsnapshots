@@ -26,7 +26,7 @@ class Connect extends Command {
 	 */
 	protected function configure() {
 		$this->setName( 'connect' );
-		$this->setDescription( 'Connects WPProjects to an S3 repository.' );
+		$this->setDescription( 'Connects WP Projects to a repository.' );
 		$this->addArgument( 'profile', InputArgument::REQUIRED, 'Profile to connect to.' );
 		$this->addOption( 'region', null, InputOption::VALUE_REQUIRED, 'AWS region to use.' );
 	}

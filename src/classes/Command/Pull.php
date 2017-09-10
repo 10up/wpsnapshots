@@ -27,7 +27,7 @@ class Pull extends Command {
 	 */
 	protected function configure() {
 		$this->setName( 'pull' );
-		$this->setDescription( 'Pull a project from a repository' );
+		$this->setDescription( 'Pull a project instance from a repository' );
 		$this->addArgument( 'instance-id', InputArgument::REQUIRED, 'Project instance ID to pull.' );
 
 		$this->addOption( 'confirm', null, InputOption::VALUE_NONE, 'Confirm pull operation.' );
