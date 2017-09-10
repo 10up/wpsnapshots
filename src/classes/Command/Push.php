@@ -27,6 +27,7 @@ class Push extends Command {
 		$this->setName( 'push' );
 		$this->setDescription( 'Push an instance of a project to a repository' );
 		$this->addOption( 'no-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed project instance.' );
+		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 	}
 
 	/**
@@ -183,6 +184,30 @@ class Push extends Command {
 		$output->writeln( 'Exporting database...' );
 
 		Utils\run_mysql_command( $escaped_command, $args );
+
+		$no_scrub = $input->getOption( 'no-scrub' );
+
+		if ( ! $no_scrub ) {
+			$output->writeln( 'Scrubbing personal data...' );
+
+			$all_hashed_passwords = [];
+
+			$passwords = $wpdb->get_results( "SELECT user_pass FROM $wpdb->users", ARRAY_A );
+
+			foreach ( $passwords as $password_row ) {
+				$all_hashed_passwords[] = $password_row['user_pass'];
+			}
+
+			$sterile_password = wp_hash_password( 'password' );
+
+			$dump_sql = file_get_contents( $temp_path . '/data.sql' );
+
+			foreach ( $all_hashed_passwords as $password ) {
+				$dump_sql = str_replace( "'$password'", "'$sterile_password'", $dump_sql );
+			}
+
+			file_put_contents( $temp_path . '/data.sql', $dump_sql );
+		}
 
 		/**
 		 * Create file back up of wp-content in .wpprojects/files.tar.gz

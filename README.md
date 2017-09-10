@@ -53,9 +53,11 @@ WP Projects revolves around pushing, pulling, and searching for project instance
 
 Documentation for each operation is as follows:
 
-1. __wpprojects push [--no-uploads]__ - Must be run from root of installed WordPress instance.
+1. __wpprojects push [--no-uploads] [--no-scrub]__ - Must be run from root of installed WordPress instance.
 
   This command pushes an instance of the current project to the repository. Data about the project (name, author, environment, etc.) is stored in a `wpprojects.json` file. Project instances are searchable by name and author so set these carefully. The push command will prompt you to create the file, if one doesn't already exist. The command will return a project instance ID once it's finished that you could pass to a team member.
+
+  By default all passwords are converted to `password`. The `--no-scrub` option will disable scrubbing.
 
 2. __wpprojects pull \<instance-id\>__ - Must be run from root of installed WordPress instance.
 
