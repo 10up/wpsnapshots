@@ -2,6 +2,8 @@
 
 WP Projects is a project syncing tool for WordPress, operated via the command line, empowering developers to easily push instances of projects into the cloud for sharing with team members. Team members can pull project instances into existing WordPress installs such that everything "just works". No more downloading files, SQL dumps, fixing table prefixes, running search/replace commands, etc. WP Projects even works with multisite.
 
+__WP Projects is currently a private tool for internal 10up use only.__
+
 ## How Does It Work?
 
 WP Projects stores projects in a centralized repository (AWS). Users setup up WP Projects with their team's AWS credentials. Users can then push, pull, and search for project instances. When a user pushes a project instance, an instance of their current environment (`wp-content/` and database) is pushed to Amazon. When a project instance is pulled, files are pulled from the cloud replacing `wp-content/` and data is intelligently merged into the database.
