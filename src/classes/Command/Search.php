@@ -36,7 +36,7 @@ class Search extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		$connection = ConnectionManager::instance()->connect( '10up' );
+		$connection = ConnectionManager::instance()->connect();
 
 		if ( Utils\is_error( $connection ) ) {
 			$output->writeln( '<error>Could not connect to repository.</error>' );

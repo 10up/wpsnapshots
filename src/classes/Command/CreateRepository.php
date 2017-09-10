@@ -34,7 +34,7 @@ class CreateRepository extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		ConnectionManager::instance()->connect( '10up' );
+		ConnectionManager::instance()->connect();
 
 		$create_s3 = ConnectionManager::instance()->s3->createBucket();
 
@@ -43,6 +43,9 @@ class CreateRepository extends Command {
 		if ( Utils\is_error( $create_s3 ) ) {
 			if ( 1 === $create_s3->code ) {
 				$output->writeln( '<comment>S3 already setup.</comment>' );
+			} elseif ( 2 === $create_s3->code ) {
+				$output->writeln( '<error>Cannot write to existing WP Projects S3 bucket.</error>' );
+				$s3_setup = false;
 			} else {
 				$output->writeln( '<error>Could not create S3 bucket.</error>' );
 				$s3_setup = false;

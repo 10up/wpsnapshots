@@ -6,20 +6,22 @@ use \Aws\S3\S3Client;
 
 class S3 {
 	private $client;
+	private $profile;
 
 	/**
 	 * Setup S3 client
 	 *
-	 * @param array $creds
-	 * @param string $profile
+	 * @param array $config
 	 */
-	public function __construct( $creds, $profile ) {
+	public function __construct( $config ) {
 		$this->client = S3Client::factory( [
 			'credentials' => [
-				'key'    => $creds['access_key_id'],
-				'secret' => $creds['secret_access_key'],
+				'key'    => $config['access_key_id'],
+				'secret' => $config['secret_access_key'],
 			],
 		] );
+
+		$this->profile = $config['profile'];
 	}
 
 	/**
@@ -33,7 +35,7 @@ class S3 {
 	public function putProjectInstance( $project_instance, $db_path, $files_path ) {
 		try {
 			$db_result = $this->client->putObject( [
-				'Bucket'     => 'wpprojects',
+				'Bucket'     => self::getBucketName( $this->profile ),
 				'Key'        => $project_instance['id'] . '/data.sql',
 				'SourceFile' => realpath( $db_path ),
 				'Metadata'   => [
@@ -42,7 +44,7 @@ class S3 {
 			] );
 
 			$files_result = $this->client->putObject( [
-				'Bucket'     => 'wpprojects',
+				'Bucket'     => self::getBucketName( $this->profile ),
 				'Key'        => $project_instance['id'] . '/files.tar.gz',
 				'SourceFile' => realpath( $files_path ),
 				'Metadata'   => [
@@ -54,15 +56,16 @@ class S3 {
 			 * Wait for files first since that will probably take longer
 			 */
 			$this->client->waitUntil( 'ObjectExists', [
-				'Bucket' => 'wpprojects',
+				'Bucket' => self::getBucketName( $this->profile ),
 				'Key'    => $project_instance['id'] . '/files.tar.gz',
 			] );
 
 			$this->client->waitUntil( 'ObjectExists', [
-				'Bucket' => 'wpprojects',
+				'Bucket' => self::getBucketName( $this->profile ),
 				'Key'    => $project_instance['id'] . '/data.sql',
 			] );
 		} catch ( \Exception $e ) {
+			var_dump($e);
 			return new Error( 0 );
 		}
 
@@ -80,17 +83,19 @@ class S3 {
 	public function downloadProjectInstance( $id, $db_path, $files_path ) {
 		try {
 			$db_download = $this->client->getObject( [
-			    'Bucket' => 'wpprojects',
+			    'Bucket' => self::getBucketName( $this->profile ),
 			    'Key'    => $id . '/data.sql',
 			    'SaveAs' => $db_path,
 			] );
 
 			$files_download = $this->client->getObject( [
-			    'Bucket' => 'wpprojects',
+			    'Bucket' => self::getBucketName( $this->profile ),
 			    'Key'    => $id . '/files.tar.gz',
 			    'SaveAs' => $files_path,
 			] );
 		} catch ( \Exception $e ) {
+			var_dump($e);
+			echo $e->getMessage();
 			return new Error( 0 );
 		}
 
@@ -106,7 +111,7 @@ class S3 {
 	public function deleteProjectInstance( $id ) {
 		try {
 			$result = $this->client->deleteObjects( [
-				'Bucket' => 'wpprojects',
+				'Bucket' => self::getBucketName( $this->profile ),
 				'Objects' => [
 					[
 						'Key' => $id . '/files.tar.gz',
@@ -123,27 +128,45 @@ class S3 {
 		return true;
 	}
 
+	public static function getBucketName( $profile ) {
+		return 'wpprojects-' . $profile . '-' . substr( md5( $profile ), 0, 6 );
+	}
+
 	/**
-	 * Test S3 connection by attempting to list S3 buckets
+	 * Test S3 connection by attempting to list S3 buckets and write a test file.
 	 *
 	 * @param  array $creds
 	 * @return bool|Error
 	 */
-	public static function test( $creds ) {
+	public static function test( $config ) {
 		$client = S3Client::factory( [
 			'credentials' => [
-				'key'    => $creds['access_key_id'],
-				'secret' => $creds['secret_access_key'],
+				'key'    => $config['access_key_id'],
+				'secret' => $config['secret_access_key'],
 			]
 		] );
 
 		try {
-			$client->listBuckets();
-
-			return true;
+			$result = $client->listBuckets();
 		} catch ( \Exception $e ) {
 			return new Error( 0, 'Connection could not be established' );
 		}
+
+		$bucket_name = self::getBucketName( $config['profile'] );
+
+		$bucket_found = false;
+
+		foreach ( $result['Buckets'] as $bucket ) {
+			if ( $bucket_name === $bucket['Name'] ) {
+				$bucket_found = true;
+			}
+		}
+
+		if ( ! $bucket_found ) {
+			return new Error( 1, 'Bucket not found' );
+		}
+
+		return true;
 	}
 
 	/**
@@ -152,14 +175,63 @@ class S3 {
 	 * @return bool|Error
 	 */
 	public function createBucket() {
+		$bucket_exists = false;
+
 		try {
-			$result = $this->client->createBucket( [ 'Bucket' => 'wpprojects' ] );
+			$result = $this->client->listBuckets();
 		} catch ( \Exception $e ) {
-			if ( 'BucketAlreadyOwnedByYou' === $e->getAwsErrorCode() || 'BucketAlreadyExists' === $e->getAwsErrorCode() ) {
-				return new Error( 1, 'Bucket already exists' );
+			return new Error( 0, 'Could not create bucket' );
+		}
+
+		$bucket_name = self::getBucketName( $this->profile );
+
+		foreach ( $result['Buckets'] as $bucket ) {
+			if ( $bucket_name === $bucket['Name'] ) {
+				$bucket_exists = true;
+			}
+		}
+
+		if ( ! $bucket_exists ) {
+			try {
+				$result = $this->client->createBucket( [ 'Bucket' => self::getBucketName( $this->profile ) ] );
+			} catch ( \Exception $e ) {
+				if ( 'BucketAlreadyOwnedByYou' === $e->getAwsErrorCode() || 'BucketAlreadyExists' === $e->getAwsErrorCode() ) {
+					$bucket_exists = true;
+				} else {
+					return new Error( 0, 'Could not create bucket' );
+				}
+			}
+		}
+
+		if ( $bucket_exists ) {
+			try {
+				$test_key = time();
+
+				$this->client->putObject( [
+					'Bucket' => self::getBucketName( $this->profile ),
+					'Key'    => 'test' . $test_key,
+					'Body'   => 'Test write'
+				] );
+
+				$this->client->waitUntil( 'ObjectExists', [
+					'Bucket' => self::getBucketName( $this->profile ),
+					'Key'    => 'test' . $test_key,
+				] );
+			} catch( \Exception $e ) {
+				echo 234234;
+				return new Error( 2, 'Cant write to bucket' );
 			}
 
-			return new Error( 0, 'Could not create bucket' );
+			$this->client->deleteObjects( [
+				'Bucket' => self::getBucketName( $this->profile ),
+				'Objects' => [
+					[
+						'Key' => 'test' . $test_key,
+					],
+				],
+			] );
+
+			return new Error( 1, 'Bucket already exists' );
 		}
 
 		return true;

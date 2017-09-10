@@ -26,26 +26,20 @@ class ConnectionManager {
 	private function construct() { }
 
 	/**
-	 * Connect to S3/DynamoDB given a profle
+	 * Connect to S3/DynamoDB
 	 *
-	 * @param  string $profile
 	 * @return bool|Error
 	 */
-	public function connect( $profile ) {
-		$connection_config = $this->getConfig( $profile );
+	public function connect() {
+		$config = $this->getConfig();
 
-		if ( Utils\is_error( $connection_config ) ) {
-			return $connection_config;
+		if ( Utils\is_error( $config ) ) {
+			return $config;
 		}
 
-		$creds = [
-			'access_key_id' => $connection_config['access_key_id'],
-			'secret_access_key' => $connection_config['secret_access_key'],
-		];
+		$this->s3 = new S3( $config );
 
-		$this->s3 = new S3( $creds, $profile );
-
-		$this->db = new DB( $creds, $profile, $connection_config['region'] );
+		$this->db = new DB( $config );
 
 		return true;
 	}
@@ -53,32 +47,23 @@ class ConnectionManager {
 	/**
 	 * Write connection config to ~/.wpprojects.json
 	 *
-	 * @param  array $connection_config
+	 * @param  array $config
 	 */
-	public function writeConfig( $connection_config ) {
-		file_put_contents( $_SERVER['HOME'] . '/.wpprojects.json', json_encode( $connection_config ) );
+	public function writeConfig( $config ) {
+		file_put_contents( $_SERVER['HOME'] . '/.wpprojects.json', json_encode( $config ) );
 	}
 
 	/**
 	 * Get current connection config if it exists
 	 *
-	 * @param  string $profile
 	 * @return array|Error
 	 */
-	public function getConfig( $profile = null ) {
+	public function getConfig() {
 		if ( ! file_exists( $_SERVER['HOME'] . '/.wpprojects.json' ) ) {
 			return new Error( 0, 'No json file exists.' );
 		}
 
 		$connection_config_file = json_decode( file_get_contents( $_SERVER['HOME'] . '/.wpprojects.json' ), true );
-
-		if ( ! empty( $profile ) ) {
-			if ( empty( $connection_config_file[ $profile ] ) ) {
-				return new Error( 1, 'Profile does not exist' );
-			} else {
-				$connection_config_file = $connection_config_file[ $profile ];
-			}
-		}
 
 		return $connection_config_file;
 	}

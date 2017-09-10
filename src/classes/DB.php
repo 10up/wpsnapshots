@@ -7,22 +7,23 @@ use Aws\DynamoDb\Marshaler;
 
 class DB {
 	public $client;
+	public $profile;
 
 	/**
 	 * Init dynamodb client
 	 *
-	 * @param array $creds
-	 * @param string $profile Config profile
-	 * @param [string $region  AWS region
+	 * @param array $config
 	 */
-	public function __construct( $creds, $profile, $region ) {
+	public function __construct( $config ) {
 		$this->client = DynamoDbClient::factory( [
 			'credentials' => [
-				'key'    => $creds['access_key_id'],
-				'secret' => $creds['secret_access_key'],
+				'key'    => $config['access_key_id'],
+				'secret' => $config['secret_access_key'],
 			],
-			'region'      => $region,
+			'region'      => $config['region'],
 		] );
+
+		$this->profile = $config['profile'];
 	}
 
 	/**
@@ -37,7 +38,7 @@ class DB {
 
 		try {
 			$search_scan = $this->client->getIterator( 'Scan', [
-				'TableName'  => 'wpprojects',
+				'TableName'  => 'wpprojects-' . $this->profile,
 				'ConditionalOperator' => 'OR',
 				'ScanFilter' => [
 			        'project' => [
@@ -94,7 +95,7 @@ class DB {
 
 		try {
 			$result = $this->client->putItem( [
-				'TableName' => 'wpprojects',
+				'TableName' => 'wpprojects-' . $this->profile,
 				'Item'      => $marshaler->marshalJson( $project_json )
 			] );
 		} catch ( \Exception $e ) {
@@ -113,7 +114,7 @@ class DB {
 	public function deleteProjectInstance( $id ) {
 		try {
 			$result = $this->client->deleteItem( [
-				'TableName' => 'wpprojects',
+				'TableName' => 'wpprojects-' . $this->profile,
 				'Key' => [
 					'id'   => [
 						'S' => $id
@@ -137,7 +138,7 @@ class DB {
 		try {
 			$result = $this->client->getItem( [
 				'ConsistentRead' => true,
-				'TableName'      => 'wpprojects',
+				'TableName'      => 'wpprojects-' . $this->profile,
 				'Key'            => [
 					'id' => [
 						'S' => $id
@@ -169,7 +170,7 @@ class DB {
 	public function createTables() {
 		try {
 			$this->client->createTable( [
-				'TableName' => 'wpprojects',
+				'TableName' => 'wpprojects-' . $this->profile,
 				'AttributeDefinitions' => [
 					[
 						'AttributeName' => 'id',
@@ -189,7 +190,7 @@ class DB {
 			] );
 
 			$this->client->waitUntil('TableExists', [
-			    'TableName' => 'wpprojects'
+			    'TableName' => 'wpprojects-' . $this->profile,
 			] );
 		} catch ( \Exception $e ) {
 			if ( 'ResourceInUseException' === $e->getAwsErrorCode() ) {

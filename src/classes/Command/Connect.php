@@ -27,6 +27,8 @@ class Connect extends Command {
 	protected function configure() {
 		$this->setName( 'connect' );
 		$this->setDescription( 'Connects WPProjects to an S3 repository.' );
+		$this->addArgument( 'profile', InputArgument::REQUIRED, 'Profile to connect to.' );
+		$this->addOption( 'region', null, InputOption::VALUE_REQUIRED, 'AWS region to use.' );
 	}
 
 	/**
@@ -36,17 +38,23 @@ class Connect extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		$profile = '10up';
+		$profile = $input->getArgument( 'profile' );
 
-		$current_connection_config = ConnectionManager::instance()->getConfig( $profile );
+		$region = $input->getOption( 'region' );
+
+		if ( empty( $region ) ) {
+			$region = 'us-west-1';
+		}
+
+		$current_connection_config = ConnectionManager::instance()->getConfig();
 
 		if ( ! Utils\is_error( $current_connection_config ) ) {
-			$output->writeln( 'Connection config profile already exist. Proceeding will overwrite it.' );
+			$output->writeln( 'Connection config already exists. Proceeding will overwrite it.' );
 		}
 
-		if ( Utils\is_error( $current_connection_config ) ) {
-			$current_connection_config = [];
-		}
+		$config = [
+			'profile' => $profile,
+		];
 
 		/**
 		 * Loop until we get S3 credentials that work
@@ -58,26 +66,26 @@ class Connect extends Command {
 
 			$secret_access_key = $helper->ask( $input, $output, new Question( 'AWS Secret Access Key: ' ) );
 
-			$profile = '10up';
+			$config['access_key_id'] = $access_key_id;
+			$config['secret_access_key'] = $secret_access_key;
+			$config['region'] = $region;
 
-			$config = [
-				$profile => [
-					'access_key_id'     => $access_key_id,
-					'secret_access_key' => $secret_access_key,
-					'region'            => 'us-west-1',
-				],
-			];
-
-			$test = S3::test( $config[ $profile ] );
+			$test = S3::test( $config );
 
 			if ( ! Utils\is_error( $test ) ) {
 				$output->writeln( '<info>Repository connection verified and saved!</info>' );
-				ConnectionManager::instance()->writeConfig( array_merge( $current_connection_config, $config ) );
 				break;
 			} else {
-				$output->writeln( '<comment>Repository connection did not work. Try again?</comment>' );
+				if ( 0 === $test->code ) {
+					$output->writeln( '<comment>Repository connection did not work. Try again?</comment>' );
+				} else {
+					$output->writeln( '<info>Connection successful. However, no repository has been setup. Run `wpprojects create-repository`</info>' );
+					break;
+				}
 			}
 		}
+
+		ConnectionManager::instance()->writeConfig( $config );
 	}
 
 }
