@@ -34,10 +34,10 @@ export PATH=~/.composer/vendor/bin:$PATH
 WP Projects currently relies on AWS to store files and data. As such, you need to connect to AWS or a "repository":
 
 ```
-wpprojects connect
+wpprojects connect 10up
 ```
 
-You'll be prompted for a AWS keys.
+You'll be prompted for AWS keys.
 
 If WP Projects has not been setup for your team/company, you'll need to create the WP Projects repository:
 
