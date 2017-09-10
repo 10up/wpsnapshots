@@ -37,7 +37,7 @@ WP Projects currently relies on AWS to store files and data. As such, you need t
 wpprojects connect 10up
 ```
 
-You'll be prompted for AWS keys.
+You'll be prompted for AWS keys. 10up's AWS keys for WP Projects are [located in a Google Doc](https://docs.google.com/document/d/1C0N7mMfAA3KHJhYjrE-U4DRMoF59VxMshDkxtzKV9zc/edit).
 
 If WP Projects has not been setup for your team/company, you'll need to create the WP Projects repository:
 
