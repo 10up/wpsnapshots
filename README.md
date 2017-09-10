@@ -31,7 +31,7 @@ export PATH=~/.composer/vendor/bin:$PATH
 ```
 ## Configure
 
-WP Projects currently relies on AWS to store files and data. As such, you need to connect to AWS or a "repository":
+WP Projects currently relies on AWS to store files and data. As such, you need to connect to a "repository" hosted on AWS:
 
 ```
 wpprojects connect 10up
