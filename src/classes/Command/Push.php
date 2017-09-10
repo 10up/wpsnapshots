@@ -225,7 +225,7 @@ class Push extends Command {
 
 		$output->writeln( 'Cleaning up temp files...' );
 
-		Utils\remove_temp_folder();
+		//Utils\remove_temp_folder();
 
 		$output->writeln( '<info>Push finished! Project instance id is ' . $project_instance['id'] . '</info>' );
 	}

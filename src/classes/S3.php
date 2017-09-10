@@ -153,7 +153,7 @@ class S3 {
 	 */
 	public function createBucket() {
 		try {
-			$this->client->createBucket( [ 'Bucket' => 'wpprojects' ] );
+			$result = $this->client->createBucket( [ 'Bucket' => 'wpprojects' ] );
 		} catch ( \Exception $e ) {
 			if ( 'BucketAlreadyOwnedByYou' === $e->getAwsErrorCode() || 'BucketAlreadyExists' === $e->getAwsErrorCode() ) {
 				return new Error( 1, 'Bucket already exists' );

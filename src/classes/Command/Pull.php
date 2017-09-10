@@ -29,8 +29,6 @@ class Pull extends Command {
 		$this->setName( 'pull' );
 		$this->setDescription( 'Pull a project from a repository' );
 		$this->addArgument( 'instance-id', InputArgument::REQUIRED, 'Project instance ID to pull.' );
-		$this->addArgument( 'search-string', InputArgument::OPTIONAL, 'A string to search for within the database.' );
-		$this->addArgument( 'replace-string', InputArgument::OPTIONAL, 'Replace instances of the first string with this new string.' );
 
 		$this->addOption( 'confirm', null, InputOption::VALUE_NONE, 'Confirm pull operation.' );
 	}
@@ -44,17 +42,6 @@ class Pull extends Command {
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		$connection = ConnectionManager::instance()->connect( '10up' );
 
-		$search_string = $input->getArgument( 'search-string' );
-		$replace_string = $input->getArgument( 'replace-string' );
-
-		/**
-		 * Need replace string if we have search string
-		 */
-		if ( ! empty( $search_string ) && empty( $replace_string ) ) {
-			$output->writeln( '<error>If you specify a search string, you must specify a replace string.</error>' );
-			return;
-		}
-
 		if ( Utils\is_error( $connection ) ) {
 			$output->writeln( '<error>Could not connect to repository.</error>' );
 			return;
@@ -62,6 +49,10 @@ class Pull extends Command {
 
 		if ( ! Utils\locate_wp_config() ) {
 			$output->writeln( '<error>This is not a WordPress install.</error>' );
+
+			/**
+			 * Todo: Prompt to install WordPress. Prompt for DB creds to create wp-config.php
+			 */
 			return;
 		}
 
@@ -181,6 +172,11 @@ class Pull extends Command {
 		}
 
 		/**
+		 * Get all tables again since it could have changed
+		 */
+		$all_tables = Utils\get_tables();
+
+		/**
 		 * Handle url replacements
 		 */
 		if ( ! empty( $project_instance['sites'] ) ) {
@@ -291,8 +287,11 @@ class Pull extends Command {
 							$raw_table = str_replace( $prefix, '', $table );
 
 							if ( ! in_array( $raw_table, $blacklist_tables ) ) {
-								new SearchReplace( $site['home_url'], $new_home_url );
-								new SearchReplace( $site['site_url'], $new_site_url );
+								new SearchReplace( $site['home_url'], $new_home_url, [ $table ] );
+
+								if ( $site['home_url'] !== $site['site_url'] ) {
+									new SearchReplace( $site['site_url'], $new_site_url, [ $table ] );
+								}
 							}
 						}
 					}
