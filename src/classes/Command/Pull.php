@@ -125,7 +125,7 @@ class Pull extends Command {
 
 		$output->writeln( 'Replacing wp-content/...' );
 
-		exec( 'rm -rf ' . getcwd() . '/wp-content/..?* ' . getcwd() . '/wp-content/.[!.]* ' . getcwd() . '/wp-content/* && tar -C ' . getcwd() . '/wp-content' . ' -xvf ' . $temp_path . '/files.tar.gz' );
+		//exec( 'rm -rf ' . getcwd() . '/wp-content/..?* ' . getcwd() . '/wp-content/.[!.]* ' . getcwd() . '/wp-content/* && tar -C ' . getcwd() . '/wp-content' . ' -xvf ' . $temp_path . '/files.tar.gz' );
 
 		/**
 		 * Import tables
@@ -154,6 +154,8 @@ class Pull extends Command {
 
 		$all_tables = Utils\get_tables( false );
 
+		global $wpdb;
+
 		/**
 		 * First update table prefixes
 		 */
@@ -172,9 +174,9 @@ class Pull extends Command {
 		}
 
 		/**
-		 * Get all tables again since it could have changed
+		 * Get tables again since it could have changed
 		 */
-		$all_tables = Utils\get_tables();
+		$wp_tables = Utils\get_tables();
 
 		/**
 		 * Handle url replacements
@@ -275,29 +277,41 @@ class Pull extends Command {
 					 * Update all tables except wp_site and wp_blog since we handled that above
 					 */
 					$blacklist_tables = [ 'site', 'blogs' ];
+					$tables_to_update = [];
 
-					foreach ( $all_tables as $table ) {
-						$prefix = $project_instance['table_prefix'];
+					foreach ( $wp_tables as $table ) {
+						if ( 1 === (int) $site['blog_id'] ) {
+							if ( preg_match( '#^' . $GLOBALS['table_prefix'] . '#', $table ) && ! preg_match( '#^' . $GLOBALS['table_prefix'] . '[0-9]+_#', $table ) ) {
+								if ( ! in_array( str_replace( $GLOBALS['table_prefix'], '', $table ), $blacklist_tables ) ) {
+									$tables_to_update[] = $table;
+								}
+							}
+						} else {
+							if ( preg_match( '#^' . $GLOBALS['table_prefix'] . $site['blog_id'] . '_#', $table ) ) {
+								$raw_table = str_replace( $GLOBALS['table_prefix'] . $site['blog_id'] . '_', '', $table );
 
-						if ( 1 !== $site['blog_id'] ) {
-							$prefix .= $site['blog_id'] . '_';
-						}
-
-						if ( 0 === strpos( $table, $prefix ) ) {
-							$raw_table = str_replace( $prefix, '', $table );
-
-							if ( ! in_array( $raw_table, $blacklist_tables ) ) {
-								new SearchReplace( $site['home_url'], $new_home_url, [ $table ] );
-
-								if ( $site['home_url'] !== $site['site_url'] ) {
-									new SearchReplace( $site['site_url'], $new_site_url, [ $table ] );
+								if ( ! in_array( $raw_table, $blacklist_tables ) ) {
+									$tables_to_update[] = $table;
 								}
 							}
 						}
 					}
 
+					if ( ! empty( $tables_to_update ) ) {
+						new SearchReplace( $site['home_url'], $new_home_url, $tables_to_update );
+
+						if ( $site['home_url'] !== $site['site_url'] ) {
+							new SearchReplace( $site['site_url'], $new_site_url, $tables_to_update );
+						}
+					}
+
 					$i++;
 				}
+
+				/**
+				 * Update site domain with main domain
+				 */
+				$wpdb->query( $wpdb->prepare( "UPDATE " . $GLOBALS['table_prefix'] . "site SET domain='%s'", esc_sql( $main_domain ) ) );
 
 				if ( ! defined( 'BLOG_ID_CURRENT_SITE' ) || ! defined( 'SITE_ID_CURRENT_SITE' ) || ! defined( 'PATH_CURRENT_SITE' ) || ! defined( 'MULTISITE' ) || ! MULTISITE || ! defined( 'DOMAIN_CURRENT_SITE' ) || $main_domain !== DOMAIN_CURRENT_SITE || ! defined( 'SUBDOMAIN_INSTALL' ) || $project_instance['subdomain_install'] !== SUBDOMAIN_INSTALL ) {
 
