@@ -39,7 +39,7 @@ class S3 {
 				'Key'        => $snapshot['id'] . '/data.sql',
 				'SourceFile' => realpath( $db_path ),
 				'Metadata'   => [
-					'snapshot' => $snapshot['project'],
+					'project' => $snapshot['project'],
 				],
 			] );
 
@@ -75,12 +75,12 @@ class S3 {
 	/**
 	 * Download a snapshot given an id. Must specify where to download files/data
 	 *
-	 * @param  string $id         Project instance id
+	 * @param  string $id         Snapshot id
 	 * @param  string $db_path    Where to download data.sql
 	 * @param  string $files_path Where to download files.tar.gz
 	 * @return bool|error
 	 */
-	public function downloadProjectInstance( $id, $db_path, $files_path ) {
+	public function downloadSnapshot( $id, $db_path, $files_path ) {
 		try {
 			$db_download = $this->client->getObject( [
 			    'Bucket' => self::getBucketName( $this->repository ),
@@ -105,10 +105,10 @@ class S3 {
 	/**
 	 * Delete a snapshot given an id
 	 *
-	 * @param  string $id Project instance id
+	 * @param  string $id Snapshot id
 	 * @return bool|error
 	 */
-	public function deleteProjectInstance( $id ) {
+	public function deleteSnapshot( $id ) {
 		try {
 			$result = $this->client->deleteObjects( [
 				'Bucket' => self::getBucketName( $this->repository ),

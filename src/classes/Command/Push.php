@@ -77,12 +77,6 @@ class Push extends Command {
 			return;
 		}
 
-		$config = Config::instance()->get();
-
-		if ( empty( $config ) ) {
-			$config = [];
-		}
-
 		$helper = $this->getHelper( 'question' );
 
 		$not_empty_validator = function( $answer ) {
@@ -94,6 +88,20 @@ class Push extends Command {
 
 			return $answer;
 		};
+
+		$snapshot = [
+			'author' => [],
+		];
+
+		$config = Config::instance()->get();
+
+		if ( ! empty( $config['name'] ) ) {
+			$snapshot['author']['name'] = $config['name'];
+		}
+
+		if ( ! empty( $config['email'] ) ) {
+			$snapshot['author']['email'] = $config['email'];
+		}
 
 		$project_question = new Question( 'Project Name: ' );
 		$project_question->setValidator( $not_empty_validator );
