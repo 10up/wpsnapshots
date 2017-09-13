@@ -57,7 +57,7 @@ Documentation for each operation is as follows:
 
 * __wpsnapshots push [--no-uploads] [--no-scrub]__ - Must be run from root of installed WordPress instance.
   
-  This command pushes a snapshot of the current WordPress install to the repository. Data about the snapshot (project name, author, environment, etc.) is stored in a `wpsnapshots.json` file. Snapshots are searchable by name and author so set these carefully. The push command will prompt you to create the file, if one doesn't already exist. The command will return a snapshot ID once it's finished that you could pass to a team member.
+  This command pushes a snapshot of the current WordPress install to the repository. The command will return a snapshot ID once it's finished that you could pass to a team member.
   
   By default all passwords are converted to `password`. The `--no-scrub` option will disable scrubbing.
   
