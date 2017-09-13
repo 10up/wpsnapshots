@@ -1,8 +1,8 @@
 <?php
 
-namespace WPProjects;
+namespace WPSnapshots;
 
-use WPProjects\Utils;
+use WPSnapshots\Utils;
 
 /**
  * This class runs a search and replace operation on a DB

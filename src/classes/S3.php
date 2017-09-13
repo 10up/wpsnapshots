@@ -1,12 +1,12 @@
 <?php
 
-namespace WPProjects;
+namespace WPSnapshots;
 
 use \Aws\S3\S3Client;
 
 class S3 {
 	private $client;
-	private $profile;
+	private $repository;
 
 	/**
 	 * Setup S3 client
@@ -21,34 +21,34 @@ class S3 {
 			],
 		] );
 
-		$this->profile = $config['profile'];
+		$this->repository = $config['repository'];
 	}
 
 	/**
-	 * Upload a project instance to S3 given a path to files.tar.gz and data.sql
+	 * Upload a snapshot to S3 given a path to files.tar.gz and data.sql
 	 *
-	 * @param  array $project_instance Must contain 'id'
+	 * @param  array $snapshot Must contain 'id'
 	 * @param  string $db_path         Path to data.sql
 	 * @param  string $files_path      Path to files.tar.gz
 	 * @return bool|error
 	 */
-	public function putProjectInstance( $project_instance, $db_path, $files_path ) {
+	public function putSnapshot( $snapshot, $db_path, $files_path ) {
 		try {
 			$db_result = $this->client->putObject( [
-				'Bucket'     => self::getBucketName( $this->profile ),
-				'Key'        => $project_instance['id'] . '/data.sql',
+				'Bucket'     => self::getBucketName( $this->repository ),
+				'Key'        => $snapshot['id'] . '/data.sql',
 				'SourceFile' => realpath( $db_path ),
 				'Metadata'   => [
-					'project' => $project_instance['project'],
+					'snapshot' => $snapshot['project'],
 				],
 			] );
 
 			$files_result = $this->client->putObject( [
-				'Bucket'     => self::getBucketName( $this->profile ),
-				'Key'        => $project_instance['id'] . '/files.tar.gz',
+				'Bucket'     => self::getBucketName( $this->repository ),
+				'Key'        => $snapshot['id'] . '/files.tar.gz',
 				'SourceFile' => realpath( $files_path ),
 				'Metadata'   => [
-					'project' => $project_instance['project'],
+					'project' => $snapshot['project'],
 				],
 			] );
 
@@ -56,13 +56,13 @@ class S3 {
 			 * Wait for files first since that will probably take longer
 			 */
 			$this->client->waitUntil( 'ObjectExists', [
-				'Bucket' => self::getBucketName( $this->profile ),
-				'Key'    => $project_instance['id'] . '/files.tar.gz',
+				'Bucket' => self::getBucketName( $this->repository ),
+				'Key'    => $snapshot['id'] . '/files.tar.gz',
 			] );
 
 			$this->client->waitUntil( 'ObjectExists', [
-				'Bucket' => self::getBucketName( $this->profile ),
-				'Key'    => $project_instance['id'] . '/data.sql',
+				'Bucket' => self::getBucketName( $this->repository ),
+				'Key'    => $snapshot['id'] . '/data.sql',
 			] );
 		} catch ( \Exception $e ) {
 			var_dump($e);
@@ -73,7 +73,7 @@ class S3 {
 	}
 
 	/**
-	 * Download a project instance given an id. Must specify where to download files/data
+	 * Download a snapshot given an id. Must specify where to download files/data
 	 *
 	 * @param  string $id         Project instance id
 	 * @param  string $db_path    Where to download data.sql
@@ -83,13 +83,13 @@ class S3 {
 	public function downloadProjectInstance( $id, $db_path, $files_path ) {
 		try {
 			$db_download = $this->client->getObject( [
-			    'Bucket' => self::getBucketName( $this->profile ),
+			    'Bucket' => self::getBucketName( $this->repository ),
 			    'Key'    => $id . '/data.sql',
 			    'SaveAs' => $db_path,
 			] );
 
 			$files_download = $this->client->getObject( [
-			    'Bucket' => self::getBucketName( $this->profile ),
+			    'Bucket' => self::getBucketName( $this->repository ),
 			    'Key'    => $id . '/files.tar.gz',
 			    'SaveAs' => $files_path,
 			] );
@@ -103,7 +103,7 @@ class S3 {
 	}
 
 	/**
-	 * Delete a project instance given an id
+	 * Delete a snapshot given an id
 	 *
 	 * @param  string $id Project instance id
 	 * @return bool|error
@@ -111,7 +111,7 @@ class S3 {
 	public function deleteProjectInstance( $id ) {
 		try {
 			$result = $this->client->deleteObjects( [
-				'Bucket' => self::getBucketName( $this->profile ),
+				'Bucket' => self::getBucketName( $this->repository ),
 				'Objects' => [
 					[
 						'Key' => $id . '/files.tar.gz',
@@ -128,8 +128,8 @@ class S3 {
 		return true;
 	}
 
-	public static function getBucketName( $profile ) {
-		return 'wpprojects-' . $profile . '-' . substr( md5( $profile ), 0, 6 );
+	public static function getBucketName( $repository ) {
+		return 'wpsnapshots-' . $repository . '-' . substr( md5( $repository ), 0, 6 );
 	}
 
 	/**
@@ -152,7 +152,7 @@ class S3 {
 			return new Error( 0, 'Connection could not be established' );
 		}
 
-		$bucket_name = self::getBucketName( $config['profile'] );
+		$bucket_name = self::getBucketName( $config['repository'] );
 
 		$bucket_found = false;
 
@@ -170,7 +170,7 @@ class S3 {
 	}
 
 	/**
-	 * Create WPProjects S3 bucket
+	 * Create WPSnapshots S3 bucket
 	 *
 	 * @return bool|Error
 	 */
@@ -183,7 +183,7 @@ class S3 {
 			return new Error( 0, 'Could not create bucket' );
 		}
 
-		$bucket_name = self::getBucketName( $this->profile );
+		$bucket_name = self::getBucketName( $this->repository );
 
 		foreach ( $result['Buckets'] as $bucket ) {
 			if ( $bucket_name === $bucket['Name'] ) {
@@ -193,7 +193,7 @@ class S3 {
 
 		if ( ! $bucket_exists ) {
 			try {
-				$result = $this->client->createBucket( [ 'Bucket' => self::getBucketName( $this->profile ) ] );
+				$result = $this->client->createBucket( [ 'Bucket' => self::getBucketName( $this->repository ) ] );
 			} catch ( \Exception $e ) {
 				if ( 'BucketAlreadyOwnedByYou' === $e->getAwsErrorCode() || 'BucketAlreadyExists' === $e->getAwsErrorCode() ) {
 					$bucket_exists = true;
@@ -208,22 +208,21 @@ class S3 {
 				$test_key = time();
 
 				$this->client->putObject( [
-					'Bucket' => self::getBucketName( $this->profile ),
+					'Bucket' => self::getBucketName( $this->repository ),
 					'Key'    => 'test' . $test_key,
 					'Body'   => 'Test write'
 				] );
 
 				$this->client->waitUntil( 'ObjectExists', [
-					'Bucket' => self::getBucketName( $this->profile ),
+					'Bucket' => self::getBucketName( $this->repository ),
 					'Key'    => 'test' . $test_key,
 				] );
 			} catch( \Exception $e ) {
-				echo 234234;
 				return new Error( 2, 'Cant write to bucket' );
 			}
 
 			$this->client->deleteObjects( [
-				'Bucket' => self::getBucketName( $this->profile ),
+				'Bucket' => self::getBucketName( $this->repository ),
 				'Objects' => [
 					[
 						'Key' => 'test' . $test_key,

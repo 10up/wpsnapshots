@@ -1,6 +1,6 @@
 <?php
 
-namespace WPProjects\Command;
+namespace WPSnapshots\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -10,14 +10,14 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
-use WPProjects\ConnectionManager;
-use WPProjects\WordPressConfig;
-use WPProjects\ProjectConfig;
-use WPProjects\Utils;
-use WPProjects\SearchReplace;
+use WPSnapshots\Connection;
+use WPSnapshots\WordPressBridge;
+use WPSnapshots\Config;
+use WPSnapshots\Utils;
+use WPSnapshots\SearchReplace;
 
 /**
- * The pull command grabs a project instance and pulls it down overwriting your wp-content
+ * The pull command grabs a snapshot and pulls it down overwriting your wp-content
  * folder and current DB.
  */
 class Pull extends Command {
@@ -27,8 +27,8 @@ class Pull extends Command {
 	 */
 	protected function configure() {
 		$this->setName( 'pull' );
-		$this->setDescription( 'Pull a project instance from a repository' );
-		$this->addArgument( 'instance-id', InputArgument::REQUIRED, 'Project instance ID to pull.' );
+		$this->setDescription( 'Pull a snapshot from a repository.' );
+		$this->addArgument( 'instance-id', InputArgument::REQUIRED, 'Snapshot ID to pull.' );
 
 		$this->addOption( 'confirm', null, InputOption::VALUE_NONE, 'Confirm pull operation.' );
 	}
@@ -56,7 +56,7 @@ class Pull extends Command {
 			return;
 		}
 
-		$wp = WordPressConfig::instance()->load();
+		$wp = WordPressBridge::instance()->load();
 
 		if ( Utils\is_error( $wp ) ) {
 			$output->writeln( '<error>Could not connect to WordPress database.</error>' );
@@ -76,7 +76,7 @@ class Pull extends Command {
 		$remove_temp = Utils\remove_temp_folder();
 
 		if ( Utils\is_error( $remove_temp ) ) {
-			$output->writeln( '<error>Failed to clean up old WPProject temp files.</error>' );
+			$output->writeln( '<error>Failed to clean up old WP Snapshots temp files.</error>' );
 			return;
 		}
 
@@ -96,7 +96,7 @@ class Pull extends Command {
 			}
 		}
 
-		$temp_path = getcwd() . '/.wpprojects';
+		$temp_path = getcwd() . '/.wpsnapshots';
 
 		$dir_result = mkdir( $temp_path, 0755 );
 
@@ -107,25 +107,25 @@ class Pull extends Command {
 
 		$id = $input->getArgument( 'instance-id' );
 
-		$output->writeln( 'Downloading project instance files and database...' );
+		$output->writeln( 'Downloading snapshot files and database...' );
 
-		$download = ConnectionManager::instance()->s3->downloadProjectInstance( $id, $temp_path . '/data.sql', $temp_path . '/files.tar.gz' );
+		$download = Connection::instance()->s3->downloadSnapshot( $id, $temp_path . '/data.sql', $temp_path . '/files.tar.gz' );
 
 		if ( Utils\is_error( $download ) ) {
-			$output->writeln( '<error>Failed to pull project instance.</error>' );
+			$output->writeln( '<error>Failed to pull snapshot.</error>' );
 			return;
 		}
 
-		$project_instance = ConnectionManager::instance()->db->getProjectInstance( $id );
+		$snapshot = Connection::instance()->db->getSnapshot( $id );
 
-		if ( Utils\is_error( $project_instance ) ) {
-			$output->writeln( '<error>Failed to get project instance.</error>' );
+		if ( Utils\is_error( $snapshot ) ) {
+			$output->writeln( '<error>Failed to get snapshot.</error>' );
 			return;
 		}
 
 		$output->writeln( 'Replacing wp-content/...' );
 
-		//exec( 'rm -rf ' . getcwd() . '/wp-content/..?* ' . getcwd() . '/wp-content/.[!.]* ' . getcwd() . '/wp-content/* && tar -C ' . getcwd() . '/wp-content' . ' -xvf ' . $temp_path . '/files.tar.gz' );
+		exec( 'rm -rf ' . getcwd() . '/wp-content/..?* ' . getcwd() . '/wp-content/.[!.]* ' . getcwd() . '/wp-content/* && tar -C ' . getcwd() . '/wp-content' . ' -xvf ' . $temp_path . '/files.tar.gz' );
 
 		/**
 		 * Import tables
@@ -159,15 +159,15 @@ class Pull extends Command {
 		/**
 		 * First update table prefixes
 		 */
-		if ( ! empty( $project_instance['table_prefix'] ) && ! empty( $GLOBALS['table_prefix'] ) && $project_instance['table_prefix'] !== $GLOBALS['table_prefix'] ) {
+		if ( ! empty( $snapshot['table_prefix'] ) && ! empty( $GLOBALS['table_prefix'] ) && $snapshot['table_prefix'] !== $GLOBALS['table_prefix'] ) {
 			$output->writeln( 'Renaming WordPress tables...' );
 
 			foreach ( $all_tables as $table ) {
-				if ( 0 === strpos( $table, $project_instance['table_prefix'] ) ) {
+				if ( 0 === strpos( $table, $snapshot['table_prefix'] ) ) {
 					/**
 					 * Update this table to use the current config prefix
 					 */
-					$new_table = $GLOBALS['table_prefix'] . str_replace( $project_instance['table_prefix'], '', $table );
+					$new_table = $GLOBALS['table_prefix'] . str_replace( $snapshot['table_prefix'], '', $table );
 					$wpdb->query( $wpdb->prepare( 'RENAME TABLE `%s` TO `%s`', esc_sql( $table ), esc_sql( $new_table ) ) );
 				}
 			}
@@ -181,7 +181,7 @@ class Pull extends Command {
 		/**
 		 * Handle url replacements
 		 */
-		if ( ! empty( $project_instance['sites'] ) ) {
+		if ( ! empty( $snapshot['sites'] ) ) {
 			$output->writeln( 'Replacing URLs...' );
 
 			$url_validator = function( $answer ) {
@@ -194,8 +194,8 @@ class Pull extends Command {
 				return $answer;
 			};
 
-			if ( ! empty( $project_instance['multisite'] ) ) {
-				if ( empty( $project_instance['subdomain_install'] ) ) {
+			if ( ! empty( $snapshot['multisite'] ) ) {
+				if ( empty( $snapshot['subdomain_install'] ) ) {
 					$output->writeln( 'Multisite installation (path based install) detected. Paths will be maintained.' );
 				} else {
 					$output->writeln( 'Multisite installation (subdomain based install) detected.' );
@@ -229,15 +229,15 @@ class Pull extends Command {
 					return $answer;
 				} );
 
-				if ( empty( $project_instance['subdomain_install'] ) ) {
+				if ( empty( $snapshot['subdomain_install'] ) ) {
 					$main_domain = $helper->ask( $input, $output, $main_domain_question );
 				}
 
-				foreach ( $project_instance['sites'] as $site ) {
+				foreach ( $snapshot['sites'] as $site ) {
 
 					$output->writeln( 'Replacing URLs for blog ' . $site['blog_id'] . '. Path for blog is ' . $site['path'] . '.' );
 
-					if ( ! empty( $project_instance['subdomain_install'] ) ) {
+					if ( ! empty( $snapshot['subdomain_install'] ) ) {
 						$domain = $helper->ask( $input, $output, $main_domain_question );
 
 						if ( 0 === $i ) {
@@ -313,7 +313,7 @@ class Pull extends Command {
 				 */
 				$wpdb->query( $wpdb->prepare( "UPDATE " . $GLOBALS['table_prefix'] . "site SET domain='%s'", esc_sql( $main_domain ) ) );
 
-				if ( ! defined( 'BLOG_ID_CURRENT_SITE' ) || ! defined( 'SITE_ID_CURRENT_SITE' ) || ! defined( 'PATH_CURRENT_SITE' ) || ! defined( 'MULTISITE' ) || ! MULTISITE || ! defined( 'DOMAIN_CURRENT_SITE' ) || $main_domain !== DOMAIN_CURRENT_SITE || ! defined( 'SUBDOMAIN_INSTALL' ) || $project_instance['subdomain_install'] !== SUBDOMAIN_INSTALL ) {
+				if ( ! defined( 'BLOG_ID_CURRENT_SITE' ) || ! defined( 'SITE_ID_CURRENT_SITE' ) || ! defined( 'PATH_CURRENT_SITE' ) || ! defined( 'MULTISITE' ) || ! MULTISITE || ! defined( 'DOMAIN_CURRENT_SITE' ) || $main_domain !== DOMAIN_CURRENT_SITE || ! defined( 'SUBDOMAIN_INSTALL' ) || $snapshot['subdomain_install'] !== SUBDOMAIN_INSTALL ) {
 
 					$output->writeln( '<comment>URLs replaced. Since you are running multisite, the following code should be in your wp-config.php file:</comment>' );
 					$output->writeln( "define('WP_ALLOW_MULTISITE', true);
@@ -337,14 +337,14 @@ define('BLOG_ID_CURRENT_SITE', 1);");
 
 				$new_site_url = $helper->ask( $input, $output, $site_question );
 
-				new SearchReplace( $project_instance['sites'][0]['home_url'], $new_home_url );
-				new SearchReplace( $project_instance['sites'][0]['site_url'], $new_site_url );
+				new SearchReplace( $snapshot['sites'][0]['home_url'], $new_home_url );
+				new SearchReplace( $snapshot['sites'][0]['site_url'], $new_site_url );
 			}
 		}
 
 		Utils\remove_temp_folder();
 
-		$output->writeln( '<info>Pull finished</info>' );
+		$output->writeln( '<info>Pull finished.</info>' );
 	}
 
 }

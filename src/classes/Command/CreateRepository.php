@@ -1,6 +1,6 @@
 <?php
 
-namespace WPProjects\Command;
+namespace WPSnapshots\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -9,12 +9,12 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
-use WPProjects\ConnectionManager;
-use \WPProjects\Utils;
+use WPSnapshots\Connection;
+use \WPSnapshots\Utils;
 
 /**
- * The create-repository command creates the wpprojects bucket in the provided
- * S3 profile and the table within DynamoDB. If the bucket or table already exists,
+ * The create-repository command creates the wpsnapshots bucket in the provided
+ * S3 repository and the table within DynamoDB. If the bucket or table already exists,
  * the command does nothing.
  */
 class CreateRepository extends Command {
@@ -24,7 +24,7 @@ class CreateRepository extends Command {
 	 */
 	protected function configure() {
 		$this->setName( 'create-repository' );
-		$this->setDescription( 'Setup WP Projects repository.' );
+		$this->setDescription( 'Create new WP Snapshots repository.' );
 	}
 
 	/**
@@ -34,9 +34,9 @@ class CreateRepository extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		ConnectionManager::instance()->connect();
+		Connection::instance()->connect();
 
-		$create_s3 = ConnectionManager::instance()->s3->createBucket();
+		$create_s3 = Connection::instance()->s3->createBucket();
 
 		$s3_setup = true;
 
@@ -44,7 +44,7 @@ class CreateRepository extends Command {
 			if ( 1 === $create_s3->code ) {
 				$output->writeln( '<comment>S3 already setup.</comment>' );
 			} elseif ( 2 === $create_s3->code ) {
-				$output->writeln( '<error>Cannot write to existing WP Projects S3 bucket.</error>' );
+				$output->writeln( '<error>Cannot write to existing WP Snapshots S3 bucket.</error>' );
 				$s3_setup = false;
 			} else {
 				$output->writeln( '<error>Could not create S3 bucket.</error>' );
@@ -52,7 +52,7 @@ class CreateRepository extends Command {
 			}
 		}
 
-		$create_db = ConnectionManager::instance()->db->createTables();
+		$create_db = Connection::instance()->db->createTables();
 
 		$db_setup  = true;
 

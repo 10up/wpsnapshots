@@ -1,7 +1,7 @@
 {
-  "name": "10up/wpprojects",
+  "name": "10up/wpsnapshots",
   "description": "A project syncing tool for WordPress.",
-  "keywords": ["wordpress"],
+  "keywords": ["wordpress", "backups", "snapshots"],
   "license": ["MIT"],
   "authors": [
     {
@@ -14,11 +14,11 @@
     "aws/aws-sdk-php": "2.*"
   },
   "bin": [
-    "bin/wpprojects"
+    "bin/wpsnapshots"
   ],
   "autoload": {
     "psr-4": {
-      "WPProjects\\": "./src/classes"
+      "WPSnapshots\\": "./src/classes"
     }
   }
 }

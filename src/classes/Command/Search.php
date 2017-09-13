@@ -1,6 +1,6 @@
 <?php
 
-namespace WPProjects\Command;
+namespace WPSnapshots\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -10,10 +10,9 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Helper\Table;
-use WPProjects\ConnectionManager;
-use WPProjects\WordPressConfig;
-use WPProjects\ProjectConfig;
-use WPProjects\Utils;
+use WPSnapshots\WordPressBridge;
+use WPSnapshots\Utils;
+use WPSnapshots\Connection;
 
 /**
  * The search command searches for projects within the repository.
@@ -25,8 +24,8 @@ class Search extends Command {
 	 */
 	protected function configure() {
 		$this->setName( 'search' );
-		$this->setDescription( 'Search for project instances within a repository.' );
-		$this->addArgument( 'search-text', InputArgument::REQUIRED, 'Text to search against project instances.' );
+		$this->setDescription( 'Search for snapshots within a repository.' );
+		$this->addArgument( 'search-text', InputArgument::REQUIRED, 'Text to search against snapshots.' );
 	}
 
 	/**
@@ -36,17 +35,17 @@ class Search extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		$connection = ConnectionManager::instance()->connect();
+		$connection = Connection::instance()->connect();
 
 		if ( Utils\is_error( $connection ) ) {
 			$output->writeln( '<error>Could not connect to repository.</error>' );
 			return;
 		}
 
-		$instances = ConnectionManager::instance()->db->search( $input->getArgument( 'search-text' ) );
+		$instances = Connection::instance()->db->search( $input->getArgument( 'search-text' ) );
 
 		if ( empty( $instances ) ) {
-			$output->writeln( '<comment>No project instances found.</comment>' );
+			$output->writeln( '<comment>No snapshots found.</comment>' );
 			return;
 		}
 

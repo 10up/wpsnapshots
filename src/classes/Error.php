@@ -1,6 +1,6 @@
 <?php
 
-namespace WPProjects;
+namespace WPSnapshots;
 
 /**
  * A simple error wrapping class

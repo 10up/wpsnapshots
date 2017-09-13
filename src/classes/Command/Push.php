@@ -1,6 +1,6 @@
 <?php
 
-namespace WPProjects\Command;
+namespace WPSnapshots\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -9,14 +9,14 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
-use WPProjects\ConnectionManager;
-use WPProjects\WordPressConfig;
-use WPProjects\ProjectConfig;
-use WPProjects\Utils;
+use WPSnapshots\Connection;
+use WPSnapshots\WordPressBridge;
+use WPSnapshots\Config;
+use WPSnapshots\Utils;
 
 /**
  * The push command takes the current WP DB and wp-content folder and pushes them to
- * S3.
+ * S3/DynamoDB as a snapshot.
  */
 class Push extends Command {
 
@@ -25,8 +25,8 @@ class Push extends Command {
 	 */
 	protected function configure() {
 		$this->setName( 'push' );
-		$this->setDescription( 'Push a project instance to a repository' );
-		$this->addOption( 'no-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed project instance.' );
+		$this->setDescription( 'Push a snapshot to a repository.' );
+		$this->addOption( 'no-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
 		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 	}
 
@@ -37,7 +37,7 @@ class Push extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		$connection = ConnectionManager::instance()->connect();
+		$connection = Connection::instance()->connect();
 
 		if ( Utils\is_error( $connection ) ) {
 			$output->writeln( '<error>Could not connect to repository.</error>' );
@@ -49,7 +49,7 @@ class Push extends Command {
 			return;
 		}
 
-		$wp = WordPressConfig::instance()->load();
+		$wp = WordPressBridge::instance()->load();
 
 		if ( Utils\is_error( $wp ) ) {
 			$output->writeln( '<error>Could not connect to WordPress database.</error>' );
@@ -64,11 +64,11 @@ class Push extends Command {
 		$remove_temp = Utils\remove_temp_folder();
 
 		if ( Utils\is_error( $remove_temp ) ) {
-			$output->writeln( '<error>Failed to clean up old WPProject temp files.</error>' );
+			$output->writeln( '<error>Failed to clean up old WP Snapshots temp files.</error>' );
 			return;
 		}
 
-		$temp_path = getcwd() . '/.wpprojects';
+		$temp_path = getcwd() . '/.wpsnapshots';
 
 		$dir_result = mkdir( $temp_path, 0755 );
 
@@ -77,64 +77,49 @@ class Push extends Command {
 			return;
 		}
 
-		$project_config = ProjectConfig::instance()->get();
+		$config = Config::instance()->get();
 
-		if ( empty( $project_config ) ) {
-			$project_config = [];
+		if ( empty( $config ) ) {
+			$config = [];
 		}
 
 		$helper = $this->getHelper( 'question' );
 
-		/**
-		 * Create wpproject.json if it doesn't exist
-		 */
+		$not_empty_validator = function( $answer ) {
+			if ( '' === trim( $answer ) ) {
+				throw new \RuntimeException(
+					'A valid answer is required.'
+				);
+			}
 
-		if ( empty( $project_config ) ) {
+			return $answer;
+		};
 
-			$not_empty_validator = function( $answer ) {
-				if ( '' === trim( $answer ) ) {
-					throw new \RuntimeException(
-						'A valid answer is required.'
-					);
-				}
+		$project_question = new Question( 'Project Name: ' );
+		$project_question->setValidator( $not_empty_validator );
 
-				return $answer;
-			};
+		$snapshot['project'] = $helper->ask( $input, $output, $project_question );
 
-			$project_question = new Question( 'Project slug: ' );
-			$project_question->setValidator( $not_empty_validator );
+		$environment_question = new Question( 'What type of environment is this? (local, staging, production) ' );
+		$environment_question->setValidator( $not_empty_validator );
 
-			$project_config['project'] = $helper->ask( $input, $output, $project_question );
+		$snapshot['environment'] = $helper->ask( $input, $output, $environment_question );
 
-			$project_config['author'] = [];
-
-			$project_config['author']['name'] = $helper->ask( $input, $output, new Question( 'Your name: ', '' ) );
-
-			$project_config['author']['email'] = $helper->ask( $input, $output, new Question( 'Your email: ', '' ) );
-
-			$environment_question = new Question( 'What type of environment is this? (local, staging, production) ' );
-			$environment_question->setValidator( $not_empty_validator );
-
-			$project_config['environment'] = $helper->ask( $input, $output, $environment_question );
-
-			ProjectConfig::instance()->write( $project_config );
-		}
-
-		$project_config['multisite'] = false;
-		$project_config['subdomain_install'] = false;
-		$project_config['sites'] = [];
+		$snapshot['multisite'] = false;
+		$snapshot['subdomain_install'] = false;
+		$snapshot['sites'] = [];
 
 		if ( is_multisite() ) {
-			$project_config['multisite'] = true;
+			$snapshot['multisite'] = true;
 
 			if ( defined( 'SUBDOMAIN_INSTALL' ) && SUBDOMAIN_INSTALL ) {
-				$project_config['subdomain_install'] = true;
+				$snapshot['subdomain_install'] = true;
  			}
 
  			$sites = get_sites( [ 'number' => 500, ] );
 
  			foreach ( $sites as $site ) {
- 				$project_config['sites'][] = [
+ 				$snapshot['sites'][] = [
  					'blog_id'  => $site->blog_id,
  					'domain'   => $site->domain,
  					'path'     => $site->path,
@@ -143,16 +128,16 @@ class Push extends Command {
  				];
  			}
 		} else {
-			$project_config['sites'][] = [
+			$snapshot['sites'][] = [
 				'site_url' => get_site_url(),
 				'home_url' => get_home_url(),
 			];
 		}
 
-		$project_config['table_prefix'] = $GLOBALS['table_prefix'];
+		$snapshot['table_prefix'] = $GLOBALS['table_prefix'];
 
 		/**
-		 * Dump sql to .wpprojects/data.sql
+		 * Dump sql to .wpsnapshots/data.sql
 		 */
 		$command = '/usr/bin/env mysqldump --no-defaults %s';
 		$command_esc_args = array( DB_NAME );
@@ -179,7 +164,7 @@ class Push extends Command {
 			$args['default-character-set'] = constant( 'DB_CHARSET' );
 		}
 
-		$escaped_command = call_user_func_array( '\WPProjects\Utils\esc_cmd', array_merge( array( $command ), $command_esc_args ) );
+		$escaped_command = call_user_func_array( '\WPSnapshots\Utils\esc_cmd', array_merge( array( $command ), $command_esc_args ) );
 
 		$output->writeln( 'Exporting database...' );
 
@@ -210,7 +195,7 @@ class Push extends Command {
 		}
 
 		/**
-		 * Create file back up of wp-content in .wpprojects/files.tar.gz
+		 * Create file back up of wp-content in .wpsnapshots/files.tar.gz
 		 */
 
 		$output->writeln( 'Saving file back up...' );
@@ -222,17 +207,17 @@ class Push extends Command {
 			$maybe_uploads = ' --exclude="uploads"';
 		}
 
-		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar -zcvf ../.wpprojects/files.tar.gz . ' . $maybe_uploads );
+		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar -zcvf ../.wpsnapshots/files.tar.gz . ' . $maybe_uploads );
 
-		$output->writeln( 'Adding project instance to database...' );
+		$output->writeln( 'Adding snapshot to database...' );
 
 		/**
-		 * Insert instance of project in DB
+		 * Insert snapshot into DB
 		 */
-		$project_instance = ConnectionManager::instance()->db->insertProjectInstance( $project_config, $temp_path . '/data.sql' );
+		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $snapshot, $temp_path . '/data.sql' );
 
-		if ( Utils\is_error( $project_instance ) ) {
-			$output->writeln( '<error>Could not add project instance to database.</error>' );
+		if ( Utils\is_error( $inserted_snapshot ) ) {
+			$output->writeln( '<error>Could not add snapshot to database.</error>' );
 			exit;
 		}
 
@@ -241,7 +226,7 @@ class Push extends Command {
 		/**
 		 * Put files on S3
 		 */
-		$s3_add = ConnectionManager::instance()->s3->putProjectInstance( $project_instance, $temp_path . '/data.sql', $temp_path . '/files.tar.gz' );
+		$s3_add = Connection::instance()->s3->putSnapshot( $inserted_snapshot, $temp_path . '/data.sql', $temp_path . '/files.tar.gz' );
 
 		if ( Utils\is_error( $s3_add ) ) {
 			$output->writeln( '<error>Could not upload files to S3.</error>' );
@@ -252,7 +237,7 @@ class Push extends Command {
 
 		//Utils\remove_temp_folder();
 
-		$output->writeln( '<info>Push finished! Project instance id is ' . $project_instance['id'] . '</info>' );
+		$output->writeln( '<info>Push finished! Snapshot ID is ' . $inserted_snapshot['id'] . '</info>' );
 	}
 
 }

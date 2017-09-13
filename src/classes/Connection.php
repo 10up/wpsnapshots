@@ -1,10 +1,10 @@
 <?php
 
-namespace WPProjects;
+namespace WPSnapshots;
 
-use WPProjects\Utils;
+use WPSnapshots\Utils;
 
-class ConnectionManager {
+class Connection {
 
 	/**
 	 * Instance of S3 client
@@ -31,7 +31,7 @@ class ConnectionManager {
 	 * @return bool|Error
 	 */
 	public function connect() {
-		$config = $this->getConfig();
+		$config = Config::instance()->get();
 
 		if ( Utils\is_error( $config ) ) {
 			return $config;
@@ -42,30 +42,6 @@ class ConnectionManager {
 		$this->db = new DB( $config );
 
 		return true;
-	}
-
-	/**
-	 * Write connection config to ~/.wpprojects.json
-	 *
-	 * @param  array $config
-	 */
-	public function writeConfig( $config ) {
-		file_put_contents( $_SERVER['HOME'] . '/.wpprojects.json', json_encode( $config ) );
-	}
-
-	/**
-	 * Get current connection config if it exists
-	 *
-	 * @return array|Error
-	 */
-	public function getConfig() {
-		if ( ! file_exists( $_SERVER['HOME'] . '/.wpprojects.json' ) ) {
-			return new Error( 0, 'No json file exists.' );
-		}
-
-		$connection_config_file = json_decode( file_get_contents( $_SERVER['HOME'] . '/.wpprojects.json' ), true );
-
-		return $connection_config_file;
 	}
 
 	/**

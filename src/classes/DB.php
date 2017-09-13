@@ -1,13 +1,13 @@
 <?php
 
-namespace WPProjects;
+namespace WPSnapshots;
 
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\DynamoDb\Marshaler;
 
 class DB {
 	public $client;
-	public $profile;
+	public $repository;
 
 	/**
 	 * Init dynamodb client
@@ -23,11 +23,11 @@ class DB {
 			'region'      => $config['region'],
 		] );
 
-		$this->profile = $config['profile'];
+		$this->repository = $config['repository'];
 	}
 
 	/**
-	 * Use DynamoDB scan to search tables for projects where project, id, or author information
+	 * Use DynamoDB scan to search tables for snapshots where project, id, or author information
 	 * matches search text
 	 *
 	 * @param  string $query
@@ -38,7 +38,7 @@ class DB {
 
 		try {
 			$search_scan = $this->client->getIterator( 'Scan', [
-				'TableName'  => 'wpprojects-' . $this->profile,
+				'TableName'  => 'wpsnapshots-' . $this->repository,
 				'ConditionalOperator' => 'OR',
 				'ScanFilter' => [
 			        'project' => [
@@ -69,52 +69,52 @@ class DB {
 	}
 
 	/**
-	 * Insert a project instance into the DB
+	 * Insert a snapshot into the DB
 	 *
-	 * @param  array $project_instance [description]
+	 * @param  array $snapshot [description]
 	 * @return Error|array
 	 */
-	public function insertProjectInstance( $project_instance ) {
+	public function insertSnapshot( $snapshot ) {
 		$marshaler = new Marshaler();
 
 		$time = time();
 
-		$project_item = [
-			'project'           => $project_instance['project'],
-			'id'                => md5( $project_instance['project'] . '-' . $time ),
+		$snapshot_item = [
+			'project'           => $snapshot['project'],
+			'id'                => md5( $snapshot['project'] . '-' . $time ),
 			'time'              => $time,
-			'environment'       => $project_instance['environment'],
-			'author'            => $project_instance['author'],
-			'multisite'         => $project_instance['multisite'],
-			'sites'             => $project_instance['sites'],
-			'table_prefix'      => $project_instance['table_prefix'],
-			'subdomain_install' => $project_instance['subdomain_install'],
+			'environment'       => $snapshot['environment'],
+			'author'            => $snapshot['author'],
+			'multisite'         => $snapshot['multisite'],
+			'sites'             => $snapshot['sites'],
+			'table_prefix'      => $snapshot['table_prefix'],
+			'subdomain_install' => $snapshot['subdomain_install'],
 		];
 
-		$project_json = json_encode( $project_item );
+		$snapshot_json = json_encode( $snapshot_item );
 
 		try {
 			$result = $this->client->putItem( [
-				'TableName' => 'wpprojects-' . $this->profile,
-				'Item'      => $marshaler->marshalJson( $project_json )
+				'TableName' => 'wpsnapshots-' . $this->repository,
+				'Item'      => $marshaler->marshalJson( $snapshot_json )
 			] );
 		} catch ( \Exception $e ) {
 			return new Error( 0, 'Error occurred.' );
 		}
 
-		return $project_item;
+		return $snapshot_item;
 	}
 
 	/**
-	 * Delete a project instance given an id
+	 * Delete a snapshot given an id
 	 *
 	 * @param  string $id
 	 * @return bool|Error
 	 */
-	public function deleteProjectInstance( $id ) {
+	public function deleteSnapshot( $id ) {
 		try {
 			$result = $this->client->deleteItem( [
-				'TableName' => 'wpprojects-' . $this->profile,
+				'TableName' => 'wpsnapshots-' . $this->repository,
 				'Key' => [
 					'id'   => [
 						'S' => $id
@@ -129,16 +129,16 @@ class DB {
 	}
 
 	/**
-	 * Get a project instance given an id
+	 * Get a snapshot given an id
 	 *
 	 * @param  string $id
 	 * @return bool|Error
 	 */
-	public function getProjectInstance( $id ) {
+	public function getSnapshot( $id ) {
 		try {
 			$result = $this->client->getItem( [
 				'ConsistentRead' => true,
-				'TableName'      => 'wpprojects-' . $this->profile,
+				'TableName'      => 'wpsnapshots-' . $this->repository,
 				'Key'            => [
 					'id' => [
 						'S' => $id
@@ -170,7 +170,7 @@ class DB {
 	public function createTables() {
 		try {
 			$this->client->createTable( [
-				'TableName' => 'wpprojects-' . $this->profile,
+				'TableName' => 'wpsnapshots-' . $this->repository,
 				'AttributeDefinitions' => [
 					[
 						'AttributeName' => 'id',
@@ -190,7 +190,7 @@ class DB {
 			] );
 
 			$this->client->waitUntil('TableExists', [
-			    'TableName' => 'wpprojects-' . $this->profile,
+			    'TableName' => 'wpsnapshots-' . $this->repository,
 			] );
 		} catch ( \Exception $e ) {
 			if ( 'ResourceInUseException' === $e->getAwsErrorCode() ) {

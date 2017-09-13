@@ -1,6 +1,6 @@
 <?php
 
-namespace WPProjects\Command;
+namespace WPSnapshots\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -9,25 +9,23 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
-use WPProjects\ConnectionManager;
-use WPProjects\Utils;
-use WPProjects\S3;
+use WPSnapshots\Config;
+use WPSnapshots\Utils;
+use WPSnapshots\S3;
 
 
 /**
- * The connect command asks the user for S3 keys. When provided working S3 keys,
- * the command saves those keys to ~/.wpprojects.json. Keys are saved under a profiles
- * which enable multiple repositories to be used.
+ * The configure command sets up WP Snapshots with AWS info and user info.
  */
-class Connect extends Command {
+class Configure extends Command {
 
 	/**
 	 * Setup up command
 	 */
 	protected function configure() {
-		$this->setName( 'connect' );
-		$this->setDescription( 'Connects WP Projects to a repository.' );
-		$this->addArgument( 'profile', InputArgument::REQUIRED, 'Profile to connect to.' );
+		$this->setName( 'configure' );
+		$this->setDescription( 'Configure WP Snapshots with an existing repository.' );
+		$this->addArgument( 'repository', InputArgument::REQUIRED, 'Repository to configure.' );
 		$this->addOption( 'region', null, InputOption::VALUE_REQUIRED, 'AWS region to use.' );
 	}
 
@@ -38,7 +36,7 @@ class Connect extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		$profile = $input->getArgument( 'profile' );
+		$repository = $input->getArgument( 'repository' );
 
 		$region = $input->getOption( 'region' );
 
@@ -46,21 +44,22 @@ class Connect extends Command {
 			$region = 'us-west-1';
 		}
 
-		$current_connection_config = ConnectionManager::instance()->getConfig();
+		$config = Config::instance()->get();
 
-		if ( ! Utils\is_error( $current_connection_config ) ) {
-			$output->writeln( 'Connection config already exists. Proceeding will overwrite it.' );
+		if ( ! Utils\is_error( $config ) ) {
+			$output->writeln( 'Repository config already exists. Proceeding will overwrite it.' );
 		}
 
 		$config = [
-			'profile' => $profile,
+			'repository' => $repository,
 		];
+
+		$helper = $this->getHelper( 'question' );
 
 		/**
 		 * Loop until we get S3 credentials that work
 		 */
 		while ( true ) {
-			$helper = $this->getHelper( 'question' );
 
 			$access_key_id = $helper->ask( $input, $output, new Question( 'AWS Access Key ID: ' ) );
 
@@ -73,19 +72,33 @@ class Connect extends Command {
 			$test = S3::test( $config );
 
 			if ( ! Utils\is_error( $test ) ) {
-				$output->writeln( '<info>Repository connection verified and saved!</info>' );
+				$output->writeln( '<info>WP Snapshots configuration verified and saved!</info>' );
 				break;
 			} else {
 				if ( 0 === $test->code ) {
 					$output->writeln( '<comment>Repository connection did not work. Try again?</comment>' );
 				} else {
-					$output->writeln( '<info>Connection successful. However, no repository has been setup. Run `wpprojects create-repository`</info>' );
+					$output->writeln( '<comment>We successfully connected to AWS. However, no repository has been created. Run `wpsnapshots create-repository` after configuration is complete.</comment>' );
 					break;
 				}
 			}
 		}
 
-		ConnectionManager::instance()->writeConfig( $config );
+		$name = $helper->ask( $input, $output, new Question( 'Your Name: ' ) );
+
+		$email = $helper->ask( $input, $output, new Question( 'Your Email: ' ) );
+
+		if ( ! empty( $name ) ) {
+			$config['name'] = $name;
+		}
+
+		if ( ! empty( $email ) ) {
+			$config['email'] = $email;
+		}
+
+		Config::instance()->write( $config );
+
+		$output->writeln( '<info>Configuration complete.</info>' );
 	}
 
 }

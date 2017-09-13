@@ -1,6 +1,6 @@
 <?php
 
-namespace WPProjects\Command;
+namespace WPSnapshots\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -9,9 +9,9 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
-use WPProjects\ConnectionManager;
-use WPProjects\Utils;
-use WPProjects\S3;
+use WPSnapshots\Connection;
+use WPSnapshots\Utils;
+use WPSnapshots\S3;
 
 
 /**
@@ -24,8 +24,8 @@ class Delete extends Command {
 	 */
 	protected function configure() {
 		$this->setName( 'delete' );
-		$this->setDescription( 'Delete a project instance from the repository.' );
-		$this->addArgument( 'instance-id', InputArgument::REQUIRED, 'Project instance ID to delete.' );
+		$this->setDescription( 'Delete a snapshot from the repository.' );
+		$this->addArgument( 'instance-id', InputArgument::REQUIRED, 'Snapshot ID to delete.' );
 	}
 
 	/**
@@ -35,7 +35,7 @@ class Delete extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		$connection = ConnectionManager::instance()->connect();
+		$connection = Connection::instance()->connect();
 
 		if ( Utils\is_error( $connection ) ) {
 			$output->writeln( '<error>Could not connect to repository.</error>' );
@@ -44,14 +44,14 @@ class Delete extends Command {
 
 		$id = $input->getArgument( 'instance-id' );
 
-		$files_result = ConnectionManager::instance()->s3->deleteProjectInstance( $id );
+		$files_result = Connection::instance()->s3->deleteSnapshot( $id );
 
-		$db_result = ConnectionManager::instance()->db->deleteProjectInstance( $id );
+		$db_result = Connection::instance()->db->deleteSnapshot( $id );
 
 		if ( Utils\is_error( $files_result ) || Utils\is_error( $files_result ) ) {
-			$output->writeln( '<error>Could not delete project instance</error>' );
+			$output->writeln( '<error>Could not delete snapshot</error>' );
 		} else {
-			$output->writeln( '<info>Project instance deleted.</info>' );
+			$output->writeln( '<info>Snapshot deleted.</info>' );
 		}
 
 	}

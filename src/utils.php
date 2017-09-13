@@ -1,8 +1,8 @@
 <?php
 
-namespace WPProjects\Utils;
+namespace WPSnapshots\Utils;
 
-use WPProjects\Error;
+use WPSnapshots\Error;
 
 /**
  * Check if object is of type Error
@@ -30,12 +30,12 @@ function locate_wp_config() {
 }
 
 /**
- * Remove .wpprojects temp folder. The folder stores temporary backup files
+ * Remove .wpsnapshots temp folder. The folder stores temporary backup files
  *
  * @return Error|bool
  */
 function remove_temp_folder() {
-	$temp_path = getcwd() . '/.wpprojects';
+	$temp_path = getcwd() . '/.wpsnapshots';
 
 	if ( file_exists( $temp_path ) ) {
 		try {

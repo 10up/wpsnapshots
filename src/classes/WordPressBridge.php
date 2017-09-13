@@ -1,8 +1,8 @@
 <?php
 
-namespace WPProjects;
+namespace WPSnapshots;
 
-class WordPressConfig {
+class WordPressBridge {
 
 	/**
 	 * Singleton
