@@ -55,13 +55,13 @@ WP Snapshots revolves around pushing, pulling, and searching for snapshots. Righ
 
 Documentation for each operation is as follows:
 
-* __wpsnapshots push [--no-uploads] [--no-scrub]__ - Must be run from root of installed WordPress instance.
+* __wpsnapshots push [--no-uploads] [--no-scrub] [--db_host] [--db_name] [--db_user] [--db_password]_ - Must be run from root of installed WordPress instance.
   
   This command pushes a snapshot of the current WordPress install to the repository. Data about the snapshot (project name, author, environment, etc.) is stored in a `wpsnapshots.json` file. Snapshots are searchable by name and author so set these carefully. The push command will prompt you to create the file, if one doesn't already exist. The command will return a snapshot ID once it's finished that you could pass to a team member.
   
   By default all passwords are converted to `password`. The `--no-scrub` option will disable scrubbing.
   
-* __wpsnapshots pull \<instance-id\>__ - Must be run from root of installed WordPress instance.
+* __wpsnapshots pull \<instance-id\> [--db_host] [--db_name] [--db_user] [--db_password]__ - Must be run from root of installed WordPress instance.
   
   This command pulls an existing snapshot from the repository into your current WordPress install replacing your database and `wp-content` directory entirely. The command will interactively prompt you to map URLs to be search and replaced. If the snapshot is a multisite, you will have to map URLs interactively for each blog in the network.
   

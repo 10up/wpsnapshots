@@ -28,6 +28,12 @@ class Push extends Command {
 		$this->setDescription( 'Push a snapshot to a repository.' );
 		$this->addOption( 'no-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
 		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
+
+
+		$this->addOption( 'db_host', null, InputOption::VALUE_REQUIRED, 'Database host.' );
+		$this->addOption( 'db_name', null, InputOption::VALUE_REQUIRED, 'Database name.' );
+		$this->addOption( 'db_user', null, InputOption::VALUE_REQUIRED, 'Database user.' );
+		$this->addOption( 'db_password', null, InputOption::VALUE_REQUIRED, 'Database password.' );
 	}
 
 	/**
@@ -49,7 +55,24 @@ class Push extends Command {
 			return;
 		}
 
-		$wp = WordPressBridge::instance()->load();
+		$extra_config_constants = [];
+
+		$db_host = $input->getOption( 'db_host' );
+		$db_name = $input->getOption( 'db_name' );
+		$db_user = $input->getOption( 'db_user' );
+		$db_password = $input->getOption( 'db_password' );
+
+		if ( ! empty( $db_host ) ) {
+			$extra_config_constants['DB_HOST'] = $db_host;
+		} if ( ! empty( $db_name ) ) {
+			$extra_config_constants['DB_NAME'] = $db_name;
+		} if ( ! empty( $db_user ) ) {
+			$extra_config_constants['DB_USER'] = $db_user;
+		} if ( ! empty( $db_password ) ) {
+			$extra_config_constants['DB_PASSWORD'] = $db_password;
+		}
+
+		$wp = WordPressBridge::instance()->load( $extra_config_constants );
 
 		if ( Utils\is_error( $wp ) ) {
 			$output->writeln( '<error>Could not connect to WordPress database.</error>' );

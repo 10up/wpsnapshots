@@ -15,7 +15,7 @@ class WordPressBridge {
 	 * This method loads wp-config.php without wp-settings.php ensuring we get the constants we need. It
 	 * also loads $wpdb so we can perform database operations.
 	 */
-	public function load() {
+	public function load( $extra_config_constants = [] ) {
 		$wp_config_code = explode( "\n", file_get_contents( Utils\locate_wp_config() ) );
 
 		$found_wp_settings = false;
@@ -24,6 +24,15 @@ class WordPressBridge {
 		foreach ( $wp_config_code as $line ) {
 			if ( preg_match( '/^\s*require.+wp-settings\.php/', $line ) ) {
 				continue;
+			}
+
+			/**
+			 * Don't execute override constants
+			 */
+			foreach ( $extra_config_constants as $config_constant => $config_constant_value ) {
+				if ( preg_match( '#define\(.*?("|\')' . $config_constant . '("|\').*?\).*?;#', $line ) ) {
+					continue 2;
+				}
 			}
 
 			$lines_to_run[] = $line;
@@ -35,6 +44,13 @@ class WordPressBridge {
 			define( 'ABSPATH', getcwd() . '/' );
 		} else {
 			define( 'ABSPATH', getcwd() . '/../' );
+		}
+
+		/**
+		 * Add in override constants
+		 */
+		foreach ( $extra_config_constants as $config_constant => $config_constant_value ) {
+			define( $config_constant, $config_constant_value );
 		}
 
 		eval( preg_replace( '|^\s*\<\?php\s*|', '', $source ) );
