@@ -23,8 +23,8 @@ function is_error( $obj ) {
  * ./test/
  * ~/test
  *
- * @param  [type] $path [description]
- * @return [type]       [description]
+ * @param  string $path
+ * @return string
  */
 function normalize_path( $path ) {
 	$path = trim( $path );
