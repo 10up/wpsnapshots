@@ -235,10 +235,10 @@ class Push extends Command {
 
 		$maybe_uploads = '';
 		if ( $no_uploads ) {
-			$maybe_uploads = ' --exclude="uploads"';
+			$maybe_uploads = ' --exclude="./uploads/"';
 		}
 
-		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar -zcvf ../.wpsnapshots/files.tar.gz . ' . $maybe_uploads );
+		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $maybe_uploads . ' -zcf ../.wpsnapshots/files.tar.gz . > /dev/null' );
 
 		$output->writeln( 'Adding snapshot to database...' );
 
