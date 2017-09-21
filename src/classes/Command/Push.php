@@ -9,10 +9,12 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
+use Symfony\Component\Console\Question\ConfirmationQuestion;
 use WPSnapshots\Connection;
 use WPSnapshots\WordPressBridge;
 use WPSnapshots\Config;
 use WPSnapshots\Utils;
+use Requests;
 
 /**
  * The push command takes the current WP DB and wp-content folder and pushes them to
@@ -56,11 +58,89 @@ class Push extends Command {
 			$path = getcwd();
 		}
 
+		$helper = $this->getHelper( 'question' );
+
 		$path = Utils\normalize_path( $path );
 
-		if ( ! Utils\locate_wp_config( $path ) ) {
-			$output->writeln( '<error>This is not a WordPress install.</error>' );
+		/**
+		 * Always remove temp files first that could be left over
+		 */
+		$remove_temp = Utils\remove_temp_folder( $path );
+
+		if ( Utils\is_error( $remove_temp ) ) {
+			$output->writeln( '<error>Failed to clean up old WP Snapshots temp files.</error>' );
 			return;
+		}
+
+		$temp_path = $path . '.wpsnapshots/';
+
+		$dir_result = mkdir( $temp_path, 0755 );
+
+		if ( ! $dir_result ) {
+			$output->writeln( '<error>Cannot write to current directory.</error>' );
+			return;
+		}
+
+		if ( ! Utils\is_wp_present( $path ) ) {
+			$output->writeln( '<error>This is not a WordPress install.</error>' );
+
+			$download_wp = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to download WordPress? (yes|no) ', false ) );
+
+			if ( ! $download_wp ) {
+				return;
+			}
+
+			/**
+			 * Download WordPress core files
+			 */
+
+			$download_url = Utils\get_download_url( '4.6' );
+
+			$headers = [ 'Accept' => 'application/json' ];
+			$options = [
+				'timeout' => 600,
+				'filename' => $temp_path . 'wp.tar.gz',
+			];
+
+			$request = Requests::get( $download_url, $headers, $options );
+
+			exec( 'tar -C ' . $path . ' -xf ' . $temp_path . 'wp.tar.gz > /dev/null && mv ' . $path . 'wordpress/* . && rmdir ' . $path . 'wordpress' );
+			$output->writeln( 'WordPress downloaded.' );
+		}
+
+		if ( ! Utils\locate_wp_config( $path ) ) {
+			$output->writeln( '<error>No wp-config.php file present.</error>' );
+
+			$create_config = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to create a wp-config.php file? (yes|no) ', false ) );
+
+			if ( ! $create_config ) {
+				return;
+			}
+
+			$config_constants = [];
+
+			$db_host_question = new Question( 'What is your database host? ' );
+			$db_host_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+
+			$config_constants['DB_HOST'] = $helper->ask( $input, $output, $db_host_question );
+
+			$db_name_question = new Question( 'What is your database name? ' );
+			$db_name_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+
+			$config_constants['DB_NAME'] = $helper->ask( $input, $output, $db_name_question );
+
+			$db_user_question = new Question( 'What is your database user? ' );
+			$db_user_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+
+			$config_constants['DB_USER'] = $helper->ask( $input, $output, $db_user_question );
+
+			$db_password_question = new Question( 'What is your database password? ' );
+			$db_password_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+
+			$config_constants['DB_PASSWORD'] = $helper->ask( $input, $output, $db_password_question );
+
+			Utils\create_config_file( $path . 'wp-config.php', $path . 'wp-config-sample.php', $config_constants );
+			$output->writeln( 'wp-config.php created.' );
 		}
 
 		$extra_config_constants = [];
@@ -89,37 +169,6 @@ class Push extends Command {
 
 		global $wpdb;
 
-		/**
-		 * Always remove temp files first that could be left over
-		 */
-		$remove_temp = Utils\remove_temp_folder( $path );
-
-		if ( Utils\is_error( $remove_temp ) ) {
-			$output->writeln( '<error>Failed to clean up old WP Snapshots temp files.</error>' );
-			return;
-		}
-
-		$temp_path = $path . '.wpsnapshots/';
-
-		$dir_result = mkdir( $temp_path, 0755 );
-
-		if ( ! $dir_result ) {
-			$output->writeln( '<error>Cannot write to current directory.</error>' );
-			return;
-		}
-
-		$helper = $this->getHelper( 'question' );
-
-		$not_empty_validator = function( $answer ) {
-			if ( '' === trim( $answer ) ) {
-				throw new \RuntimeException(
-					'A valid answer is required.'
-				);
-			}
-
-			return $answer;
-		};
-
 		$snapshot = [
 			'author' => [],
 		];
@@ -135,12 +184,12 @@ class Push extends Command {
 		}
 
 		$project_question = new Question( 'Project Name: ' );
-		$project_question->setValidator( $not_empty_validator );
+		$project_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
 
 		$snapshot['project'] = $helper->ask( $input, $output, $project_question );
 
 		$environment_question = new Question( 'What type of environment is this? (local, staging, production) ' );
-		$environment_question->setValidator( $not_empty_validator );
+		$environment_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
 
 		$snapshot['environment'] = $helper->ask( $input, $output, $environment_question );
 

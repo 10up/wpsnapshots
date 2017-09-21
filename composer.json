@@ -11,7 +11,8 @@
   ],
   "require": {
     "symfony/console": "^3.3",
-    "aws/aws-sdk-php": "2.*"
+    "aws/aws-sdk-php": "2.*",
+    "rmccue/requests": "^1.7"
   },
   "bin": [
     "bin/wpsnapshots"

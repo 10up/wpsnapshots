@@ -3,6 +3,7 @@
 namespace WPSnapshots\Utils;
 
 use WPSnapshots\Error;
+use Requests;
 
 /**
  * Check if object is of type Error
@@ -49,6 +50,124 @@ function normalize_path( $path ) {
 	}
 
 	return $path;
+}
+
+/**
+ * Validator for Symfony Question
+ *
+ * @param  string $answer
+ * @return string
+ */
+function not_empty_validator( $answer ) {
+	if ( '' === trim( $answer ) ) {
+		throw new \RuntimeException(
+			'A valid answer is required.'
+		);
+	}
+
+	return $answer;
+}
+
+/**
+ * Create a wp-config.php with constants based on a template file
+ *
+ * @param  string $path
+ * @param  string $path_to_template
+ * @param  array  $constants
+ */
+function create_config_file( $path, $path_to_template, $constants = [] ) {
+	$template = file_get_contents( $path_to_template );
+
+	$template_code = explode( "\n", $template );
+	$new_file = [];
+
+	foreach ( $template_code as $line ) {
+		if ( preg_match( '/^\s*require.+wp-settings\.php/', $line ) ) {
+			continue;
+		}
+
+		foreach ( $constants as $config_constant => $config_constant_value ) {
+			if ( preg_match( '#define\(.*?("|\')' . $config_constant . '("|\').*?\).*?;#', $line ) ) {
+				continue 2;
+			}
+		}
+
+		$new_file[] = $line;
+	}
+
+	foreach ( $constants as $config_constant => $config_constant_value ) {
+		if ( ! is_bool( $config_constant_value ) && ! is_int( $config_constant_value ) ) {
+			$config_constant_value = "'" . addslashes( $config_constant_value ) . "'";
+		}
+
+		$new_file[] = "define( '" . addslashes( $config_constant ) . "', $config_constant_value );";
+	}
+
+
+
+	$new_file[] = "require_once(ABSPATH . 'wp-settings.php');";
+
+	file_put_contents( $path, implode( "\n", $new_file ) );
+}
+
+/**
+ * Get download url for WP
+ *
+ * @param  string $version
+ * @param  string $locale
+ * @return string|bool
+ */
+function get_download_url( $version = 'latest', $locale = 'en_US' ) {
+	if ( 'nightly' === $version ) {
+		return 'https://wordpress.org/nightly-builds/wordpress-latest.zip';
+	}
+
+	if ( 'latest' === $version ) {
+		$headers = [ 'Accept' => 'application/json' ];
+
+		try {
+			$request = Requests::get( 'https://api.wordpress.org/core/version-check/1.6/?locale=' . $locale, $headers );
+		} catch ( \Exception $e ) {
+			return false;
+		}
+
+		if ( 200 !== (int) $request->status_code ) {
+			return false;
+		}
+
+		$request_body = unserialize( $request->body );
+
+		if ( empty( $request_body['offers'] ) || empty( $request_body['offers'][0] ) || empty( $request_body['offers'][0]['download'] ) ) {
+			return false;
+		}
+
+		return str_replace( '.zip', '.tar.gz', $request_body['offers'][0]['download'] );
+	}
+
+	if ( 'en_US' === $locale ) {
+		$url = 'https://wordpress.org/wordpress-' . $version . '.tar.gz';
+
+		return $url;
+	} else {
+		$url = sprintf(
+			'https://%s.wordpress.org/wordpress-%s-%s.tar.gz',
+			substr($locale, 0, 2),
+			$version,
+			$locale
+		);
+
+		return $url;
+	}
+}
+
+/**
+ * Is WordPress in the directory?
+ *
+ * @param  string  $path
+ * @return boolean
+ */
+function is_wp_present( $path ) {
+	return ( file_exists( $path . 'wp-settings.php' ) );
 }
 
 /**
