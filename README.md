@@ -14,7 +14,7 @@ Snapshot files (`wp-content/`) and WordPress database tables are stored in Amazo
 
 WP Snapshots is easiest to use as a global Composer package. Right now, it is available only as a private 10up package. Assuming you have Composer installed and SSH keys setup within GitHub/10up organiziation, do the following:
 
-1. Make sure you have mysql installed locally:
+1. Make sure you have mysql installed locally. MySQL is needed only for the `mysqldump` command.
   ```
   brew install mysql
   ```
