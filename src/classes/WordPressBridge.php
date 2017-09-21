@@ -14,9 +14,12 @@ class WordPressBridge {
 	 *
 	 * This method loads wp-config.php without wp-settings.php ensuring we get the constants we need. It
 	 * also loads $wpdb so we can perform database operations.
+	 *
+	 * @param string $path Path to WordPress
+	 * @param array  $extra_config_constants
 	 */
-	public function load( $extra_config_constants = [] ) {
-		$wp_config_code = explode( "\n", file_get_contents( Utils\locate_wp_config() ) );
+	public function load( $path, $extra_config_constants = [] ) {
+		$wp_config_code = explode( "\n", file_get_contents( Utils\locate_wp_config( $path ) ) );
 
 		$found_wp_settings = false;
 		$lines_to_run = [];
@@ -40,10 +43,10 @@ class WordPressBridge {
 
 		$source = implode( "\n", $lines_to_run );
 
-		if ( file_exists( getcwd() . '/wp-config.php' ) ) {
-			define( 'ABSPATH', getcwd() . '/' );
+		if ( file_exists( $path . 'wp-config.php' ) ) {
+			define( 'ABSPATH', $path );
 		} else {
-			define( 'ABSPATH', getcwd() . '/../' );
+			define( 'ABSPATH', $path . '../' );
 		}
 
 		/**

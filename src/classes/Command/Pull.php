@@ -31,7 +31,7 @@ class Pull extends Command {
 		$this->addArgument( 'instance-id', InputArgument::REQUIRED, 'Snapshot ID to pull.' );
 		$this->addOption( 'confirm', null, InputOption::VALUE_NONE, 'Confirm pull operation.' );
 
-
+		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
 		$this->addOption( 'db_host', null, InputOption::VALUE_REQUIRED, 'Database host.' );
 		$this->addOption( 'db_name', null, InputOption::VALUE_REQUIRED, 'Database name.' );
 		$this->addOption( 'db_user', null, InputOption::VALUE_REQUIRED, 'Database user.' );
@@ -47,12 +47,20 @@ class Pull extends Command {
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		$connection = Connection::instance()->connect();
 
+		$path = $input->getOption( 'path' );
+
+		if ( empty( $path ) ) {
+			$path = getcwd();
+		}
+
+		$path = Utils\normalize_path( $path );
+
 		if ( Utils\is_error( $connection ) ) {
 			$output->writeln( '<error>Could not connect to repository.</error>' );
 			return;
 		}
 
-		if ( ! Utils\locate_wp_config() ) {
+		if ( ! Utils\locate_wp_config( $path ) ) {
 			$output->writeln( '<error>This is not a WordPress install.</error>' );
 
 			/**
@@ -78,7 +86,7 @@ class Pull extends Command {
 			$extra_config_constants['DB_PASSWORD'] = $db_password;
 		}
 
-		$wp = WordPressBridge::instance()->load( $extra_config_constants );
+		$wp = WordPressBridge::instance()->load( $path, $extra_config_constants );
 
 		if ( Utils\is_error( $wp ) ) {
 			$output->writeln( '<error>Could not connect to WordPress database.</error>' );
@@ -95,7 +103,7 @@ class Pull extends Command {
 			$use_https = true;
 		}
 
-		$remove_temp = Utils\remove_temp_folder();
+		$remove_temp = Utils\remove_temp_folder( $path );
 
 		if ( Utils\is_error( $remove_temp ) ) {
 			$output->writeln( '<error>Failed to clean up old WP Snapshots temp files.</error>' );
@@ -118,7 +126,7 @@ class Pull extends Command {
 			}
 		}
 
-		$temp_path = getcwd() . '/.wpsnapshots';
+		$temp_path = $path . '.wpsnapshots/';
 
 		$dir_result = mkdir( $temp_path, 0755 );
 
@@ -131,7 +139,7 @@ class Pull extends Command {
 
 		$output->writeln( 'Downloading snapshot files and database...' );
 
-		$download = Connection::instance()->s3->downloadSnapshot( $id, $temp_path . '/data.sql', $temp_path . '/files.tar.gz' );
+		$download = Connection::instance()->s3->downloadSnapshot( $id, $temp_path . 'data.sql', $temp_path . 'files.tar.gz' );
 
 		if ( Utils\is_error( $download ) ) {
 			$output->writeln( '<error>Failed to pull snapshot.</error>' );
@@ -147,7 +155,7 @@ class Pull extends Command {
 
 		$output->writeln( 'Replacing wp-content/...' );
 
-		exec( 'rm -rf ' . getcwd() . '/wp-content/..?* ' . getcwd() . '/wp-content/.[!.]* ' . getcwd() . '/wp-content/* && tar -C ' . getcwd() . '/wp-content' . ' -xf ' . $temp_path . '/files.tar.gz > /dev/null' );
+		exec( 'rm -rf ' . $path . 'wp-content/..?* ' . $path . 'wp-content/.[!.]* ' . $path . 'wp-content/* && tar -C ' . $path . 'wp-content' . ' -xf ' . $temp_path . 'files.tar.gz > /dev/null' );
 
 		/**
 		 * Import tables
@@ -161,7 +169,7 @@ class Pull extends Command {
 			'user' => DB_USER,
 			'pass' => DB_PASSWORD,
 			'database' => DB_NAME,
-			'execute' => sprintf( $query, $temp_path . '/data.sql' ),
+			'execute' => sprintf( $query, $temp_path . 'data.sql' ),
 		);
 
 		if ( ! isset( $assoc_args['default-character-set'] ) && defined( 'DB_CHARSET' ) && constant( 'DB_CHARSET' ) ) {
@@ -364,7 +372,7 @@ define('BLOG_ID_CURRENT_SITE', 1);");
 			}
 		}
 
-		Utils\remove_temp_folder();
+		Utils\remove_temp_folder( $path );
 
 		$output->writeln( '<info>Pull finished.</info>' );
 	}

@@ -29,7 +29,7 @@ class Push extends Command {
 		$this->addOption( 'no-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
 		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 
-
+		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
 		$this->addOption( 'db_host', null, InputOption::VALUE_REQUIRED, 'Database host.' );
 		$this->addOption( 'db_name', null, InputOption::VALUE_REQUIRED, 'Database name.' );
 		$this->addOption( 'db_user', null, InputOption::VALUE_REQUIRED, 'Database user.' );
@@ -50,7 +50,15 @@ class Push extends Command {
 			return;
 		}
 
-		if ( ! Utils\locate_wp_config() ) {
+		$path = $input->getOption( 'path' );
+
+		if ( empty( $path ) ) {
+			$path = getcwd();
+		}
+
+		$path = Utils\normalize_path( $path );
+
+		if ( ! Utils\locate_wp_config( $path ) ) {
 			$output->writeln( '<error>This is not a WordPress install.</error>' );
 			return;
 		}
@@ -72,7 +80,7 @@ class Push extends Command {
 			$extra_config_constants['DB_PASSWORD'] = $db_password;
 		}
 
-		$wp = WordPressBridge::instance()->load( $extra_config_constants );
+		$wp = WordPressBridge::instance()->load( $path, $extra_config_constants );
 
 		if ( Utils\is_error( $wp ) ) {
 			$output->writeln( '<error>Could not connect to WordPress database.</error>' );
@@ -84,14 +92,14 @@ class Push extends Command {
 		/**
 		 * Always remove temp files first that could be left over
 		 */
-		$remove_temp = Utils\remove_temp_folder();
+		$remove_temp = Utils\remove_temp_folder( $path );
 
 		if ( Utils\is_error( $remove_temp ) ) {
 			$output->writeln( '<error>Failed to clean up old WP Snapshots temp files.</error>' );
 			return;
 		}
 
-		$temp_path = getcwd() . '/.wpsnapshots';
+		$temp_path = $path . '.wpsnapshots/';
 
 		$dir_result = mkdir( $temp_path, 0755 );
 
@@ -188,7 +196,7 @@ class Push extends Command {
 			'host'        => DB_HOST,
 			'pass'        => DB_PASSWORD,
 			'user'        => DB_USER,
-			'result-file' => $temp_path . '/data.sql',
+			'result-file' => $temp_path . 'data.sql',
 		];
 
 		if ( defined( 'DB_CHARSET' ) && constant( 'DB_CHARSET' ) ) {
@@ -216,13 +224,13 @@ class Push extends Command {
 
 			$sterile_password = wp_hash_password( 'password' );
 
-			$dump_sql = file_get_contents( $temp_path . '/data.sql' );
+			$dump_sql = file_get_contents( $temp_path . 'data.sql' );
 
 			foreach ( $all_hashed_passwords as $password ) {
 				$dump_sql = str_replace( "'$password'", "'$sterile_password'", $dump_sql );
 			}
 
-			file_put_contents( $temp_path . '/data.sql', $dump_sql );
+			file_put_contents( $temp_path . 'data.sql', $dump_sql );
 		}
 
 		/**
@@ -245,7 +253,7 @@ class Push extends Command {
 		/**
 		 * Insert snapshot into DB
 		 */
-		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $snapshot, $temp_path . '/data.sql' );
+		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $snapshot, $temp_path . 'data.sql' );
 
 		if ( Utils\is_error( $inserted_snapshot ) ) {
 			$output->writeln( '<error>Could not add snapshot to database.</error>' );
@@ -257,7 +265,7 @@ class Push extends Command {
 		/**
 		 * Put files on S3
 		 */
-		$s3_add = Connection::instance()->s3->putSnapshot( $inserted_snapshot, $temp_path . '/data.sql', $temp_path . '/files.tar.gz' );
+		$s3_add = Connection::instance()->s3->putSnapshot( $inserted_snapshot, $temp_path . 'data.sql', $temp_path . 'files.tar.gz' );
 
 		if ( Utils\is_error( $s3_add ) ) {
 			$output->writeln( '<error>Could not upload files to S3.</error>' );
@@ -266,7 +274,7 @@ class Push extends Command {
 
 		$output->writeln( 'Cleaning up temp files...' );
 
-		//Utils\remove_temp_folder();
+		Utils\remove_temp_folder( $path );
 
 		$output->writeln( '<info>Push finished! Snapshot ID is ' . $inserted_snapshot['id'] . '</info>' );
 	}

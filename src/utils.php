@@ -15,15 +15,52 @@ function is_error( $obj ) {
 }
 
 /**
+ * Normalizes paths. Note that we DO always add a trailing slash here
+ *
+ * /
+ * ./
+ * ~/
+ * ./test/
+ * ~/test
+ *
+ * @param  [type] $path [description]
+ * @return [type]       [description]
+ */
+function normalize_path( $path ) {
+	$path = trim( $path );
+
+	if ( '/' === $path ) {
+		return $path;
+	}
+
+	if ( '/' !== substr( $path, -1 ) ) {
+		$path .= '/';
+	}
+
+	/**
+	 * Replace ~ with home directory
+	 */
+	if ( '~' === substr( $path, 0, 1 ) ) {
+		$path = ltrim( $path, '~' );
+
+		$home = rtrim( $_SERVER['HOME'], '/' );
+
+		$path = $home . $path;
+	}
+
+	return $path;
+}
+
+/**
  * Find wp-config.php
  *
  * @return string
  */
-function locate_wp_config() {
-	if ( file_exists( getcwd() . '/wp-config.php' ) ) {
-		return getcwd() . '/wp-config.php';
-	} elseif ( file_exists( getcwd() . '/../wp-config.php' ) ) {
-		return getcwd() . '/../wp-config.php';
+function locate_wp_config( $path ) {
+	if ( file_exists( $path . 'wp-config.php' ) ) {
+		return $path . 'wp-config.php';
+	} elseif ( file_exists( $path . '../wp-config.php' ) ) {
+		return $path . '../wp-config.php';
 	} else {
 		return false;
 	}
@@ -34,8 +71,8 @@ function locate_wp_config() {
  *
  * @return Error|bool
  */
-function remove_temp_folder() {
-	$temp_path = getcwd() . '/.wpsnapshots';
+function remove_temp_folder( $path ) {
+	$temp_path = $path . '.wpsnapshots';
 
 	if ( file_exists( $temp_path ) ) {
 		try {
