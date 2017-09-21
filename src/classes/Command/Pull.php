@@ -147,7 +147,7 @@ class Pull extends Command {
 
 		$output->writeln( 'Replacing wp-content/...' );
 
-		exec( 'rm -rf ' . getcwd() . '/wp-content/..?* ' . getcwd() . '/wp-content/.[!.]* ' . getcwd() . '/wp-content/* && tar -C ' . getcwd() . '/wp-content' . ' -xvf ' . $temp_path . '/files.tar.gz' );
+		exec( 'rm -rf ' . getcwd() . '/wp-content/..?* ' . getcwd() . '/wp-content/.[!.]* ' . getcwd() . '/wp-content/* && tar -C ' . getcwd() . '/wp-content' . ' -xf ' . $temp_path . '/files.tar.gz > /dev/null' );
 
 		/**
 		 * Import tables
