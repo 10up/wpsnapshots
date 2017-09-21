@@ -59,7 +59,7 @@ WP Snapshots revolves around pushing, pulling, and searching for snapshots. Righ
 
 Documentation for each operation is as follows:
 
-* __wpsnapshots push [--no-uploads] [--no-scrub] [--db_host] [--db_name] [--db_user] [--db_password]_ - Must be run from root of installed WordPress instance.
+* __wpsnapshots push [--no-uploads] [--no-scrub] [--db_host] [--db_name] [--db_user] [--db_password]__ - Must be run from root of installed WordPress instance.
   
   This command pushes a snapshot of the current WordPress install to the repository. The command will return a snapshot ID once it's finished that you could pass to a team member.
   
