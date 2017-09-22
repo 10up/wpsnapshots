@@ -289,19 +289,10 @@ class Pull extends Command {
 
 					$new_site_url = $helper->ask( $input, $output, $site_question);
 
-					switch_to_blog( $site['blog_id'] );
-
-					$blog_data = [
-						'path'   => $site['path'],
-						'domain' => $domain,
-					];
-
 					/**
 					 * Update multisite stuff for each blog
 					 */
-					update_blog_details( $site['blog_id'], $blog_data );
-
-					restore_current_blog();
+					$wpdb->query( $wpdb->prepare( "UPDATE " . $GLOBALS['table_prefix'] . "blogs SET path='%s', domain='%s' WHERE blog_id='%d'", esc_sql( $site['path'] ), esc_sql( $domain ), (int) $site['blog_id'] ) );
 
 					/**
 					 * Update all tables except wp_site and wp_blog since we handled that above
