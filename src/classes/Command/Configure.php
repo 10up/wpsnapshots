@@ -72,7 +72,6 @@ class Configure extends Command {
 			$test = S3::test( $config );
 
 			if ( ! Utils\is_error( $test ) ) {
-				$output->writeln( '<info>WP Snapshots configuration verified and saved!</info>' );
 				break;
 			} else {
 				if ( 0 === $test->code ) {
@@ -98,7 +97,7 @@ class Configure extends Command {
 
 		Config::instance()->write( $config );
 
-		$output->writeln( '<info>Configuration complete.</info>' );
+		$output->writeln( '<info>WP Snapshots configuration verified and saved.</info>' );
 	}
 
 }
