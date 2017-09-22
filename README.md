@@ -14,7 +14,7 @@ Snapshot files (`wp-content/`) and WordPress database tables are stored in Amazo
 
 WP Snapshots is easiest to use as a global Composer package. Right now, it is available only as a private 10up package. Assuming you have Composer installed and SSH keys setup within GitHub/10up organiziation, do the following:
 
-1. Make sure you have mysql installed locally:
+1. Make sure you have mysql installed locally. MySQL is needed only for the `mysqldump` command.
   ```
   brew install mysql
   ```
@@ -59,15 +59,15 @@ WP Snapshots revolves around pushing, pulling, and searching for snapshots. Righ
 
 Documentation for each operation is as follows:
 
-* __wpsnapshots push [--no-uploads] [--no-scrub] [--db_host] [--db_name] [--db_user] [--db_password]__ - Must be run from root of installed WordPress instance.
+* __wpsnapshots push [--no-uploads] [--no-scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password]__
   
-  This command pushes a snapshot of the current WordPress install to the repository. The command will return a snapshot ID once it's finished that you could pass to a team member.
+  This command pushes a snapshot of a WordPress install to the repository. The command will return a snapshot ID once it's finished that you could pass to a team member.
   
   By default all passwords are converted to `password`. The `--no-scrub` option will disable scrubbing.
   
-* __wpsnapshots pull \<instance-id\> [--db_host] [--db_name] [--db_user] [--db_password]__ - Must be run from root of installed WordPress instance.
+* __wpsnapshots pull \<instance-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password]__
   
-  This command pulls an existing snapshot from the repository into your current WordPress install replacing your database and `wp-content` directory entirely. The command will interactively prompt you to map URLs to be search and replaced. If the snapshot is a multisite, you will have to map URLs interactively for each blog in the network.
+  This command pulls an existing snapshot from the repository into your current WordPress install (or in a new one it creates) replacing your database and `wp-content` directory entirely. The command will interactively prompt you to map URLs to be search and replaced. If the snapshot is a multisite, you will have to map URLs interactively for each blog in the network.
   
 * __wpsnapshots search \<search-text\>__
   
