@@ -17,5 +17,6 @@ $app->add( new Command\Push() );
 $app->add( new Command\Pull() );
 $app->add( new Command\Search() );
 $app->add( new Command\Delete() );
+$app->add( new Command\CreateEnvironment() );
 
 $app->run();
