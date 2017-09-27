@@ -76,6 +76,12 @@ Documentation for each operation is as follows:
 * __wpsnapshots delete \<instance-id\>__
   
   This command deletes a snapshot from the repository.
+
+## Troubleshooting
+
+* __WP Snapshots can't establish a connection to the database__
+  
+  This can happen if you are running your development environment inside Virtual Box or a Docker container. WP Snapshots reads database credentials from `wp-config.php`. In order to connect to your database from your host machine, the database host address will need to be different. For VVV it's 192.168.50.4, for WP Local Docker, it's 127.0.0.1. You can pass a host override via the command line using the `--db_host` option. We recommend running WP Snapshots from inside your development environment.
   
 ## Windows
 
