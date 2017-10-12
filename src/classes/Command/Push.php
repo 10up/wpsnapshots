@@ -273,13 +273,37 @@ class Push extends Command {
 
 			$sterile_password = wp_hash_password( 'password' );
 
-			$dump_sql = file_get_contents( $temp_path . 'data.sql' );
+			$handle = @fopen( $temp_path . 'data.sql', 'r' );
+			$scrubbed_handle = @fopen( $temp_path . 'scrubbed-data.sql', 'x' );
 
-			foreach ( $all_hashed_passwords as $password ) {
-				$dump_sql = str_replace( "'$password'", "'$sterile_password'", $dump_sql );
+			if ( $handle ) {
+				$buffer = '';
+				$i = 0;
+
+				while ( ( $chunk = fgets( $handle , 4096 ) ) !== false ) {
+					foreach ( $all_hashed_passwords as $password ) {
+						$chunk = str_replace( "'$password'", "'$sterile_password'", $chunk );
+					}
+
+					$buffer .= $chunk;
+
+					if ( $i % 10000 === 0 ) {
+						fwrite( $scrubbed_handle, $buffer );
+						$buffer = '';
+					}
+
+					$i++;
+				}
+
+				fclose( $handle );
+				fclose( $scrubbed_handle );
+			} else {
+				$output->writeln( '<error>Could not scrub database.</error>' );
+				return;
 			}
 
-			file_put_contents( $temp_path . 'data.sql', $dump_sql );
+			unlink( $temp_path . 'data.sql' );
+			rename( $temp_path . 'scrubbed-data.sql', $temp_path . 'data.sql' );
 		}
 
 		/**
