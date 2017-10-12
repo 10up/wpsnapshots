@@ -50,6 +50,11 @@ class WordPressBridge {
 		}
 
 		/**
+		 * Define some server variables we might need
+		 */
+		$_SERVER['REMOTE_ADDR'] = '1.1.1.1';
+
+		/**
 		 * Add in override constants
 		 */
 		foreach ( $extra_config_constants as $config_constant => $config_constant_value ) {

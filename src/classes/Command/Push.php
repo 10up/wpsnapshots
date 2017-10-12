@@ -28,7 +28,7 @@ class Push extends Command {
 	protected function configure() {
 		$this->setName( 'push' );
 		$this->setDescription( 'Push a snapshot to a repository.' );
-		$this->addOption( 'no-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
+		$this->addOption( 'exclude-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
 		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 
 		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
@@ -288,14 +288,15 @@ class Push extends Command {
 
 		$output->writeln( 'Saving file back up...' );
 
-		$no_uploads = $input->getOption( 'no-uploads' );
+		$exclude_uploads = $input->getOption( 'exclude-uploads' );
 
-		$maybe_uploads = '';
-		if ( $no_uploads ) {
-			$maybe_uploads = ' --exclude="./uploads/"';
+		$excludes = '';
+
+		if ( $exclude_uploads ) {
+			$excludes .= ' --exclude="./uploads/"';
 		}
 
-		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $maybe_uploads . ' -zcf ../.wpsnapshots/files.tar.gz . > /dev/null' );
+		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zcf ../.wpsnapshots/files.tar.gz . > /dev/null' );
 
 		$output->writeln( 'Adding snapshot to database...' );
 
