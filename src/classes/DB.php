@@ -81,6 +81,7 @@ class DB {
 
 		$snapshot_item = [
 			'project'           => $snapshot['project'],
+			'project_search'    => strtolower( $snapshot['project'] ),
 			'id'                => md5( $snapshot['project'] . '-' . $time ),
 			'time'              => $time,
 			'environment'       => $snapshot['environment'],
