@@ -9,6 +9,11 @@ require_once __DIR__ . '/utils.php';
 $app = new Application( 'WP Snapshots - A project sharing tool for WordPress.', '0.1' );
 
 /**
+ * Attempt to set this as WP Snapahots can consume a lot of memory.
+ */
+ini_set( 'memory_limit', '-1' );
+
+/**
  * Register commands
  */
 $app->add( new Command\Configure() );
