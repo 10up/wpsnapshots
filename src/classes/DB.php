@@ -41,15 +41,15 @@ class DB {
 				'TableName'  => 'wpsnapshots-' . $this->repository,
 				'ConditionalOperator' => 'OR',
 				'ScanFilter' => [
-			        'project' => [
+			        'project_search' => [
 			            'AttributeValueList' => [
-			                [ 'S' => $query ]
+			                [ 'S' => strtolower( $query ) ]
 			            ],
 			            'ComparisonOperator' => 'CONTAINS'
 			        ],
 			        'id' => [
 			            'AttributeValueList' => [
-			                [ 'S' => $query ]
+			                [ 'S' => strtolower( $query ) ]
 			            ],
 			            'ComparisonOperator' => 'EQ'
 			        ],
