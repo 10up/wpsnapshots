@@ -202,19 +202,19 @@ class Push extends Command {
 
 			if ( defined( 'SUBDOMAIN_INSTALL' ) && SUBDOMAIN_INSTALL ) {
 				$snapshot['subdomain_install'] = true;
- 			}
+			}
 
- 			$sites = get_sites( [ 'number' => 500, ] );
+				$sites = get_sites( [ 'number' => 500 ] );
 
- 			foreach ( $sites as $site ) {
- 				$snapshot['sites'][] = [
- 					'blog_id'  => $site->blog_id,
- 					'domain'   => $site->domain,
- 					'path'     => $site->path,
- 					'site_url' => get_site_url( $site->blog_id ),
- 					'home_url' => get_home_url( $site->blog_id ),
- 				];
- 			}
+			foreach ( $sites as $site ) {
+				$snapshot['sites'][] = [
+					'blog_id'  => $site->blog_id,
+					'domain'   => $site->domain,
+					'path'     => $site->path,
+					'site_url' => get_site_url( $site->blog_id ),
+					'home_url' => get_home_url( $site->blog_id ),
+				];
+			}
 		} else {
 			$snapshot['sites'][] = [
 				'site_url' => get_site_url(),
@@ -276,31 +276,37 @@ class Push extends Command {
 			$handle = @fopen( $temp_path . 'data.sql', 'r' );
 			$scrubbed_handle = @fopen( $temp_path . 'scrubbed-data.sql', 'x' );
 
-			if ( $handle ) {
-				$buffer = '';
-				$i = 0;
-
-				while ( ( $chunk = fgets( $handle , 4096 ) ) !== false ) {
-					foreach ( $all_hashed_passwords as $password ) {
-						$chunk = str_replace( "'$password'", "'$sterile_password'", $chunk );
-					}
-
-					$buffer .= $chunk;
-
-					if ( $i % 10000 === 0 ) {
-						fwrite( $scrubbed_handle, $buffer );
-						$buffer = '';
-					}
-
-					$i++;
-				}
-
-				fclose( $handle );
-				fclose( $scrubbed_handle );
-			} else {
+			if ( ! $handle || ! $scrubbed_handle ) {
 				$output->writeln( '<error>Could not scrub database.</error>' );
 				return;
 			}
+
+			$buffer = '';
+			$i = 0;
+
+			while ( ! feof( $handle ) ) {
+				$chunk = fread( $handle, 4096 );
+				foreach ( $all_hashed_passwords as $password ) {
+					$chunk = str_replace( "'$password'", "'$sterile_password'", $chunk );
+				}
+
+				$buffer .= $chunk;
+
+				if ( $i % 10000 === 0 ) {
+					fwrite( $scrubbed_handle, $buffer );
+					$buffer = '';
+				}
+
+				$i++;
+			}
+
+			if ( ! empty( $buffer ) ) {
+				fwrite( $scrubbed_handle, $buffer );
+				$buffer = '';
+			}
+
+			fclose( $handle );
+			fclose( $scrubbed_handle );
 
 			unlink( $temp_path . 'data.sql' );
 			rename( $temp_path . 'scrubbed-data.sql', $temp_path . 'data.sql' );

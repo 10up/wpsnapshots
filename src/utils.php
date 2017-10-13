@@ -8,7 +8,7 @@ use Requests;
 /**
  * Check if object is of type Error
  *
- * @param  Object  $obj
+ * @param  Object $obj
  * @return boolean
  */
 function is_error( $obj ) {
@@ -103,8 +103,6 @@ function create_config_file( $path, $path_to_template, $constants = [] ) {
 		$new_file[] = "define( '" . addslashes( $config_constant ) . "', $config_constant_value );";
 	}
 
-
-
 	$new_file[] = "require_once(ABSPATH . 'wp-settings.php');";
 
 	file_put_contents( $path, implode( "\n", $new_file ) );
@@ -151,7 +149,7 @@ function get_download_url( $version = 'latest', $locale = 'en_US' ) {
 	} else {
 		$url = sprintf(
 			'https://%s.wordpress.org/wordpress-%s-%s.tar.gz',
-			substr($locale, 0, 2),
+			substr( $locale, 0, 2 ),
 			$version,
 			$locale
 		);
@@ -163,7 +161,7 @@ function get_download_url( $version = 'latest', $locale = 'en_US' ) {
 /**
  * Is WordPress in the directory?
  *
- * @param  string  $path
+ * @param  string $path
  * @return boolean
  */
 function is_wp_present( $path ) {
@@ -216,7 +214,7 @@ function remove_temp_folder( $path ) {
  * @param  string $cmd
  * @param  array  $assoc_args
  */
-function run_mysql_command( $cmd, $assoc_args, $append = '' ) {
+function run_mysql_command( $cmd, $assoc_args, $append = '', $exit = true; ) {
 	check_proc_available( 'run_mysql_command' );
 
 	if ( isset( $assoc_args['host'] ) ) {
@@ -241,8 +239,12 @@ function run_mysql_command( $cmd, $assoc_args, $append = '' ) {
 
 	putenv( 'MYSQL_PWD=' . $old_pass );
 
-	if ( $r ) {
-		exit( $r );
+	if ( $exit ) {
+		if ( $r ) {
+			exit( $r );
+		}
+	} else {
+		return $r;
 	}
 }
 
@@ -285,7 +287,7 @@ function mysql_host_to_cli_args( $raw_host ) {
 		if ( is_numeric( $extra ) ) {
 			$assoc_args['port'] = intval( $extra );
 			$assoc_args['protocol'] = 'tcp';
-		} else if ( $extra !== '' ) {
+		} elseif ( $extra !== '' ) {
 			$assoc_args['socket'] = $extra;
 		}
 	} else {
@@ -338,8 +340,8 @@ function assoc_args_to_str( $assoc_args ) {
 	foreach ( $assoc_args as $key => $value ) {
 		if ( true === $value ) {
 			$str .= " --$key";
-		} elseif( is_array( $value ) ) {
-			foreach( $value as $_ => $v ) {
+		} elseif ( is_array( $value ) ) {
+			foreach ( $value as $_ => $v ) {
 				$str .= assoc_args_to_str( array( $key => $v ) );
 			}
 		} else {

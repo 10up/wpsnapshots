@@ -27,7 +27,7 @@ class S3 {
 	/**
 	 * Upload a snapshot to S3 given a path to files.tar.gz and data.sql
 	 *
-	 * @param  array $snapshot Must contain 'id'
+	 * @param  array  $snapshot Must contain 'id'
 	 * @param  string $db_path         Path to data.sql
 	 * @param  string $files_path      Path to files.tar.gz
 	 * @return bool|error
@@ -65,7 +65,7 @@ class S3 {
 				'Key'    => $snapshot['id'] . '/data.sql',
 			] );
 		} catch ( \Exception $e ) {
-			var_dump($e);
+			var_dump( $e );
 			return new Error( 0 );
 		}
 
@@ -94,7 +94,7 @@ class S3 {
 			    'SaveAs' => $files_path,
 			] );
 		} catch ( \Exception $e ) {
-			var_dump($e);
+			var_dump( $e );
 			echo $e->getMessage();
 			return new Error( 0 );
 		}
@@ -118,7 +118,7 @@ class S3 {
 					],
 					[
 						'Key' => $id . '/data.sql',
-					]
+					],
 				],
 			] );
 		} catch ( \Exception $e ) {
@@ -143,7 +143,7 @@ class S3 {
 			'credentials' => [
 				'key'    => $config['access_key_id'],
 				'secret' => $config['secret_access_key'],
-			]
+			],
 		] );
 
 		try {
@@ -210,14 +210,14 @@ class S3 {
 				$this->client->putObject( [
 					'Bucket' => self::getBucketName( $this->repository ),
 					'Key'    => 'test' . $test_key,
-					'Body'   => 'Test write'
+					'Body'   => 'Test write',
 				] );
 
 				$this->client->waitUntil( 'ObjectExists', [
 					'Bucket' => self::getBucketName( $this->repository ),
 					'Key'    => 'test' . $test_key,
 				] );
-			} catch( \Exception $e ) {
+			} catch ( \Exception $e ) {
 				return new Error( 2, 'Cant write to bucket' );
 			}
 

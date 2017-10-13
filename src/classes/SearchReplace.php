@@ -110,7 +110,7 @@ class SearchReplace {
 	/**
 	 * Check if column type is text
 	 *
-	 * @param  string  $type
+	 * @param  string $type
 	 * @return boolean
 	 */
 	private function is_text_col( $type ) {
@@ -166,7 +166,7 @@ class SearchReplace {
 	 * Returns number of updates made
 	 *
 	 * @param  string $col
-	 * @param  array $primary_keys
+	 * @param  array  $primary_keys
 	 * @param  string $table
 	 * @return int
 	 */
@@ -186,7 +186,7 @@ class SearchReplace {
 		foreach ( $rows as $keys ) {
 			$where_sql = '';
 
-			foreach( (array) $keys as $k => $v ) {
+			foreach ( (array) $keys as $k => $v ) {
 				if ( strlen( $where_sql ) ) {
 					$where_sql .= ' AND ';
 				}
@@ -207,7 +207,7 @@ class SearchReplace {
 
 			$where = array();
 
-			foreach( (array) $keys as $k => $v ) {
+			foreach ( (array) $keys as $k => $v ) {
 				$where[ $k ] = $v;
 			}
 
@@ -220,10 +220,10 @@ class SearchReplace {
 	/**
 	 * Perform php search and replace on data. Returns updated data
 	 *
-	 * @param  string|object|array  $data
-	 * @param  bool  $serialised
-	 * @param  integer $recursion_level [description]
-	 * @param  array   $visited_data
+	 * @param  string|object|array $data
+	 * @param  bool                $serialised
+	 * @param  integer             $recursion_level [description]
+	 * @param  array               $visited_data
 	 * @return string|object|array
 	 */
 	private function php_search_replace( $data, $serialised, $recursion_level = 0, $visited_data = array() ) {
@@ -244,24 +244,22 @@ class SearchReplace {
 
 			if ( is_string( $data ) && ( $unserialized = @unserialize( $data ) ) !== false ) {
 				$data = $this->php_search_replace( $unserialized, true, $recursion_level + 1 );
-			}
-			elseif ( is_array( $data ) ) {
+			} elseif ( is_array( $data ) ) {
 				$keys = array_keys( $data );
 				foreach ( $keys as $key ) {
-					$data[ $key ]= $this->php_search_replace( $data[$key], false, $recursion_level + 1, $visited_data );
+					$data[ $key ] = $this->php_search_replace( $data[ $key ], false, $recursion_level + 1, $visited_data );
 				}
-			}
-			elseif ( is_object( $data ) ) {
+			} elseif ( is_object( $data ) ) {
 				foreach ( $data as $key => $value ) {
 					$data->$key = $this->php_search_replace( $value, false, $recursion_level + 1, $visited_data );
 				}
-			}
-			else if ( is_string( $data ) ) {
+			} elseif ( is_string( $data ) ) {
 				$data = str_replace( $this->old, $this->new, $data );
 			}
-			if ( $serialised )
+			if ( $serialised ) {
 				return serialize( $data );
-		} catch( Exception $error ) {
+			}
+		} catch ( Exception $error ) {
 			// Do nothing
 		}
 

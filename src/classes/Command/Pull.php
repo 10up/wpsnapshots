@@ -161,6 +161,16 @@ class Pull extends Command {
 		 * Import tables
 		 */
 
+		$args = array(
+			'execute' => 'SET GLOBAL max_allowed_packet=51200000;',
+		);
+
+		$command_result  = Utils\run_mysql_command( 'mysql --no-defaults --no-auto-rehash', $args, '' . false );
+
+		if ( preg_match( '#error#i', $command_result ) ) {
+			$output->writeln( 'Could not set MySQL max_allowed_packet. If MySQL import fails, try running WP Snapshots using root DB user.' );
+		}
+
 		$output->writeln( 'Updating database...' );
 		$query = 'SET autocommit = 0; SET unique_checks = 0; SET foreign_key_checks = 0; SOURCE %s; COMMIT;';
 
@@ -287,12 +297,12 @@ class Pull extends Command {
 					$site_question = new Question( 'Site URL (' . $suggested_url . ' might make sense): ', $suggested_url );
 					$site_question->setValidator( $url_validator );
 
-					$new_site_url = $helper->ask( $input, $output, $site_question);
+					$new_site_url = $helper->ask( $input, $output, $site_question );
 
 					/**
 					 * Update multisite stuff for each blog
 					 */
-					$wpdb->query( $wpdb->prepare( "UPDATE " . $GLOBALS['table_prefix'] . "blogs SET path='%s', domain='%s' WHERE blog_id='%d'", esc_sql( $site['path'] ), esc_sql( $domain ), (int) $site['blog_id'] ) );
+					$wpdb->query( $wpdb->prepare( 'UPDATE ' . $GLOBALS['table_prefix'] . "blogs SET path='%s', domain='%s' WHERE blog_id='%d'", esc_sql( $site['path'] ), esc_sql( $domain ), (int) $site['blog_id'] ) );
 
 					/**
 					 * Update all tables except wp_site and wp_blog since we handled that above
@@ -332,7 +342,7 @@ class Pull extends Command {
 				/**
 				 * Update site domain with main domain
 				 */
-				$wpdb->query( $wpdb->prepare( "UPDATE " . $GLOBALS['table_prefix'] . "site SET domain='%s'", esc_sql( $main_domain ) ) );
+				$wpdb->query( $wpdb->prepare( 'UPDATE ' . $GLOBALS['table_prefix'] . "site SET domain='%s'", esc_sql( $main_domain ) ) );
 
 				if ( ! defined( 'BLOG_ID_CURRENT_SITE' ) || ! defined( 'SITE_ID_CURRENT_SITE' ) || ! defined( 'PATH_CURRENT_SITE' ) || ! defined( 'MULTISITE' ) || ! MULTISITE || ! defined( 'DOMAIN_CURRENT_SITE' ) || $main_domain !== DOMAIN_CURRENT_SITE || ! defined( 'SUBDOMAIN_INSTALL' ) || $snapshot['subdomain_install'] !== SUBDOMAIN_INSTALL ) {
 
@@ -348,12 +358,12 @@ define('BLOG_ID_CURRENT_SITE', 1);");
 					$output->writeln( 'URLs replaced.' );
 				}
 			} else {
-				$home_question = new Question( 'Home URL (' . $pre_update_home_url .' is recommended): ', $pre_update_home_url );
+				$home_question = new Question( 'Home URL (' . $pre_update_home_url . ' is recommended): ', $pre_update_home_url );
 				$home_question->setValidator( $url_validator );
 
 				$new_home_url = $helper->ask( $input, $output, $home_question );
 
-				$site_question = new Question( 'Site URL (' . $pre_update_site_url .' is recommended): ', $pre_update_site_url );
+				$site_question = new Question( 'Site URL (' . $pre_update_site_url . ' is recommended): ', $pre_update_site_url );
 				$site_question->setValidator( $url_validator );
 
 				$new_site_url = $helper->ask( $input, $output, $site_question );

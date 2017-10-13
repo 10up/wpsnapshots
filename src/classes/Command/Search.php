@@ -67,7 +67,7 @@ class Search extends Command {
 
 		$table->setRows( $rows );
 
-        $table->render();
+		$table->render();
 	}
 
 }

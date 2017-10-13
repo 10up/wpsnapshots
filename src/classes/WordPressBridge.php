@@ -71,7 +71,7 @@ class WordPressBridge {
 
 			$url_parts = parse_url( $url );
 
-			if ( !isset( $url_parts['scheme'] ) ) {
+			if ( ! isset( $url_parts['scheme'] ) ) {
 				$url_parts = parse_url( 'http://' . $url );
 			}
 

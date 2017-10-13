@@ -43,15 +43,15 @@ class DB {
 				'ScanFilter' => [
 			        'project_search' => [
 			            'AttributeValueList' => [
-			                [ 'S' => strtolower( $query ) ]
+			                [ 'S' => strtolower( $query ) ],
 			            ],
-			            'ComparisonOperator' => 'CONTAINS'
+			            'ComparisonOperator' => 'CONTAINS',
 			        ],
 			        'id' => [
 			            'AttributeValueList' => [
-			                [ 'S' => strtolower( $query ) ]
+			                [ 'S' => strtolower( $query ) ],
 			            ],
-			            'ComparisonOperator' => 'EQ'
+			            'ComparisonOperator' => 'EQ',
 			        ],
 			    ],
 			] );
@@ -97,7 +97,7 @@ class DB {
 		try {
 			$result = $this->client->putItem( [
 				'TableName' => 'wpsnapshots-' . $this->repository,
-				'Item'      => $marshaler->marshalJson( $snapshot_json )
+				'Item'      => $marshaler->marshalJson( $snapshot_json ),
 			] );
 		} catch ( \Exception $e ) {
 			return new Error( 0, 'Error occurred.' );
@@ -118,9 +118,9 @@ class DB {
 				'TableName' => 'wpsnapshots-' . $this->repository,
 				'Key' => [
 					'id'   => [
-						'S' => $id
+						'S' => $id,
 					],
-				]
+				],
 			] );
 		} catch ( \Exception $e ) {
 			return new Error( 0 );
@@ -142,9 +142,9 @@ class DB {
 				'TableName'      => 'wpsnapshots-' . $this->repository,
 				'Key'            => [
 					'id' => [
-						'S' => $id
+						'S' => $id,
 					],
-				]
+				],
 			] );
 		} catch ( \Exception $e ) {
 			return new Error( 0 );
@@ -175,19 +175,19 @@ class DB {
 				'AttributeDefinitions' => [
 					[
 						'AttributeName' => 'id',
-						'AttributeType' => 'S'
-					]
+						'AttributeType' => 'S',
+					],
 				],
 				'KeySchema' => [
 					[
 						'AttributeName' => 'id',
-						'KeyType'       => 'HASH'
-					]
+						'KeyType'       => 'HASH',
+					],
 				],
 				'ProvisionedThroughput' => [
 					'ReadCapacityUnits'  => 10,
-					'WriteCapacityUnits' => 20
-				]
+					'WriteCapacityUnits' => 20,
+				],
 			] );
 
 			$this->client->waitUntil('TableExists', [

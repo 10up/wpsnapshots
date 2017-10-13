@@ -9,6 +9,7 @@ class Error {
 
 	/**
 	 * Construct error
+	 *
 	 * @param int    $code    Error code
 	 * @param string $message Error message
 	 */
