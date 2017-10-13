@@ -213,8 +213,10 @@ function remove_temp_folder( $path ) {
  *
  * @param  string $cmd
  * @param  array  $assoc_args
+ * @param  string $append
+ * @param  bool   $exit
  */
-function run_mysql_command( $cmd, $assoc_args, $append = '', $exit = true; ) {
+function run_mysql_command( $cmd, $assoc_args, $append = '', $exit = true ) {
 	check_proc_available( 'run_mysql_command' );
 
 	if ( isset( $assoc_args['host'] ) ) {
