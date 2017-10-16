@@ -162,6 +162,10 @@ class Pull extends Command {
 		 */
 
 		$args = array(
+			'host' => DB_HOST,
+			'user' => DB_USER,
+			'pass' => DB_PASSWORD,
+			'database' => DB_NAME,
 			'execute' => 'SET GLOBAL max_allowed_packet=51200000;',
 		);
 
