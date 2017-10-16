@@ -35,6 +35,13 @@ If global Composer scripts are not in your path, add them:
 ```
 export PATH=~/.composer/vendor/bin:$PATH
 ```
+
+If you are using VVV, add global Composer scripts to your path with this command:
+
+```
+export PATH=~/.config/composer/vendor/bin:$PATH
+```
+
 ## Configure
 
 WP Snapshots currently relies on AWS to store files and data. As such, you need to connect to a "repository" hosted on AWS:
