@@ -214,9 +214,9 @@ function remove_temp_folder( $path ) {
  * @param  string $cmd
  * @param  array  $assoc_args
  * @param  string $append
- * @param  bool   $exit
+ * @param  bool   $exit_on_error
  */
-function run_mysql_command( $cmd, $assoc_args, $append = '', $exit = true ) {
+function run_mysql_command( $cmd, $assoc_args, $append = '', $exit_on_error = true ) {
 	check_proc_available( 'run_mysql_command' );
 
 	if ( isset( $assoc_args['host'] ) ) {
@@ -233,7 +233,7 @@ function run_mysql_command( $cmd, $assoc_args, $append = '', $exit = true ) {
 
 	$proc = proc_open( $final_cmd, [ STDIN, STDOUT, STDERR ], $pipes );
 
-	if ( ! $proc ) {
+	if ( $exit_on_error && ! $proc ) {
 		exit( 1 );
 	}
 
@@ -241,7 +241,7 @@ function run_mysql_command( $cmd, $assoc_args, $append = '', $exit = true ) {
 
 	putenv( 'MYSQL_PWD=' . $old_pass );
 
-	if ( $exit ) {
+	if ( $exit_on_error ) {
 		if ( $r ) {
 			exit( $r );
 		}
