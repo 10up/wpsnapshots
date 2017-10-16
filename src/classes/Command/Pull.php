@@ -169,7 +169,7 @@ class Pull extends Command {
 			'execute' => 'SET GLOBAL max_allowed_packet=51200000;',
 		);
 
-		$command_result  = Utils\run_mysql_command( 'mysql --no-defaults --no-auto-rehash', $args, '' . false );
+		$command_result  = Utils\run_mysql_command( 'mysql --no-defaults --no-auto-rehash', $args, '', false );
 
 		if ( preg_match( '#error#i', $command_result ) ) {
 			$output->writeln( 'Could not set MySQL max_allowed_packet. If MySQL import fails, try running WP Snapshots using root DB user.' );
