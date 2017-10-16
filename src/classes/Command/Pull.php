@@ -175,7 +175,7 @@ class Pull extends Command {
 			$output->writeln( '<comment>Could not set MySQL max_allowed_packet. If MySQL import fails, try running WP Snapshots using root DB user.</comment>' );
 		}
 
-		$output->writeln( 'Updating database...' );
+		$output->writeln( 'Updating database... This may take awhile depending on the size of the database.' );
 		$query = 'SET autocommit = 0; SET unique_checks = 0; SET foreign_key_checks = 0; SOURCE %s; COMMIT;';
 
 		$args = array(
@@ -333,7 +333,7 @@ class Pull extends Command {
 					}
 
 					if ( ! empty( $tables_to_update ) ) {
-						$output->writeln( 'Running replacement...' );
+						$output->writeln( 'Running replacement... This may take awhile depending on the size of the database.' );
 
 						new SearchReplace( $site['home_url'], $new_home_url, $tables_to_update );
 
@@ -374,7 +374,7 @@ define('BLOG_ID_CURRENT_SITE', 1);");
 
 				$new_site_url = $helper->ask( $input, $output, $site_question );
 
-				$output->writeln( 'Running replacement...' );
+				$output->writeln( 'Running replacement... This may take awhile depending on the size of the database.' );
 
 				new SearchReplace( $snapshot['sites'][0]['home_url'], $new_home_url );
 				new SearchReplace( $snapshot['sites'][0]['site_url'], $new_site_url );
