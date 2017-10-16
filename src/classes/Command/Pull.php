@@ -226,7 +226,7 @@ class Pull extends Command {
 		 * Handle url replacements
 		 */
 		if ( ! empty( $snapshot['sites'] ) ) {
-			$output->writeln( 'Replacing URLs...' );
+			$output->writeln( 'Preparing to replace URLs.' );
 
 			$url_validator = function( $answer ) {
 				if ( '' === trim( $answer ) || false !== strpos( $answer, ' ' ) || ! preg_match( '#https?:#i', $answer ) ) {
@@ -333,6 +333,8 @@ class Pull extends Command {
 					}
 
 					if ( ! empty( $tables_to_update ) ) {
+						$output->writeln( 'Running replacement...' );
+
 						new SearchReplace( $site['home_url'], $new_home_url, $tables_to_update );
 
 						if ( $site['home_url'] !== $site['site_url'] ) {
@@ -371,6 +373,8 @@ define('BLOG_ID_CURRENT_SITE', 1);");
 				$site_question->setValidator( $url_validator );
 
 				$new_site_url = $helper->ask( $input, $output, $site_question );
+
+				$output->writeln( 'Running replacement...' );
 
 				new SearchReplace( $snapshot['sites'][0]['home_url'], $new_home_url );
 				new SearchReplace( $snapshot['sites'][0]['site_url'], $new_site_url );
