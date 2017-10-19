@@ -92,7 +92,7 @@ class Pull extends Command {
 			 * Download WordPress core files
 			 */
 
-			$download_url = Utils\get_download_url( '4.6' );
+			$download_url = Utils\get_download_url();
 
 			$headers = [ 'Accept' => 'application/json' ];
 			$options = [
