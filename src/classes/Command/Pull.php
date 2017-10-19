@@ -15,6 +15,7 @@ use WPSnapshots\WordPressBridge;
 use WPSnapshots\Config;
 use WPSnapshots\Utils;
 use WPSnapshots\SearchReplace;
+use Requests;
 
 /**
  * The pull command grabs a snapshot and pulls it down overwriting your wp-content
@@ -47,6 +48,11 @@ class Pull extends Command {
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		$connection = Connection::instance()->connect();
 
+		if ( Utils\is_error( $connection ) ) {
+			$output->writeln( '<error>Could not connect to repository.</error>' );
+			return;
+		}
+
 		$path = $input->getOption( 'path' );
 
 		if ( empty( $path ) ) {
@@ -55,18 +61,84 @@ class Pull extends Command {
 
 		$path = Utils\normalize_path( $path );
 
-		if ( Utils\is_error( $connection ) ) {
-			$output->writeln( '<error>Could not connect to repository.</error>' );
+		$remove_temp = Utils\remove_temp_folder( $path );
+
+		if ( Utils\is_error( $remove_temp ) ) {
+			$output->writeln( '<error>Failed to clean up old WP Snapshots temp files.</error>' );
 			return;
 		}
 
-		if ( ! Utils\locate_wp_config( $path ) ) {
-			$output->writeln( '<error>This is not a WordPress install.</error>' );
+		$temp_path = $path . '.wpsnapshots/';
+
+		$dir_result = mkdir( $temp_path, 0755 );
+
+		if ( ! $dir_result ) {
+			$output->writeln( '<error>Cannot write to current directory.</error>' );
+			return;
+		}
+
+		$helper = $this->getHelper( 'question' );
+
+		if ( ! Utils\is_wp_present( $path ) ) {
+			$output->writeln( '<error>This is not a WordPress install. WordPress needs to be present in order to pull an instance.</error>' );
+
+			$download_wp = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to download WordPress? (yes|no) ', false ) );
+
+			if ( ! $download_wp ) {
+				return;
+			}
 
 			/**
-			 * Todo: Prompt to install WordPress. Prompt for DB creds to create wp-config.php
+			 * Download WordPress core files
 			 */
-			return;
+
+			$download_url = Utils\get_download_url( '4.6' );
+
+			$headers = [ 'Accept' => 'application/json' ];
+			$options = [
+				'timeout' => 600,
+				'filename' => $temp_path . 'wp.tar.gz',
+			];
+
+			$request = Requests::get( $download_url, $headers, $options );
+
+			exec( 'tar -C ' . $path . ' -xf ' . $temp_path . 'wp.tar.gz > /dev/null && mv ' . $path . 'wordpress/* . && rmdir ' . $path . 'wordpress' );
+			$output->writeln( 'WordPress downloaded.' );
+		}
+
+		if ( ! Utils\locate_wp_config( $path ) ) {
+			$output->writeln( '<error>No wp-config.php file present. wp-config.php needs to be setup in order to pull an instance.</error>' );
+
+			$create_config = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to create a wp-config.php file? (yes|no) ', false ) );
+
+			if ( ! $create_config ) {
+				return;
+			}
+
+			$config_constants = [];
+
+			$db_host_question = new Question( 'What is your database host? ' );
+			$db_host_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+
+			$config_constants['DB_HOST'] = $helper->ask( $input, $output, $db_host_question );
+
+			$db_name_question = new Question( 'What is your database name? ' );
+			$db_name_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+
+			$config_constants['DB_NAME'] = $helper->ask( $input, $output, $db_name_question );
+
+			$db_user_question = new Question( 'What is your database user? ' );
+			$db_user_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+
+			$config_constants['DB_USER'] = $helper->ask( $input, $output, $db_user_question );
+
+			$db_password_question = new Question( 'What is your database password? ' );
+			$db_password_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+
+			$config_constants['DB_PASSWORD'] = $helper->ask( $input, $output, $db_password_question );
+
+			Utils\create_config_file( $path . 'wp-config.php', $path . 'wp-config-sample.php', $config_constants );
+			$output->writeln( 'wp-config.php created.' );
 		}
 
 		$extra_config_constants = [];
@@ -86,6 +158,11 @@ class Pull extends Command {
 			$extra_config_constants['DB_PASSWORD'] = $db_password;
 		}
 
+		/**
+		 * Make sure we don't redirect if no tables exist
+		 */
+		define( 'WP_INSTALLING', true );
+
 		$wp = WordPressBridge::instance()->load( $path, $extra_config_constants );
 
 		if ( Utils\is_error( $wp ) ) {
@@ -103,15 +180,6 @@ class Pull extends Command {
 			$use_https = true;
 		}
 
-		$remove_temp = Utils\remove_temp_folder( $path );
-
-		if ( Utils\is_error( $remove_temp ) ) {
-			$output->writeln( '<error>Failed to clean up old WP Snapshots temp files.</error>' );
-			return;
-		}
-
-		$helper = $this->getHelper( 'question' );
-
 		/**
 		 * We make the user double confirm since this could destroy a website
 		 */
@@ -119,20 +187,11 @@ class Pull extends Command {
 
 		if ( empty( $confirm ) ) {
 
-			$confirm = $helper->ask( $input, $output, new ConfirmationQuestion( 'Are you sure you want to do this? This is a potentially destructive operation. (yes|no) ', false ) );
+			$confirm = $helper->ask( $input, $output, new ConfirmationQuestion( 'Are you sure you want to do this? This is a potentially destructive operation. You should run a back up first. (yes|no) ', false ) );
 
 			if ( ! $confirm ) {
 				return;
 			}
-		}
-
-		$temp_path = $path . '.wpsnapshots/';
-
-		$dir_result = mkdir( $temp_path, 0755 );
-
-		if ( ! $dir_result ) {
-			$output->writeln( '<error>Cannot write to current directory.</error>' );
-			return;
 		}
 
 		$id = $input->getArgument( 'instance-id' );

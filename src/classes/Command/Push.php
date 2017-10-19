@@ -14,7 +14,6 @@ use WPSnapshots\Connection;
 use WPSnapshots\WordPressBridge;
 use WPSnapshots\Config;
 use WPSnapshots\Utils;
-use Requests;
 
 /**
  * The push command takes the current WP DB and wp-content folder and pushes them to
@@ -83,64 +82,12 @@ class Push extends Command {
 
 		if ( ! Utils\is_wp_present( $path ) ) {
 			$output->writeln( '<error>This is not a WordPress install.</error>' );
-
-			$download_wp = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to download WordPress? (yes|no) ', false ) );
-
-			if ( ! $download_wp ) {
-				return;
-			}
-
-			/**
-			 * Download WordPress core files
-			 */
-
-			$download_url = Utils\get_download_url( '4.6' );
-
-			$headers = [ 'Accept' => 'application/json' ];
-			$options = [
-				'timeout' => 600,
-				'filename' => $temp_path . 'wp.tar.gz',
-			];
-
-			$request = Requests::get( $download_url, $headers, $options );
-
-			exec( 'tar -C ' . $path . ' -xf ' . $temp_path . 'wp.tar.gz > /dev/null && mv ' . $path . 'wordpress/* . && rmdir ' . $path . 'wordpress' );
-			$output->writeln( 'WordPress downloaded.' );
+			return;
 		}
 
 		if ( ! Utils\locate_wp_config( $path ) ) {
 			$output->writeln( '<error>No wp-config.php file present.</error>' );
-
-			$create_config = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to create a wp-config.php file? (yes|no) ', false ) );
-
-			if ( ! $create_config ) {
-				return;
-			}
-
-			$config_constants = [];
-
-			$db_host_question = new Question( 'What is your database host? ' );
-			$db_host_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
-
-			$config_constants['DB_HOST'] = $helper->ask( $input, $output, $db_host_question );
-
-			$db_name_question = new Question( 'What is your database name? ' );
-			$db_name_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
-
-			$config_constants['DB_NAME'] = $helper->ask( $input, $output, $db_name_question );
-
-			$db_user_question = new Question( 'What is your database user? ' );
-			$db_user_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
-
-			$config_constants['DB_USER'] = $helper->ask( $input, $output, $db_user_question );
-
-			$db_password_question = new Question( 'What is your database password? ' );
-			$db_password_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
-
-			$config_constants['DB_PASSWORD'] = $helper->ask( $input, $output, $db_password_question );
-
-			Utils\create_config_file( $path . 'wp-config.php', $path . 'wp-config-sample.php', $config_constants );
-			$output->writeln( 'wp-config.php created.' );
+			return;
 		}
 
 		$extra_config_constants = [];
