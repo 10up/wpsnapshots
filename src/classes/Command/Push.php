@@ -340,7 +340,7 @@ class Push extends Command {
 			exit;
 		}
 
-		$output->writeln( 'Upload files and database to repository...' );
+		$output->writeln( 'Uploading files and database to repository...' );
 
 		/**
 		 * Put files on S3

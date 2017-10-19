@@ -35,6 +35,13 @@ If global Composer scripts are not in your path, add them:
 ```
 export PATH=~/.composer/vendor/bin:$PATH
 ```
+
+If you are using VVV, add global Composer scripts to your path with this command:
+
+```
+export PATH=~/.config/composer/vendor/bin:$PATH
+```
+
 ## Configure
 
 WP Snapshots currently relies on AWS to store files and data. As such, you need to connect to a "repository" hosted on AWS:
@@ -82,6 +89,10 @@ Documentation for each operation is as follows:
 * __WP Snapshots can't establish a connection to the database__
   
   This can happen if you are running your development environment inside Virtual Box or a Docker container. WP Snapshots reads database credentials from `wp-config.php`. In order to connect to your database from your host machine, the database host address will need to be different. For VVV it's 192.168.50.4, for WP Local Docker, it's 127.0.0.1. You can pass a host override via the command line using the `--db_host` option. We recommend running WP Snapshots from inside your development environment.
+  
+* __During a pull, MySQL is timing or erroring out while replacing the database.__
+
+  If you are pulling a massive database, there are all sorts of memory and MySQL optimization issues you can encounter. Try running WP Snapshots as root (`--db_user=root`) so it can attempt to tweak settings for the large import.
   
 ## Windows
 
