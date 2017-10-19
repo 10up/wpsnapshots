@@ -28,7 +28,7 @@ class DB {
 
 	/**
 	 * Use DynamoDB scan to search tables for snapshots where project, id, or author information
-	 * matches search text
+	 * matches search text. Searching for "*" returns all snapshots.
 	 *
 	 * @param  string $query
 	 * @return array
@@ -36,25 +36,31 @@ class DB {
 	public function search( $query ) {
 		$marshaler = new Marshaler();
 
+		$args = [
+			'TableName'  => 'wpsnapshots-' . $this->repository,
+		];
+
+		if ( '*' !== $query ) {
+			$args['ConditionalOperator'] = 'OR';
+
+			$args['ScanFilter'] = [
+		        'project_search' => [
+		            'AttributeValueList' => [
+		                [ 'S' => strtolower( $query ) ],
+		            ],
+		            'ComparisonOperator' => 'CONTAINS',
+		        ],
+		        'id' => [
+		            'AttributeValueList' => [
+		                [ 'S' => strtolower( $query ) ],
+		            ],
+		            'ComparisonOperator' => 'EQ',
+		        ],
+		    ];
+		}
+
 		try {
-			$search_scan = $this->client->getIterator( 'Scan', [
-				'TableName'  => 'wpsnapshots-' . $this->repository,
-				'ConditionalOperator' => 'OR',
-				'ScanFilter' => [
-			        'project_search' => [
-			            'AttributeValueList' => [
-			                [ 'S' => strtolower( $query ) ],
-			            ],
-			            'ComparisonOperator' => 'CONTAINS',
-			        ],
-			        'id' => [
-			            'AttributeValueList' => [
-			                [ 'S' => strtolower( $query ) ],
-			            ],
-			            'ComparisonOperator' => 'EQ',
-			        ],
-			    ],
-			] );
+			$search_scan = $this->client->getIterator( 'Scan', $args );
 		} catch ( \Exception $e ) {
 			return [];
 		}
