@@ -270,7 +270,7 @@ class Push extends Command {
 		$excludes = '';
 
 		if ( $exclude_uploads ) {
-			$excludes .= ' --exclude="./uploads/"';
+			$excludes .= ' --exclude="./uploads"';
 		}
 
 		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zcf ../.wpsnapshots/files.tar.gz . > /dev/null' );
