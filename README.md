@@ -89,9 +89,4 @@ Documentation for each operation is as follows:
 * __During a pull, MySQL is timing or erroring out while replacing the database.__
 
   If you are pulling a massive database, there are all sorts of memory and MySQL optimization issues you can encounter. Try running WP Snapshots as root (`--db_user=root`) so it can attempt to tweak settings for the large import.
-  
-## Windows
-
-Someone with Windows needs to figure this out :)
-
 
