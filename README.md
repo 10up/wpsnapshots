@@ -12,7 +12,7 @@ Snapshot files (`wp-content/`) and WordPress database tables are stored in Amazo
 
 ## Install
 
-WP Snapshots is easiest to use as a global Composer package. Right now, it is available only as a private 10up package. Assuming you have Composer/MySQL installed and SSH keys setup within GitHub/10up organiziation, do the following:
+WP Snapshots is easiest to use as a global Composer package. Right now, it is available only as a private 10up package. It's highly recommended you run WP Snapshots from WITHIN your dev environment (inside VM or container). Assuming you have Composer/MySQL installed and SSH keys setup within GitHub/10up organiziation, do the following:
 
 1. Add the 10up/wpsnapshots repository as a global Composer repository:
   ```
@@ -58,7 +58,7 @@ If a repository has already been created, this command will do nothing.
 
 ## Usage
 
-WP Snapshots revolves around pushing, pulling, and searching for snapshots. Right now, WP Snapshots can only push and pull into existing WordPress installs (working version of WordPress connected to a database). In a future version, WordPress will be setup if needed.
+WP Snapshots revolves around pushing, pulling, and searching for snapshots. WP Snapshots can push any setup WordPress install. WP Snapshots can pull any snapshot regardless of whether WordPress is setup or not. If WordPress is not setup during a pull, WP Snapshots will guide you through setting it up.
 
 Documentation for each operation is as follows:
 
@@ -74,7 +74,7 @@ Documentation for each operation is as follows:
   
 * __wpsnapshots search \<search-text\>__
   
-  This command searches the repository for snapshots. `<search-text>` will be compared against project names and authors.
+  This command searches the repository for snapshots. `<search-text>` will be compared against project names and authors. Searching for "\*" will return all snapshots.
   
 * __wpsnapshots delete \<instance-id\>__
   
@@ -84,7 +84,7 @@ Documentation for each operation is as follows:
 
 * __WP Snapshots can't establish a connection to the database__
   
-  This can happen if you are running your development environment inside Virtual Box or a Docker container. WP Snapshots reads database credentials from `wp-config.php`. In order to connect to your database from your host machine, the database host address will need to be different. For VVV it's 192.168.50.4, for WP Local Docker, it's 127.0.0.1. You can pass a host override via the command line using the `--db_host` option. We recommend running WP Snapshots from inside your development environment.
+  This can happen if you are calling WP Snapshots outside of your dev environment running in a VM or container. WP Snapshots reads database credentials from `wp-config.php`. In order to connect to your database from your host machine, the database host address will need to be different. For VVV it's 192.168.50.4, for WP Local Docker, it's 127.0.0.1. You can pass a host override via the command line using the `--db_host` option. We recommend running WP Snapshots from inside your development environment.
   
 * __During a pull, MySQL is timing or erroring out while replacing the database.__
 
