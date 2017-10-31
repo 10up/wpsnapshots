@@ -65,8 +65,14 @@ class S3 {
 				'Key'    => $snapshot['id'] . '/data.sql',
 			] );
 		} catch ( \Exception $e ) {
-			var_dump( $e );
-			return new Error( 0 );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		return true;
@@ -94,9 +100,14 @@ class S3 {
 			    'SaveAs' => $files_path,
 			] );
 		} catch ( \Exception $e ) {
-			var_dump( $e );
-			echo $e->getMessage();
-			return new Error( 0 );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		return true;
@@ -122,7 +133,14 @@ class S3 {
 				],
 			] );
 		} catch ( \Exception $e ) {
-			return new Error( 0 );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		return true;

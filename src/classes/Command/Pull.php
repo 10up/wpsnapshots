@@ -239,7 +239,16 @@ class Pull extends Command {
 		$download = Connection::instance()->s3->downloadSnapshot( $id, $temp_path . 'data.sql', $temp_path . 'files.tar.gz' );
 
 		if ( Utils\is_error( $download ) ) {
+
 			$output->writeln( '<error>Failed to pull snapshot.</error>' );
+
+			if ( $verbose ) {
+				$output->writeln( 'Error Message: ' . $download->message['message'] );
+				$output->writeln( 'AWS Request ID: ' . $download->message['aws_request_id'] );
+				$output->writeln( 'AWS Error Type: ' . $download->message['aws_error_type'] );
+				$output->writeln( 'AWS Error Code: ' . $download->message['aws_error_code'] );
+			}
+
 			return;
 		}
 
@@ -251,6 +260,14 @@ class Pull extends Command {
 
 		if ( Utils\is_error( $snapshot ) ) {
 			$output->writeln( '<error>Failed to get snapshot.</error>' );
+
+			if ( $verbose ) {
+				$output->writeln( 'Error Message: ' . $snapshot->message['message'] );
+				$output->writeln( 'AWS Request ID: ' . $snapshot->message['aws_request_id'] );
+				$output->writeln( 'AWS Error Type: ' . $snapshot->message['aws_error_type'] );
+				$output->writeln( 'AWS Error Code: ' . $snapshot->message['aws_error_code'] );
+			}
+
 			return;
 		}
 

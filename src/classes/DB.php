@@ -106,7 +106,14 @@ class DB {
 				'Item'      => $marshaler->marshalJson( $snapshot_json ),
 			] );
 		} catch ( \Exception $e ) {
-			return new Error( 0, 'Error occurred.' );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		return $snapshot_item;
@@ -129,7 +136,14 @@ class DB {
 				],
 			] );
 		} catch ( \Exception $e ) {
-			return new Error( 0 );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		return true;
@@ -153,7 +167,14 @@ class DB {
 				],
 			] );
 		} catch ( \Exception $e ) {
-			return new Error( 0 );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		if ( empty( $result['Item'] ) ) {

@@ -316,6 +316,14 @@ class Push extends Command {
 
 		if ( Utils\is_error( $inserted_snapshot ) ) {
 			$output->writeln( '<error>Could not add snapshot to database.</error>' );
+
+			if ( $verbose ) {
+				$output->writeln( 'Error Message: ' . $inserted_snapshot->message['message'] );
+				$output->writeln( 'AWS Request ID: ' . $inserted_snapshot->message['aws_request_id'] );
+				$output->writeln( 'AWS Error Type: ' . $inserted_snapshot->message['aws_error_type'] );
+				$output->writeln( 'AWS Error Code: ' . $inserted_snapshot->message['aws_error_code'] );
+			}
+
 			exit;
 		}
 
@@ -328,6 +336,14 @@ class Push extends Command {
 
 		if ( Utils\is_error( $s3_add ) ) {
 			$output->writeln( '<error>Could not upload files to S3.</error>' );
+
+			if ( $verbose ) {
+				$output->writeln( 'Error Message: ' . $s3_add->message['message'] );
+				$output->writeln( 'AWS Request ID: ' . $s3_add->message['aws_request_id'] );
+				$output->writeln( 'AWS Error Type: ' . $s3_add->message['aws_error_type'] );
+				$output->writeln( 'AWS Error Code: ' . $s3_add->message['aws_error_code'] );
+			}
+
 			exit;
 		}
 

@@ -11,7 +11,7 @@ class Error {
 	 * Construct error
 	 *
 	 * @param int    $code    Error code
-	 * @param string $message Error message
+	 * @param string|array $message Error message
 	 */
 	public function __construct( $code, $message = '' ) {
 		$this->code = $code;
