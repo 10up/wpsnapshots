@@ -96,6 +96,10 @@ class Pull extends Command {
 			 * Download WordPress core files
 			 */
 
+			if ( $verbose ) {
+				$output->writeln( 'Getting WordPress download URL...' );
+			}
+
 			$download_url = Utils\get_download_url();
 
 			$headers = [ 'Accept' => 'application/json' ];
@@ -104,9 +108,30 @@ class Pull extends Command {
 				'filename' => $temp_path . 'wp.tar.gz',
 			];
 
+			if ( $verbose ) {
+				$output->writeln( 'Downloading WordPress...' );
+			}
+
 			$request = Requests::get( $download_url, $headers, $options );
 
-			exec( 'tar -C ' . $path . ' -xf ' . $temp_path . 'wp.tar.gz ' . $verbose_pipe . ' && mv ' . $path . 'wordpress/* . && rmdir ' . $path . 'wordpress' );
+			if ( $verbose ) {
+				$output->writeln( 'Extracting WordPress...' );
+			}
+
+			exec( 'tar -C ' . $path . ' -xf ' . $temp_path . 'wp.tar.gz ' . $verbose_pipe );
+
+			if ( $verbose ) {
+				$output->writeln( 'Moving WordPress files...' );
+			}
+
+			exec( 'mv ' . $path . 'wordpress/* .' );
+
+			if ( $verbose ) {
+				$output->writeln( 'Removing temporary WordPress files...' );
+			}
+
+			exec( 'rmdir ' . $path . 'wordpress' );
+
 			$output->writeln( 'WordPress downloaded.' );
 		}
 
@@ -141,7 +166,12 @@ class Pull extends Command {
 
 			$config_constants['DB_PASSWORD'] = $helper->ask( $input, $output, $db_password_question );
 
+			if ( $verbose ) {
+				$output->writeln( 'Creating wp-config.php file...' );
+			}
+
 			Utils\create_config_file( $path . 'wp-config.php', $path . 'wp-config-sample.php', $config_constants );
+
 			$output->writeln( 'wp-config.php created.' );
 		}
 
@@ -166,6 +196,10 @@ class Pull extends Command {
 		 * Make sure we don't redirect if no tables exist
 		 */
 		define( 'WP_INSTALLING', true );
+
+		if ( $verbose ) {
+			$output->writeln( 'Bootstrapping WordPress...' );
+		}
 
 		$wp = WordPressBridge::instance()->load( $path, $extra_config_constants );
 
@@ -209,6 +243,10 @@ class Pull extends Command {
 			return;
 		}
 
+		if ( $verbose ) {
+			$output->writeln( 'Getting snapshot data...' );
+		}
+
 		$snapshot = Connection::instance()->db->getSnapshot( $id );
 
 		if ( Utils\is_error( $snapshot ) ) {
@@ -218,7 +256,17 @@ class Pull extends Command {
 
 		$output->writeln( 'Replacing wp-content/...' );
 
-		exec( 'rm -rf ' . $path . 'wp-content/..?* ' . $path . 'wp-content/.[!.]* ' . $path . 'wp-content/* && tar -C ' . $path . 'wp-content' . ' -xf ' . $temp_path . 'files.tar.gz ' . $verbose_pipe );
+		if ( $verbose ) {
+			$output->writeln( 'Removing old wp-content/...' );
+		}
+
+		exec( 'rm -rf ' . $path . 'wp-content/..?* ' . $path . 'wp-content/.[!.]* ' . $path . 'wp-content/*' );
+
+		if ( $verbose ) {
+			$output->writeln( 'Extracting snapshot wp-content/...' );
+		}
+
+		exec( 'tar -C ' . $path . 'wp-content' . ' -xf ' . $temp_path . 'files.tar.gz ' . $verbose_pipe );
 
 		/**
 		 * Import tables
@@ -231,6 +279,10 @@ class Pull extends Command {
 			'database' => DB_NAME,
 			'execute' => 'SET GLOBAL max_allowed_packet=51200000;',
 		);
+
+		if ( $verbose ) {
+			$output->writeln( 'Attempting to set max_allowed_packet...' );
+		}
 
 		$command_result  = Utils\run_mysql_command( 'mysql --no-defaults --no-auto-rehash', $args, '', false );
 
@@ -259,6 +311,9 @@ class Pull extends Command {
 		 * Customize DB for current install
 		 */
 
+		if ( $verbose ) {
+			$output->writeln( 'Getting MySQL tables...' );
+		}
 		$all_tables = Utils\get_tables( false );
 
 		global $wpdb;
@@ -289,7 +344,7 @@ class Pull extends Command {
 		 * Handle url replacements
 		 */
 		if ( ! empty( $snapshot['sites'] ) ) {
-			$output->writeln( 'Preparing to replace URLs.' );
+			$output->writeln( 'Preparing to replace URLs...' );
 
 			$url_validator = function( $answer ) {
 				if ( '' === trim( $answer ) || false !== strpos( $answer, ' ' ) || ! preg_match( '#https?:#i', $answer ) ) {
@@ -366,6 +421,10 @@ class Pull extends Command {
 
 					$new_site_url = $helper->ask( $input, $output, $site_question );
 
+					if ( $verbose ) {
+						$output->writeln( 'Updating blogs table...' );
+					}
+
 					/**
 					 * Update multisite stuff for each blog
 					 */
@@ -408,6 +467,10 @@ class Pull extends Command {
 					$i++;
 				}
 
+				if ( $verbose ) {
+					$output->writeln( 'Updating site table...' );
+				}
+
 				/**
 				 * Update site domain with main domain
 				 */
@@ -442,6 +505,10 @@ define('BLOG_ID_CURRENT_SITE', 1);");
 				new SearchReplace( $snapshot['sites'][0]['home_url'], $new_home_url );
 				new SearchReplace( $snapshot['sites'][0]['site_url'], $new_site_url );
 			}
+		}
+
+		if ( $verbose ) {
+			$output->writeln( 'Removing temp folder...' );
 		}
 
 		Utils\remove_temp_folder( $path );
