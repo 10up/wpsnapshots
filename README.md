@@ -6,7 +6,7 @@ __WP Snapshots is currently a private tool for internal 10up use only.__
 
 ## How Does It Work?
 
-WP Snapshots stores snapshots in a centralized repository (AWS). Users setup up WP Snapshots with their team's AWS credentials. Users can then push, pull, and search for snapshots. When a user pushes a snapshot, an instance of their current environment (`wp-content/` and database) is pushed to Amazon. When a snapshot is pulled, files are pulled from the cloud replacing `wp-content/` and data is intelligently merged into the database.
+WP Snapshots stores snapshots in a centralized repository (AWS). Users setup up WP Snapshots with their team's AWS credentials. Users can then push, pull, and search for snapshots. When a user pushes a snapshot, an instance of their current environment (`wp-content/` and database) is pushed to Amazon and associated with a particular project slug. When a snapshot is pulled, files are pulled from the cloud replacing `wp-content/` and data is intelligently merged into the database.
 
 Snapshot files (`wp-content/`) and WordPress database tables are stored in Amazon S3. General snapshot meta data is stored in Amazon DynamoDB.
 
@@ -78,9 +78,13 @@ Documentation for each operation is as follows:
   
   This command searches the repository for snapshots. `<search-text>` will be compared against project names and authors. Searching for "\*" will return all snapshots.
   
-* __wpsnapshots delete \<instance-id\>__
+* __wpsnapshots delete \<instance-id\> [--verbose]__
   
   This command deletes a snapshot from the repository.
+
+## Identity Access Management
+
+WP Snapshots relies on AWS for access management. Each snapshot is associated with a project slug. Using AWS IAM, specific users can be restricted to specific projects.
 
 ## Troubleshooting
 
