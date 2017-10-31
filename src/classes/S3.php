@@ -94,6 +94,8 @@ class S3 {
 			    'SaveAs' => $files_path,
 			] );
 		} catch ( \Exception $e ) {
+			var_dump( $e );
+			echo $e->getMessage();
 			return new Error( 0 );
 		}
 
