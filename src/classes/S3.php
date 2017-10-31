@@ -3,7 +3,7 @@
 namespace WPSnapshots;
 
 use \Aws\S3\S3Client;
-use Utils;
+use WPSnapshots\Utils;
 
 class S3 {
 	private $client;
@@ -93,7 +93,7 @@ class S3 {
 			}
 
 			return false;
-		} catch ( Exception $e ) {
+		} catch ( \Exception $e ) {
 			$error = [
 				'message'        => $e->getMessage(),
 				'aws_request_id' => $e->getAwsRequestId(),

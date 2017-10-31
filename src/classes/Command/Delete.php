@@ -48,32 +48,35 @@ class Delete extends Command {
 
 		$files_result = Connection::instance()->s3->deleteSnapshot( $id );
 
-		$db_result = Connection::instance()->db->deleteSnapshot( $id );
-
-		if ( Utils\is_error( $files_result ) || Utils\is_error( $files_result ) ) {
-			if ( $verbose ) {
-				if ( Utils\is_error( $files_result ) ) {
-					$output->writeln( 'S3 delete error:' );
-					$output->writeln( 'Error Message: ' . $files_result->message['message'] );
-					$output->writeln( 'AWS Request ID: ' . $files_result->message['aws_request_id'] );
-					$output->writeln( 'AWS Error Type: ' . $files_result->message['aws_error_type'] );
-					$output->writeln( 'AWS Error Code: ' . $files_result->message['aws_error_code'] );
-				}
-
-				if ( Utils\is_error( $db_result ) ) {
-					$output->writeln( 'DynamoDB delete error:' );
-					$output->writeln( 'Error Message: ' . $db_result->message['message'] );
-					$output->writeln( 'AWS Request ID: ' . $db_result->message['aws_request_id'] );
-					$output->writeln( 'AWS Error Type: ' . $db_result->message['aws_error_type'] );
-					$output->writeln( 'AWS Error Code: ' . $db_result->message['aws_error_code'] );
-				}
+		if ( Utils\is_error( $files_result ) ) {
+			if ( Utils\is_error( $files_result ) && $verbose ) {
+				$output->writeln( '<error>S3 delete error:</error>' );
+				$output->writeln( '<error>Error Message: ' . $files_result->message['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $files_result->message['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $files_result->message['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $files_result->message['aws_error_code'] . '</error>' );
 			}
 
-			$output->writeln( '<error>Could not delete snapshot</error>' );
-		} else {
-			$output->writeln( '<info>Snapshot deleted.</info>' );
+			$output->writeln( '<error>Could not delete snapshot.</error>' );
+			return;
 		}
 
+		$db_result = Connection::instance()->db->deleteSnapshot( $id );
+
+		if ( Utils\is_error( $db_result ) ) {
+			if ( Utils\is_error( $db_result ) && $verbose ) {
+				$output->writeln( '<error>DynamoDB delete error:</error>' );
+				$output->writeln( '<error>Error Message: ' . $db_result->message['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $db_result->message['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $db_result->message['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $db_result->message['aws_error_code'] . '</error>' );
+			}
+
+			$output->writeln( '<error>Could not delete snapshot.</error>' );
+			return;
+		}
+
+		$output->writeln( '<info>Snapshot deleted.</info>' );
 	}
 
 }
