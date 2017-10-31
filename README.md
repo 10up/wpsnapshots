@@ -92,3 +92,7 @@ Documentation for each operation is as follows:
 
   If you are pulling a massive database, there are all sorts of memory and MySQL optimization issues you can encounter. Try running WP Snapshots as root (`--db_user=root`) so it can attempt to tweak settings for the large import.
 
+## Windows
+
+WP Snapshots has been used successfully inside [Windows Subsystem in Linux](https://msdn.microsoft.com/en-us/commandline/wsl/install-win10).
+
