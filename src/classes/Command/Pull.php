@@ -77,6 +77,10 @@ class Pull extends Command {
 			return;
 		}
 
+		$verbose = $input->getOption( 'verbose' );
+
+		$verbose_pipe = ( $verbose ) ? '> /dev/null' : '';
+
 		$helper = $this->getHelper( 'question' );
 
 		if ( ! Utils\is_wp_present( $path ) ) {
@@ -102,7 +106,7 @@ class Pull extends Command {
 
 			$request = Requests::get( $download_url, $headers, $options );
 
-			exec( 'tar -C ' . $path . ' -xf ' . $temp_path . 'wp.tar.gz > /dev/null && mv ' . $path . 'wordpress/* . && rmdir ' . $path . 'wordpress' );
+			exec( 'tar -C ' . $path . ' -xf ' . $temp_path . 'wp.tar.gz ' . $verbose_pipe . ' && mv ' . $path . 'wordpress/* . && rmdir ' . $path . 'wordpress' );
 			$output->writeln( 'WordPress downloaded.' );
 		}
 
@@ -214,7 +218,7 @@ class Pull extends Command {
 
 		$output->writeln( 'Replacing wp-content/...' );
 
-		exec( 'rm -rf ' . $path . 'wp-content/..?* ' . $path . 'wp-content/.[!.]* ' . $path . 'wp-content/* && tar -C ' . $path . 'wp-content' . ' -xf ' . $temp_path . 'files.tar.gz > /dev/null' );
+		exec( 'rm -rf ' . $path . 'wp-content/..?* ' . $path . 'wp-content/.[!.]* ' . $path . 'wp-content/* && tar -C ' . $path . 'wp-content' . ' -xf ' . $temp_path . 'files.tar.gz ' . $verbose_pipe );
 
 		/**
 		 * Import tables
