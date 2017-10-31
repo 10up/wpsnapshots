@@ -75,65 +75,25 @@ class S3 {
 	}
 
 	/**
-	 * Get a snapshot key prefix from it's ID
-	 *
-	 * @param  string $id
-	 * @return bool
-	 */
-	public function getSnapshotKeyPrefix( $id ) {
-		try {
-			$objects = $this->client->getIterator( 'ListObjects', [
-				'Bucket' => self::getBucketName( $this->repository ),
-			] );
-
-			foreach ( $objects as $object ) {
-				if ( false !== strpos( $object['Key'], '/' . $id ) ) {
-					return preg_replace( '#^(.*)/.*$#', '$1', $object['Key'] );
-				}
-			}
-
-			return false;
-		} catch ( \Exception $e ) {
-			$error = [
-				'message'        => $e->getMessage(),
-				'aws_request_id' => $e->getAwsRequestId(),
-				'aws_error_type' => $e->getAwsErrorType(),
-				'aws_error_code' => $e->getAwsErrorCode(),
-			];
-
-			return new Error( 5, $error );
-		}
-	}
-
-	/**
 	 * Download a snapshot given an id. Must specify where to download files/data
 	 *
 	 * @param  string $id         Snapshot id
+	 * @param  string $project    Project slug
 	 * @param  string $db_path    Where to download data.sql
 	 * @param  string $files_path Where to download files.tar.gz
 	 * @return bool|error
 	 */
-	public function downloadSnapshot( $id, $db_path, $files_path ) {
-		$key_prefix = $this->getSnapshotKeyPrefix( $id );
-
-		if ( Utils\is_error( $key_prefix ) ) {
-			return $key_prefix;
-		}
-
-		if ( empty( $key_prefix ) ) {
-			return new Error( 1, 'Snapshot not found' );
-		}
-
+	public function downloadSnapshot( $id, $project, $db_path, $files_path ) {
 		try {
 			$db_download = $this->client->getObject( [
 			    'Bucket' => self::getBucketName( $this->repository ),
-			    'Key'    => $key_prefix . '/data.sql',
+			    'Key'    => $project . '/' . $id . '/data.sql',
 			    'SaveAs' => $db_path,
 			] );
 
 			$files_download = $this->client->getObject( [
 			    'Bucket' => self::getBucketName( $this->repository ),
-			    'Key'    => $key_prefix . '/files.tar.gz',
+			    'Key'    => $project . '/' . $id . '/files.tar.gz',
 			    'SaveAs' => $files_path,
 			] );
 		} catch ( \Exception $e ) {
@@ -154,28 +114,19 @@ class S3 {
 	 * Delete a snapshot given an id
 	 *
 	 * @param  string $id Snapshot id
+	 * @param  string $project
 	 * @return bool|error
 	 */
-	public function deleteSnapshot( $id ) {
-		$key_prefix = $this->getSnapshotKeyPrefix( $id );
-
-		if ( Utils\is_error( $key_prefix ) ) {
-			return $key_prefix;
-		}
-
-		if ( empty( $key_prefix ) ) {
-			return new Error( 1, 'Snapshot not found' );
-		}
-
+	public function deleteSnapshot( $id, $project ) {
 		try {
 			$result = $this->client->deleteObjects( [
 				'Bucket' => self::getBucketName( $this->repository ),
 				'Objects' => [
 					[
-						'Key' => $key_prefix . '/files.tar.gz',
+						'Key' => $project . '/' . $id . '/files.tar.gz',
 					],
 					[
-						'Key' => $key_prefix . '/data.sql',
+						'Key' => $project . '/' . $id . '/data.sql',
 					],
 				],
 			] );

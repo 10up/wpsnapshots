@@ -46,7 +46,26 @@ class Delete extends Command {
 
 		$verbose = $input->getOption( 'verbose' );
 
-		$files_result = Connection::instance()->s3->deleteSnapshot( $id );
+		$snapshot = Connection::instance()->db->getSnapshot( $id );
+
+		if ( Utils\is_error( $snapshot ) ) {
+			$output->writeln( '<error>Could not get snapshot from database.</error>' );
+
+			if ( 'AccessDeniedException' === $snapshot->message['aws_error_code'] ) {
+				$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
+			}
+
+			if ( $verbose ) {
+				$output->writeln( '<error>Error Message: ' . $snapshot->message['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $snapshot->message['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $snapshot->message['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $snapshot->message['aws_error_code'] . '</error>' );
+			}
+
+			return;
+		}
+
+		$files_result = Connection::instance()->s3->deleteSnapshot( $id, $snapshot['project'] );
 
 		if ( Utils\is_error( $files_result ) ) {
 			if ( Utils\is_error( $files_result ) && $verbose ) {

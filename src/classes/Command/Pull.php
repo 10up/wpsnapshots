@@ -234,38 +234,49 @@ class Pull extends Command {
 
 		$id = $input->getArgument( 'instance-id' );
 
-		$output->writeln( 'Downloading snapshot files and database...' );
+		$output->writeln( 'Getting snapshot information...' );
 
-		$download = Connection::instance()->s3->downloadSnapshot( $id, $temp_path . 'data.sql', $temp_path . 'files.tar.gz' );
+		$snapshot = Connection::instance()->db->getSnapshot( $id );
 
-		if ( Utils\is_error( $download ) ) {
+		if ( Utils\is_error( $snapshot ) ) {
+			$output->writeln( '<error>Could not get snapshot from database.</error>' );
 
-			$output->writeln( '<error>Failed to pull snapshot.</error>' );
+			if ( 'AccessDeniedException' === $snapshot->message['aws_error_code'] ) {
+				$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
+			}
 
 			if ( $verbose ) {
-				$output->writeln( 'Error Message: ' . $download->message['message'] );
-				$output->writeln( 'AWS Request ID: ' . $download->message['aws_request_id'] );
-				$output->writeln( 'AWS Error Type: ' . $download->message['aws_error_type'] );
-				$output->writeln( 'AWS Error Code: ' . $download->message['aws_error_code'] );
+				$output->writeln( '<error>Error Message: ' . $snapshot->message['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $snapshot->message['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $snapshot->message['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $snapshot->message['aws_error_code'] . '</error>' );
 			}
 
 			return;
 		}
 
-		if ( $verbose ) {
-			$output->writeln( 'Getting snapshot data...' );
+		if ( empty( $snapshot ) || empty( $snapshot['project'] ) ) {
+			$output->writeln( '<error>Missing critical snapshot data.</error>' );
+			return;
 		}
 
-		$snapshot = Connection::instance()->db->getSnapshot( $id );
+		$output->writeln( 'Downloading snapshot files and database...' );
 
-		if ( Utils\is_error( $snapshot ) ) {
-			$output->writeln( '<error>Failed to get snapshot.</error>' );
+		$download = Connection::instance()->s3->downloadSnapshot( $id, $snapshot['project'], $temp_path . 'data.sql', $temp_path . 'files.tar.gz' );
+
+		if ( Utils\is_error( $download ) ) {
+
+			$output->writeln( '<error>Failed to download snapshot.</error>' );
+
+			if ( 'AccessDenied' === $download->message['aws_error_code'] ) {
+				$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
+			}
 
 			if ( $verbose ) {
-				$output->writeln( 'Error Message: ' . $snapshot->message['message'] );
-				$output->writeln( 'AWS Request ID: ' . $snapshot->message['aws_request_id'] );
-				$output->writeln( 'AWS Error Type: ' . $snapshot->message['aws_error_type'] );
-				$output->writeln( 'AWS Error Code: ' . $snapshot->message['aws_error_code'] );
+				$output->writeln( '<error>Error Message: ' . $download->message['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $download->message['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $download->message['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $download->message['aws_error_code'] . '</error>' );
 			}
 
 			return;
