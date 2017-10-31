@@ -3,6 +3,7 @@
 namespace WPSnapshots;
 
 use \Aws\S3\S3Client;
+use Utils;
 
 class S3 {
 	private $client;
@@ -27,29 +28,24 @@ class S3 {
 	/**
 	 * Upload a snapshot to S3 given a path to files.tar.gz and data.sql
 	 *
-	 * @param  array  $snapshot Must contain 'id'
-	 * @param  string $db_path         Path to data.sql
-	 * @param  string $files_path      Path to files.tar.gz
+	 * @param  string $id         Snapshot ID
+	 * @param  string $project    Project slug
+	 * @param  string $db_path    Path to data.sql
+	 * @param  string $files_path Path to files.tar.gz
 	 * @return bool|error
 	 */
-	public function putSnapshot( $snapshot, $db_path, $files_path ) {
+	public function putSnapshot( $id, $project, $db_path, $files_path ) {
 		try {
 			$db_result = $this->client->putObject( [
 				'Bucket'     => self::getBucketName( $this->repository ),
-				'Key'        => $snapshot['id'] . '/data.sql',
+				'Key'        => $project . '/' . $id . '/data.sql',
 				'SourceFile' => realpath( $db_path ),
-				'Metadata'   => [
-					'project' => $snapshot['project'],
-				],
 			] );
 
 			$files_result = $this->client->putObject( [
 				'Bucket'     => self::getBucketName( $this->repository ),
-				'Key'        => $snapshot['id'] . '/files.tar.gz',
+				'Key'        => $project . '/' . $id . '/files.tar.gz',
 				'SourceFile' => realpath( $files_path ),
-				'Metadata'   => [
-					'project' => $snapshot['project'],
-				],
 			] );
 
 			/**
@@ -57,12 +53,12 @@ class S3 {
 			 */
 			$this->client->waitUntil( 'ObjectExists', [
 				'Bucket' => self::getBucketName( $this->repository ),
-				'Key'    => $snapshot['id'] . '/files.tar.gz',
+				'Key'    => $project . '/' . $id . '/files.tar.gz',
 			] );
 
 			$this->client->waitUntil( 'ObjectExists', [
 				'Bucket' => self::getBucketName( $this->repository ),
-				'Key'    => $snapshot['id'] . '/data.sql',
+				'Key'    => $project . '/' . $id . '/data.sql',
 			] );
 		} catch ( \Exception $e ) {
 			$error = [
@@ -79,6 +75,37 @@ class S3 {
 	}
 
 	/**
+	 * Get a snapshot key prefix from it's ID
+	 *
+	 * @param  string $id
+	 * @return bool
+	 */
+	public function getSnapshotKeyPrefix( $id ) {
+		try {
+			$objects = $this->client->getIterator( 'ListObjects', [
+				'Bucket' => self::getBucketName( $this->repository ),
+			] );
+
+			foreach ( $objects as $object ) {
+				if ( false !== strpos( $object['Key'], '/' . $id ) ) {
+					return preg_replace( '#^(.*)/.*$#', '$1', $object['Key'] );
+				}
+			}
+
+			return false;
+		} catch ( Exception $e ) {
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 5, $error );
+		}
+	}
+
+	/**
 	 * Download a snapshot given an id. Must specify where to download files/data
 	 *
 	 * @param  string $id         Snapshot id
@@ -87,16 +114,26 @@ class S3 {
 	 * @return bool|error
 	 */
 	public function downloadSnapshot( $id, $db_path, $files_path ) {
+		$key_prefix = $this->getSnapshotKeyPrefix( $id );
+
+		if ( Utils\is_error( $key_prefix ) ) {
+			return $key_prefix;
+		}
+
+		if ( empty( $key_prefix ) ) {
+			return new Error( 1, 'Snapshot not found' );
+		}
+
 		try {
 			$db_download = $this->client->getObject( [
 			    'Bucket' => self::getBucketName( $this->repository ),
-			    'Key'    => $id . '/data.sql',
+			    'Key'    => $key_prefix . '/data.sql',
 			    'SaveAs' => $db_path,
 			] );
 
 			$files_download = $this->client->getObject( [
 			    'Bucket' => self::getBucketName( $this->repository ),
-			    'Key'    => $id . '/files.tar.gz',
+			    'Key'    => $key_prefix . '/files.tar.gz',
 			    'SaveAs' => $files_path,
 			] );
 		} catch ( \Exception $e ) {
@@ -120,15 +157,25 @@ class S3 {
 	 * @return bool|error
 	 */
 	public function deleteSnapshot( $id ) {
+		$key_prefix = $this->getSnapshotKeyPrefix( $id );
+
+		if ( Utils\is_error( $key_prefix ) ) {
+			return $key_prefix;
+		}
+
+		if ( empty( $key_prefix ) ) {
+			return new Error( 1, 'Snapshot not found' );
+		}
+
 		try {
 			$result = $this->client->deleteObjects( [
 				'Bucket' => self::getBucketName( $this->repository ),
 				'Objects' => [
 					[
-						'Key' => $id . '/files.tar.gz',
+						'Key' => $key_prefix . '/files.tar.gz',
 					],
 					[
-						'Key' => $id . '/data.sql',
+						'Key' => $key_prefix . '/data.sql',
 					],
 				],
 			] );
@@ -151,7 +198,7 @@ class S3 {
 	}
 
 	/**
-	 * Test S3 connection by attempting to list S3 buckets and write a test file.
+	 * Test S3 connection by attempting to list S3 buckets.
 	 *
 	 * @param  array $creds
 	 * @return bool|Error
@@ -167,7 +214,14 @@ class S3 {
 		try {
 			$result = $client->listBuckets();
 		} catch ( \Exception $e ) {
-			return new Error( 0, 'Connection could not be established' );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		$bucket_name = self::getBucketName( $config['repository'] );

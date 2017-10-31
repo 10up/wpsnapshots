@@ -50,7 +50,7 @@ class Search extends Command {
 		}
 
 		$table = new Table( $output );
-		$table->setHeaders( [ 'ID', 'Project', 'Environment', 'Created' ] );
+		$table->setHeaders( [ 'ID', 'Project', 'Description', 'Author', 'Created' ] );
 
 		$rows = [];
 
@@ -58,7 +58,8 @@ class Search extends Command {
 			$rows[ $instance['time'] ] = [
 				'id' => $instance['id'],
 				'project' => $instance['project'],
-				'environment' => $instance['environment'],
+				'description' => $instance['description'],
+				'author' => $instance['author']['name'],
 				'created' => date( 'F j, Y, g:i a', $instance['time'] ),
 			];
 		}

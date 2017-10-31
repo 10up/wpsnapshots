@@ -84,12 +84,11 @@ class Configure extends Command {
 		}
 
 		$name = $helper->ask( $input, $output, new Question( 'Your Name: ' ) );
+		$name->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+
+		$config['name'] = $name;
 
 		$email = $helper->ask( $input, $output, new Question( 'Your Email: ' ) );
-
-		if ( ! empty( $name ) ) {
-			$config['name'] = $name;
-		}
 
 		if ( ! empty( $email ) ) {
 			$config['email'] = $email;

@@ -44,7 +44,7 @@ class DB {
 			$args['ConditionalOperator'] = 'OR';
 
 			$args['ScanFilter'] = [
-		        'project_search' => [
+		        'project' => [
 		            'AttributeValueList' => [
 		                [ 'S' => strtolower( $query ) ],
 		            ],
@@ -77,20 +77,18 @@ class DB {
 	/**
 	 * Insert a snapshot into the DB
 	 *
-	 * @param  array $snapshot [description]
+	 * @param  string $id
+	 * @param  array  $snapshot [description]
 	 * @return Error|array
 	 */
-	public function insertSnapshot( $snapshot ) {
+	public function insertSnapshot( $id, $snapshot ) {
 		$marshaler = new Marshaler();
 
-		$time = time();
-
 		$snapshot_item = [
-			'project'           => $snapshot['project'],
-			'project_search'    => strtolower( $snapshot['project'] ),
-			'id'                => md5( $snapshot['project'] . '-' . $time ),
-			'time'              => $time,
-			'environment'       => $snapshot['environment'],
+			'project'           => strtolower( $snapshot['project'] ),
+			'id'                => $id,
+			'time'              => time(),
+			'description'       => $snapshot['description'],
 			'author'            => $snapshot['author'],
 			'multisite'         => $snapshot['multisite'],
 			'sites'             => $snapshot['sites'],

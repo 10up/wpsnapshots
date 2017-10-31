@@ -136,15 +136,15 @@ class Push extends Command {
 			$snapshot['author']['email'] = $config['email'];
 		}
 
-		$project_question = new Question( 'Project Name: ' );
-		$project_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+		$project_question = new Question( 'Project Slug (letters, numbers, _, and - only): ' );
+		$project_question->setValidator( '\WPSnapshots\Utils\slug_validator' );
 
 		$snapshot['project'] = $helper->ask( $input, $output, $project_question );
 
-		$environment_question = new Question( 'What type of environment is this? (local, staging, production) ' );
-		$environment_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+		$description_question = new Question( 'Snapshot Description (e.g. Local environment): ' );
+		$description_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
 
-		$snapshot['environment'] = $helper->ask( $input, $output, $environment_question );
+		$snapshot['description'] = $helper->ask( $input, $output, $description_question );
 
 		$snapshot['multisite'] = false;
 		$snapshot['subdomain_install'] = false;
@@ -250,7 +250,7 @@ class Push extends Command {
 			$i = 0;
 
 			if ( $verbose ) {
-				$output->writeln( 'Writing scurb data...' );
+				$output->writeln( 'Writing scrub data...' );
 			}
 
 			while ( ! feof( $handle ) ) {
@@ -307,41 +307,60 @@ class Push extends Command {
 
 		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zcf ../.wpsnapshots/files.tar.gz . ' . $verbose_pipe );
 
-		$output->writeln( 'Adding snapshot to database...' );
-
 		/**
 		 * Insert snapshot into DB
 		 */
-		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $snapshot, $temp_path . 'data.sql' );
+		$id = time();
 
-		if ( Utils\is_error( $inserted_snapshot ) ) {
-			$output->writeln( '<error>Could not add snapshot to database.</error>' );
-
-			if ( $verbose ) {
-				$output->writeln( 'Error Message: ' . $inserted_snapshot->message['message'] );
-				$output->writeln( 'AWS Request ID: ' . $inserted_snapshot->message['aws_request_id'] );
-				$output->writeln( 'AWS Error Type: ' . $inserted_snapshot->message['aws_error_type'] );
-				$output->writeln( 'AWS Error Code: ' . $inserted_snapshot->message['aws_error_code'] );
-			}
-
-			exit;
+		if ( ! empty( $snapshot['author']['name'] ) ) {
+			$id .= '-' . $snapshot['author']['name'];
 		}
+
+		$id = md5( $id );
 
 		$output->writeln( 'Uploading files and database to repository...' );
 
 		/**
 		 * Put files on S3
 		 */
-		$s3_add = Connection::instance()->s3->putSnapshot( $inserted_snapshot, $temp_path . 'data.sql', $temp_path . 'files.tar.gz' );
+		$s3_add = Connection::instance()->s3->putSnapshot( $id, $snapshot['project'], $temp_path . 'data.sql', $temp_path . 'files.tar.gz' );
 
 		if ( Utils\is_error( $s3_add ) ) {
 			$output->writeln( '<error>Could not upload files to S3.</error>' );
 
+			if ( 'AccessDenied' === $s3_add->message['aws_error_code'] ) {
+				$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
+			}
+
 			if ( $verbose ) {
-				$output->writeln( 'Error Message: ' . $s3_add->message['message'] );
-				$output->writeln( 'AWS Request ID: ' . $s3_add->message['aws_request_id'] );
-				$output->writeln( 'AWS Error Type: ' . $s3_add->message['aws_error_type'] );
-				$output->writeln( 'AWS Error Code: ' . $s3_add->message['aws_error_code'] );
+				$output->writeln( '<error>Error Message: ' . $s3_add->message['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $s3_add->message['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $s3_add->message['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $s3_add->message['aws_error_code'] . '</error>' );
+			}
+
+			exit;
+		}
+
+		/**
+		 * Add snapshot to DB
+		 */
+		$output->writeln( 'Adding snapshot to database...' );
+
+		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $id, $snapshot, $temp_path . 'data.sql' );
+
+		if ( Utils\is_error( $inserted_snapshot ) ) {
+			if ( 'AccessDeniedException' === $inserted_snapshot->message['aws_error_code'] ) {
+				$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
+			}
+
+			$output->writeln( '<error>Could not add snapshot to database.</error>' );
+
+			if ( $verbose ) {
+				$output->writeln( '<error>Error Message: ' . $inserted_snapshot->message['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $inserted_snapshot->message['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $inserted_snapshot->message['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $inserted_snapshot->message['aws_error_code'] . '</error>' );
 			}
 
 			exit;
@@ -351,7 +370,7 @@ class Push extends Command {
 
 		Utils\remove_temp_folder( $path );
 
-		$output->writeln( '<info>Push finished! Snapshot ID is ' . $inserted_snapshot['id'] . '</info>' );
+		$output->writeln( '<info>Push finished! Snapshot ID is ' . $id . '</info>' );
 	}
 
 }
