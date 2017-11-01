@@ -241,15 +241,15 @@ class Pull extends Command {
 		if ( Utils\is_error( $snapshot ) ) {
 			$output->writeln( '<error>Could not get snapshot from database.</error>' );
 
-			if ( 'AccessDeniedException' === $snapshot->message['aws_error_code'] ) {
+			if ( 'AccessDeniedException' === $snapshot->data['aws_error_code'] ) {
 				$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
 			}
 
 			if ( $verbose ) {
-				$output->writeln( '<error>Error Message: ' . $snapshot->message['message'] . '</error>' );
-				$output->writeln( '<error>AWS Request ID: ' . $snapshot->message['aws_request_id'] . '</error>' );
-				$output->writeln( '<error>AWS Error Type: ' . $snapshot->message['aws_error_type'] . '</error>' );
-				$output->writeln( '<error>AWS Error Code: ' . $snapshot->message['aws_error_code'] . '</error>' );
+				$output->writeln( '<error>Error Message: ' . $snapshot->data['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $snapshot->data['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $snapshot->data['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $snapshot->data['aws_error_code'] . '</error>' );
 			}
 
 			return;
@@ -268,15 +268,15 @@ class Pull extends Command {
 
 			$output->writeln( '<error>Failed to download snapshot.</error>' );
 
-			if ( 'AccessDenied' === $download->message['aws_error_code'] ) {
+			if ( 'AccessDenied' === $download->data['aws_error_code'] ) {
 				$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
 			}
 
 			if ( $verbose ) {
-				$output->writeln( '<error>Error Message: ' . $download->message['message'] . '</error>' );
-				$output->writeln( '<error>AWS Request ID: ' . $download->message['aws_request_id'] . '</error>' );
-				$output->writeln( '<error>AWS Error Type: ' . $download->message['aws_error_type'] . '</error>' );
-				$output->writeln( '<error>AWS Error Code: ' . $download->message['aws_error_code'] . '</error>' );
+				$output->writeln( '<error>Error Message: ' . $download->data['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $download->data['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $download->data['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $download->data['aws_error_code'] . '</error>' );
 			}
 
 			return;

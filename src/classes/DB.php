@@ -62,7 +62,14 @@ class DB {
 		try {
 			$search_scan = $this->client->getIterator( 'Scan', $args );
 		} catch ( \Exception $e ) {
-			return [];
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		$instances = [];
@@ -215,15 +222,18 @@ class DB {
 				],
 			] );
 
-			$this->client->waitUntil('TableExists', [
+			$this->client->waitUntil( 'TableExists', [
 			    'TableName' => 'wpsnapshots-' . $this->repository,
 			] );
 		} catch ( \Exception $e ) {
-			if ( 'ResourceInUseException' === $e->getAwsErrorCode() ) {
-				return new Error( 1, 'Table already exists' );
-			} else {
-				return new Error( 0, 'Could not create table' );
-			}
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		return true;

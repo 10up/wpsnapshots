@@ -37,12 +37,25 @@ class Search extends Command {
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		$connection = Connection::instance()->connect();
 
+		$verbose = $input->getOption( 'verbose' );
+
 		if ( Utils\is_error( $connection ) ) {
 			$output->writeln( '<error>Could not connect to repository.</error>' );
 			return;
 		}
 
 		$instances = Connection::instance()->db->search( $input->getArgument( 'search-text' ) );
+
+		if ( Utils\is_error( $instances ) ) {
+			$output->writeln( '<error>An error occured while searching.</error>' );
+
+			if ( $verbose ) {
+				$output->writeln( '<error>Error Message: ' . $inserted_snapshot->data['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $inserted_snapshot->data['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $inserted_snapshot->data['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $inserted_snapshot->data['aws_error_code'] . '</error>' );
+			}
+		}
 
 		if ( empty( $instances ) ) {
 			$output->writeln( '<comment>No snapshots found.</comment>' );

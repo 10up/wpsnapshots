@@ -51,15 +51,15 @@ class Delete extends Command {
 		if ( Utils\is_error( $snapshot ) ) {
 			$output->writeln( '<error>Could not get snapshot from database.</error>' );
 
-			if ( 'AccessDeniedException' === $snapshot->message['aws_error_code'] ) {
+			if ( 'AccessDeniedException' === $snapshot->data['aws_error_code'] ) {
 				$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
 			}
 
 			if ( $verbose ) {
-				$output->writeln( '<error>Error Message: ' . $snapshot->message['message'] . '</error>' );
-				$output->writeln( '<error>AWS Request ID: ' . $snapshot->message['aws_request_id'] . '</error>' );
-				$output->writeln( '<error>AWS Error Type: ' . $snapshot->message['aws_error_type'] . '</error>' );
-				$output->writeln( '<error>AWS Error Code: ' . $snapshot->message['aws_error_code'] . '</error>' );
+				$output->writeln( '<error>Error Message: ' . $snapshot->data['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $snapshot->data['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $snapshot->data['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $snapshot->data['aws_error_code'] . '</error>' );
 			}
 
 			return;
@@ -70,10 +70,10 @@ class Delete extends Command {
 		if ( Utils\is_error( $files_result ) ) {
 			if ( Utils\is_error( $files_result ) && $verbose ) {
 				$output->writeln( '<error>S3 delete error:</error>' );
-				$output->writeln( '<error>Error Message: ' . $files_result->message['message'] . '</error>' );
-				$output->writeln( '<error>AWS Request ID: ' . $files_result->message['aws_request_id'] . '</error>' );
-				$output->writeln( '<error>AWS Error Type: ' . $files_result->message['aws_error_type'] . '</error>' );
-				$output->writeln( '<error>AWS Error Code: ' . $files_result->message['aws_error_code'] . '</error>' );
+				$output->writeln( '<error>Error Message: ' . $files_result->data['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $files_result->data['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $files_result->data['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $files_result->data['aws_error_code'] . '</error>' );
 			}
 
 			$output->writeln( '<error>Could not delete snapshot.</error>' );
@@ -85,10 +85,10 @@ class Delete extends Command {
 		if ( Utils\is_error( $db_result ) ) {
 			if ( Utils\is_error( $db_result ) && $verbose ) {
 				$output->writeln( '<error>DynamoDB delete error:</error>' );
-				$output->writeln( '<error>Error Message: ' . $db_result->message['message'] . '</error>' );
-				$output->writeln( '<error>AWS Request ID: ' . $db_result->message['aws_request_id'] . '</error>' );
-				$output->writeln( '<error>AWS Error Type: ' . $db_result->message['aws_error_type'] . '</error>' );
-				$output->writeln( '<error>AWS Error Code: ' . $db_result->message['aws_error_code'] . '</error>' );
+				$output->writeln( '<error>Error Message: ' . $db_result->data['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $db_result->data['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $db_result->data['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $db_result->data['aws_error_code'] . '</error>' );
 			}
 
 			$output->writeln( '<error>Could not delete snapshot.</error>' );

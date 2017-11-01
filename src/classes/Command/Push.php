@@ -328,15 +328,15 @@ class Push extends Command {
 		if ( Utils\is_error( $s3_add ) ) {
 			$output->writeln( '<error>Could not upload files to S3.</error>' );
 
-			if ( 'AccessDenied' === $s3_add->message['aws_error_code'] ) {
+			if ( 'AccessDenied' === $s3_add->data['aws_error_code'] ) {
 				$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
 			}
 
 			if ( $verbose ) {
-				$output->writeln( '<error>Error Message: ' . $s3_add->message['message'] . '</error>' );
-				$output->writeln( '<error>AWS Request ID: ' . $s3_add->message['aws_request_id'] . '</error>' );
-				$output->writeln( '<error>AWS Error Type: ' . $s3_add->message['aws_error_type'] . '</error>' );
-				$output->writeln( '<error>AWS Error Code: ' . $s3_add->message['aws_error_code'] . '</error>' );
+				$output->writeln( '<error>Error Message: ' . $s3_add->data['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $s3_add->data['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $s3_add->data['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $s3_add->data['aws_error_code'] . '</error>' );
 			}
 
 			exit;
@@ -350,17 +350,17 @@ class Push extends Command {
 		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $id, $snapshot, $temp_path . 'data.sql' );
 
 		if ( Utils\is_error( $inserted_snapshot ) ) {
-			if ( 'AccessDeniedException' === $inserted_snapshot->message['aws_error_code'] ) {
+			if ( 'AccessDeniedException' === $inserted_snapshot->data['aws_error_code'] ) {
 				$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
 			}
 
 			$output->writeln( '<error>Could not add snapshot to database.</error>' );
 
 			if ( $verbose ) {
-				$output->writeln( '<error>Error Message: ' . $inserted_snapshot->message['message'] . '</error>' );
-				$output->writeln( '<error>AWS Request ID: ' . $inserted_snapshot->message['aws_request_id'] . '</error>' );
-				$output->writeln( '<error>AWS Error Type: ' . $inserted_snapshot->message['aws_error_type'] . '</error>' );
-				$output->writeln( '<error>AWS Error Code: ' . $inserted_snapshot->message['aws_error_code'] . '</error>' );
+				$output->writeln( '<error>Error Message: ' . $inserted_snapshot->data['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $inserted_snapshot->data['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $inserted_snapshot->data['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $inserted_snapshot->data['aws_error_code'] . '</error>' );
 			}
 
 			exit;

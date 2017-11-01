@@ -145,7 +145,7 @@ class S3 {
 	}
 
 	public static function getBucketName( $repository ) {
-		return 'wpsnapshots-' . $repository . '-' . substr( md5( $repository ), 0, 6 );
+		return 'wpsnapshots-' . $repository;
 	}
 
 	/**
@@ -203,7 +203,14 @@ class S3 {
 		try {
 			$result = $this->client->listBuckets();
 		} catch ( \Exception $e ) {
-			return new Error( 0, 'Could not create bucket' );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		$bucket_name = self::getBucketName( $this->repository );
@@ -214,46 +221,21 @@ class S3 {
 			}
 		}
 
-		if ( ! $bucket_exists ) {
-			try {
-				$result = $this->client->createBucket( [ 'Bucket' => self::getBucketName( $this->repository ) ] );
-			} catch ( \Exception $e ) {
-				if ( 'BucketAlreadyOwnedByYou' === $e->getAwsErrorCode() || 'BucketAlreadyExists' === $e->getAwsErrorCode() ) {
-					$bucket_exists = true;
-				} else {
-					return new Error( 0, 'Could not create bucket' );
-				}
-			}
+		if ( $bucket_exists ) {
+			return new Error( 1, 'Bucket already exists' );
 		}
 
-		if ( $bucket_exists ) {
-			try {
-				$test_key = time();
+		try {
+			$result = $this->client->createBucket( [ 'Bucket' => self::getBucketName( $this->repository ) ] );
+		} catch ( \Exception $e ) {
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
 
-				$this->client->putObject( [
-					'Bucket' => self::getBucketName( $this->repository ),
-					'Key'    => 'test' . $test_key,
-					'Body'   => 'Test write',
-				] );
-
-				$this->client->waitUntil( 'ObjectExists', [
-					'Bucket' => self::getBucketName( $this->repository ),
-					'Key'    => 'test' . $test_key,
-				] );
-			} catch ( \Exception $e ) {
-				return new Error( 2, 'Cant write to bucket' );
-			}
-
-			$this->client->deleteObjects( [
-				'Bucket' => self::getBucketName( $this->repository ),
-				'Objects' => [
-					[
-						'Key' => 'test' . $test_key,
-					],
-				],
-			] );
-
-			return new Error( 1, 'Bucket already exists' );
+			return new Error( 2, $error );
 		}
 
 		return true;
