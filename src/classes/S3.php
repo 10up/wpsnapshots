@@ -3,6 +3,7 @@
 namespace WPSnapshots;
 
 use \Aws\S3\S3Client;
+use \Aws\Exception\AwsException;
 use WPSnapshots\Utils;
 
 class S3 {
@@ -149,7 +150,7 @@ class S3 {
 	}
 
 	/**
-	 * Test S3 connection by attempting to list S3 buckets.
+	 * Test S3 connection by attempting to list S3 objects.
 	 *
 	 * @param  array $creds
 	 * @return bool|Error
@@ -162,8 +163,10 @@ class S3 {
 			],
 		] );
 
+		$bucket_name = self::getBucketName( $config['repository'] );
+
 		try {
-			$result = $client->listBuckets();
+			$objects = $client->listObjects( [ 'Bucket' => $bucket_name ] );
 		} catch ( \Exception $e ) {
 			$error = [
 				'message'        => $e->getMessage(),
@@ -173,20 +176,6 @@ class S3 {
 			];
 
 			return new Error( 0, $error );
-		}
-
-		$bucket_name = self::getBucketName( $config['repository'] );
-
-		$bucket_found = false;
-
-		foreach ( $result['Buckets'] as $bucket ) {
-			if ( $bucket_name === $bucket['Name'] ) {
-				$bucket_found = true;
-			}
-		}
-
-		if ( ! $bucket_found ) {
-			return new Error( 1, 'Bucket not found' );
 		}
 
 		return true;

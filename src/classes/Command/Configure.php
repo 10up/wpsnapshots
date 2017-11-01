@@ -74,10 +74,12 @@ class Configure extends Command {
 			if ( ! Utils\is_error( $test ) ) {
 				break;
 			} else {
-				if ( 0 === $test->code ) {
+				if ( 'InvalidAccessKeyId' === $test->data['aws_error_code'] ) {
 					$output->writeln( '<comment>Repository connection did not work. Try again?</comment>' );
-				} else {
+				} elseif ( 'NoSuchBucket' === $test->data['aws_error_code'] ) {
 					$output->writeln( '<comment>We successfully connected to AWS. However, no repository has been created. Run `wpsnapshots create-repository` after configuration is complete.</comment>' );
+					break;
+				} else {
 					break;
 				}
 			}
