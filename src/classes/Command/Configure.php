@@ -83,10 +83,10 @@ class Configure extends Command {
 			}
 		}
 
-		$name = $helper->ask( $input, $output, new Question( 'Your Name: ' ) );
-		$name->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+		$name_question = new Question( 'Your Name: ' );
+		$name_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
 
-		$config['name'] = $name;
+		$config['name'] = $helper->ask( $input, $output, new Question( 'Your Name: ' ) );
 
 		$email = $helper->ask( $input, $output, new Question( 'Your Email: ' ) );
 
