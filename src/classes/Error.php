@@ -11,10 +11,10 @@ class Error {
 	 * Construct error
 	 *
 	 * @param int    $code    Error code
-	 * @param string $message Error message
+	 * @param string|array $data Error thing
 	 */
-	public function __construct( $code, $message = '' ) {
+	public function __construct( $code, $data = '' ) {
 		$this->code = $code;
-		$this->message = $message;
+		$this->data = $data;
 	}
 }

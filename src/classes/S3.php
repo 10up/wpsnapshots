@@ -3,6 +3,8 @@
 namespace WPSnapshots;
 
 use \Aws\S3\S3Client;
+use \Aws\Exception\AwsException;
+use WPSnapshots\Utils;
 
 class S3 {
 	private $client;
@@ -27,29 +29,24 @@ class S3 {
 	/**
 	 * Upload a snapshot to S3 given a path to files.tar.gz and data.sql
 	 *
-	 * @param  array  $snapshot Must contain 'id'
-	 * @param  string $db_path         Path to data.sql
-	 * @param  string $files_path      Path to files.tar.gz
+	 * @param  string $id         Snapshot ID
+	 * @param  string $project    Project slug
+	 * @param  string $db_path    Path to data.sql
+	 * @param  string $files_path Path to files.tar.gz
 	 * @return bool|error
 	 */
-	public function putSnapshot( $snapshot, $db_path, $files_path ) {
+	public function putSnapshot( $id, $project, $db_path, $files_path ) {
 		try {
 			$db_result = $this->client->putObject( [
 				'Bucket'     => self::getBucketName( $this->repository ),
-				'Key'        => $snapshot['id'] . '/data.sql',
+				'Key'        => $project . '/' . $id . '/data.sql',
 				'SourceFile' => realpath( $db_path ),
-				'Metadata'   => [
-					'project' => $snapshot['project'],
-				],
 			] );
 
 			$files_result = $this->client->putObject( [
 				'Bucket'     => self::getBucketName( $this->repository ),
-				'Key'        => $snapshot['id'] . '/files.tar.gz',
+				'Key'        => $project . '/' . $id . '/files.tar.gz',
 				'SourceFile' => realpath( $files_path ),
-				'Metadata'   => [
-					'project' => $snapshot['project'],
-				],
 			] );
 
 			/**
@@ -57,16 +54,22 @@ class S3 {
 			 */
 			$this->client->waitUntil( 'ObjectExists', [
 				'Bucket' => self::getBucketName( $this->repository ),
-				'Key'    => $snapshot['id'] . '/files.tar.gz',
+				'Key'    => $project . '/' . $id . '/files.tar.gz',
 			] );
 
 			$this->client->waitUntil( 'ObjectExists', [
 				'Bucket' => self::getBucketName( $this->repository ),
-				'Key'    => $snapshot['id'] . '/data.sql',
+				'Key'    => $project . '/' . $id . '/data.sql',
 			] );
 		} catch ( \Exception $e ) {
-			var_dump( $e );
-			return new Error( 0 );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		return true;
@@ -76,27 +79,33 @@ class S3 {
 	 * Download a snapshot given an id. Must specify where to download files/data
 	 *
 	 * @param  string $id         Snapshot id
+	 * @param  string $project    Project slug
 	 * @param  string $db_path    Where to download data.sql
 	 * @param  string $files_path Where to download files.tar.gz
 	 * @return bool|error
 	 */
-	public function downloadSnapshot( $id, $db_path, $files_path ) {
+	public function downloadSnapshot( $id, $project, $db_path, $files_path ) {
 		try {
 			$db_download = $this->client->getObject( [
 			    'Bucket' => self::getBucketName( $this->repository ),
-			    'Key'    => $id . '/data.sql',
+			    'Key'    => $project . '/' . $id . '/data.sql',
 			    'SaveAs' => $db_path,
 			] );
 
 			$files_download = $this->client->getObject( [
 			    'Bucket' => self::getBucketName( $this->repository ),
-			    'Key'    => $id . '/files.tar.gz',
+			    'Key'    => $project . '/' . $id . '/files.tar.gz',
 			    'SaveAs' => $files_path,
 			] );
 		} catch ( \Exception $e ) {
-			var_dump( $e );
-			echo $e->getMessage();
-			return new Error( 0 );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		return true;
@@ -106,34 +115,42 @@ class S3 {
 	 * Delete a snapshot given an id
 	 *
 	 * @param  string $id Snapshot id
+	 * @param  string $project
 	 * @return bool|error
 	 */
-	public function deleteSnapshot( $id ) {
+	public function deleteSnapshot( $id, $project ) {
 		try {
 			$result = $this->client->deleteObjects( [
 				'Bucket' => self::getBucketName( $this->repository ),
 				'Objects' => [
 					[
-						'Key' => $id . '/files.tar.gz',
+						'Key' => $project . '/' . $id . '/files.tar.gz',
 					],
 					[
-						'Key' => $id . '/data.sql',
+						'Key' => $project . '/' . $id . '/data.sql',
 					],
 				],
 			] );
 		} catch ( \Exception $e ) {
-			return new Error( 0 );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		return true;
 	}
 
 	public static function getBucketName( $repository ) {
-		return 'wpsnapshots-' . $repository . '-' . substr( md5( $repository ), 0, 6 );
+		return 'wpsnapshots-' . $repository;
 	}
 
 	/**
-	 * Test S3 connection by attempting to list S3 buckets and write a test file.
+	 * Test S3 connection by attempting to list S3 objects.
 	 *
 	 * @param  array $creds
 	 * @return bool|Error
@@ -146,24 +163,19 @@ class S3 {
 			],
 		] );
 
-		try {
-			$result = $client->listBuckets();
-		} catch ( \Exception $e ) {
-			return new Error( 0, 'Connection could not be established' );
-		}
-
 		$bucket_name = self::getBucketName( $config['repository'] );
 
-		$bucket_found = false;
+		try {
+			$objects = $client->listObjects( [ 'Bucket' => $bucket_name ] );
+		} catch ( \Exception $e ) {
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
 
-		foreach ( $result['Buckets'] as $bucket ) {
-			if ( $bucket_name === $bucket['Name'] ) {
-				$bucket_found = true;
-			}
-		}
-
-		if ( ! $bucket_found ) {
-			return new Error( 1, 'Bucket not found' );
+			return new Error( 0, $error );
 		}
 
 		return true;
@@ -180,7 +192,14 @@ class S3 {
 		try {
 			$result = $this->client->listBuckets();
 		} catch ( \Exception $e ) {
-			return new Error( 0, 'Could not create bucket' );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		$bucket_name = self::getBucketName( $this->repository );
@@ -191,46 +210,21 @@ class S3 {
 			}
 		}
 
-		if ( ! $bucket_exists ) {
-			try {
-				$result = $this->client->createBucket( [ 'Bucket' => self::getBucketName( $this->repository ) ] );
-			} catch ( \Exception $e ) {
-				if ( 'BucketAlreadyOwnedByYou' === $e->getAwsErrorCode() || 'BucketAlreadyExists' === $e->getAwsErrorCode() ) {
-					$bucket_exists = true;
-				} else {
-					return new Error( 0, 'Could not create bucket' );
-				}
-			}
+		if ( $bucket_exists ) {
+			return new Error( 1, 'Bucket already exists' );
 		}
 
-		if ( $bucket_exists ) {
-			try {
-				$test_key = time();
+		try {
+			$result = $this->client->createBucket( [ 'Bucket' => self::getBucketName( $this->repository ) ] );
+		} catch ( \Exception $e ) {
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
 
-				$this->client->putObject( [
-					'Bucket' => self::getBucketName( $this->repository ),
-					'Key'    => 'test' . $test_key,
-					'Body'   => 'Test write',
-				] );
-
-				$this->client->waitUntil( 'ObjectExists', [
-					'Bucket' => self::getBucketName( $this->repository ),
-					'Key'    => 'test' . $test_key,
-				] );
-			} catch ( \Exception $e ) {
-				return new Error( 2, 'Cant write to bucket' );
-			}
-
-			$this->client->deleteObjects( [
-				'Bucket' => self::getBucketName( $this->repository ),
-				'Objects' => [
-					[
-						'Key' => 'test' . $test_key,
-					],
-				],
-			] );
-
-			return new Error( 1, 'Bucket already exists' );
+			return new Error( 2, $error );
 		}
 
 		return true;

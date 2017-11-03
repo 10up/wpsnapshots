@@ -69,6 +69,22 @@ function not_empty_validator( $answer ) {
 }
 
 /**
+ * Validator for slugs
+ *
+ * @param  string $answer
+ * @return string
+ */
+function slug_validator( $answer ) {
+	if ( ! preg_match( '#^[a-z0-9\-_]+$#i', $answer ) ) {
+		throw new \RuntimeException(
+			'A valid non-empty slug is required (letters, numbers, -, and _).'
+		);
+	}
+
+	return strtolower( $answer );
+}
+
+/**
  * Create a wp-config.php with constants based on a template file
  *
  * @param  string $path

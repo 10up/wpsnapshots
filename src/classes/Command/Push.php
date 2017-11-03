@@ -57,6 +57,8 @@ class Push extends Command {
 			$path = getcwd();
 		}
 
+		$verbose = $input->getOption( 'verbose' );
+
 		$helper = $this->getHelper( 'question' );
 
 		$path = Utils\normalize_path( $path );
@@ -107,6 +109,10 @@ class Push extends Command {
 			$extra_config_constants['DB_PASSWORD'] = $db_password;
 		}
 
+		if ( $verbose ) {
+			$output->writeln( 'Bootstrapping WordPress...' );
+		}
+
 		$wp = WordPressBridge::instance()->load( $path, $extra_config_constants );
 
 		if ( Utils\is_error( $wp ) ) {
@@ -130,15 +136,15 @@ class Push extends Command {
 			$snapshot['author']['email'] = $config['email'];
 		}
 
-		$project_question = new Question( 'Project Name: ' );
-		$project_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+		$project_question = new Question( 'Project Slug (letters, numbers, _, and - only): ' );
+		$project_question->setValidator( '\WPSnapshots\Utils\slug_validator' );
 
 		$snapshot['project'] = $helper->ask( $input, $output, $project_question );
 
-		$environment_question = new Question( 'What type of environment is this? (local, staging, production) ' );
-		$environment_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+		$description_question = new Question( 'Snapshot Description (e.g. Local environment): ' );
+		$description_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
 
-		$snapshot['environment'] = $helper->ask( $input, $output, $environment_question );
+		$snapshot['description'] = $helper->ask( $input, $output, $description_question );
 
 		$snapshot['multisite'] = false;
 		$snapshot['subdomain_install'] = false;
@@ -181,6 +187,10 @@ class Push extends Command {
 		/**
 		 * We only export tables with WP prefix
 		 */
+		if ( $verbose ) {
+			$output->writeln( 'Getting WordPress tables...' );
+		}
+
 		$tables = Utils\get_tables();
 
 		foreach ( $tables as $table ) {
@@ -212,6 +222,10 @@ class Push extends Command {
 
 			$all_hashed_passwords = [];
 
+			if ( $verbose ) {
+				$output->writeln( 'Getting users...' );
+			}
+
 			$passwords = $wpdb->get_results( "SELECT user_pass FROM $wpdb->users", ARRAY_A );
 
 			foreach ( $passwords as $password_row ) {
@@ -219,6 +233,10 @@ class Push extends Command {
 			}
 
 			$sterile_password = wp_hash_password( 'password' );
+
+			if ( $verbose ) {
+				$output->writeln( 'Opening scrub file...' );
+			}
 
 			$handle = @fopen( $temp_path . 'data.sql', 'r' );
 			$scrubbed_handle = @fopen( $temp_path . 'scrubbed-data.sql', 'x' );
@@ -230,6 +248,10 @@ class Push extends Command {
 
 			$buffer = '';
 			$i = 0;
+
+			if ( $verbose ) {
+				$output->writeln( 'Writing scrub data...' );
+			}
 
 			while ( ! feof( $handle ) ) {
 				$chunk = fread( $handle, 4096 );
@@ -255,9 +277,15 @@ class Push extends Command {
 			fclose( $handle );
 			fclose( $scrubbed_handle );
 
+			if ( $verbose ) {
+				$output->writeln( 'Removing old SQL...' );
+			}
+
 			unlink( $temp_path . 'data.sql' );
 			rename( $temp_path . 'scrubbed-data.sql', $temp_path . 'data.sql' );
 		}
+
+		$verbose_pipe = ( $verbose ) ? '> /dev/null' : '';
 
 		/**
 		 * Create file back up of wp-content in .wpsnapshots/files.tar.gz
@@ -273,29 +301,68 @@ class Push extends Command {
 			$excludes .= ' --exclude="./uploads"';
 		}
 
-		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zcf ../.wpsnapshots/files.tar.gz . > /dev/null' );
+		if ( $verbose ) {
+			$output->writeln( 'Compressing files...' );
+		}
 
-		$output->writeln( 'Adding snapshot to database...' );
+		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zcf ../.wpsnapshots/files.tar.gz . ' . $verbose_pipe );
 
 		/**
 		 * Insert snapshot into DB
 		 */
-		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $snapshot, $temp_path . 'data.sql' );
+		$id = time();
 
-		if ( Utils\is_error( $inserted_snapshot ) ) {
-			$output->writeln( '<error>Could not add snapshot to database.</error>' );
-			exit;
+		if ( ! empty( $snapshot['author']['name'] ) ) {
+			$id .= '-' . $snapshot['author']['name'];
 		}
+
+		$id = md5( $id );
 
 		$output->writeln( 'Uploading files and database to repository...' );
 
 		/**
 		 * Put files on S3
 		 */
-		$s3_add = Connection::instance()->s3->putSnapshot( $inserted_snapshot, $temp_path . 'data.sql', $temp_path . 'files.tar.gz' );
+		$s3_add = Connection::instance()->s3->putSnapshot( $id, $snapshot['project'], $temp_path . 'data.sql', $temp_path . 'files.tar.gz' );
 
 		if ( Utils\is_error( $s3_add ) ) {
 			$output->writeln( '<error>Could not upload files to S3.</error>' );
+
+			if ( 'AccessDenied' === $s3_add->data['aws_error_code'] ) {
+				$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
+			}
+
+			if ( $verbose ) {
+				$output->writeln( '<error>Error Message: ' . $s3_add->data['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $s3_add->data['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $s3_add->data['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $s3_add->data['aws_error_code'] . '</error>' );
+			}
+
+			exit;
+		}
+
+		/**
+		 * Add snapshot to DB
+		 */
+		$output->writeln( 'Adding snapshot to database...' );
+
+		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $id, $snapshot, $temp_path . 'data.sql' );
+
+		if ( Utils\is_error( $inserted_snapshot ) ) {
+			if ( 'AccessDeniedException' === $inserted_snapshot->data['aws_error_code'] ) {
+				$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
+			}
+
+			$output->writeln( '<error>Could not add snapshot to database.</error>' );
+
+			if ( $verbose ) {
+				$output->writeln( '<error>Error Message: ' . $inserted_snapshot->data['message'] . '</error>' );
+				$output->writeln( '<error>AWS Request ID: ' . $inserted_snapshot->data['aws_request_id'] . '</error>' );
+				$output->writeln( '<error>AWS Error Type: ' . $inserted_snapshot->data['aws_error_type'] . '</error>' );
+				$output->writeln( '<error>AWS Error Code: ' . $inserted_snapshot->data['aws_error_code'] . '</error>' );
+			}
+
 			exit;
 		}
 
@@ -303,7 +370,7 @@ class Push extends Command {
 
 		Utils\remove_temp_folder( $path );
 
-		$output->writeln( '<info>Push finished! Snapshot ID is ' . $inserted_snapshot['id'] . '</info>' );
+		$output->writeln( '<info>Push finished! Snapshot ID is ' . $id . '</info>' );
 	}
 
 }

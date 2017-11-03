@@ -84,10 +84,12 @@ class Configure extends Command {
 			if ( ! Utils\is_error( $test ) ) {
 				break;
 			} else {
-				if ( 0 === $test->code ) {
+				if ( 'InvalidAccessKeyId' === $test->data['aws_error_code'] ) {
 					$output->writeln( '<comment>Repository connection did not work. Try again?</comment>' );
-				} else {
+				} elseif ( 'NoSuchBucket' === $test->data['aws_error_code'] ) {
 					$output->writeln( '<comment>We successfully connected to AWS. However, no repository has been created. Run `wpsnapshots create-repository` after configuration is complete.</comment>' );
+					break;
+				} else {
 					break;
 				}
 			}
@@ -110,19 +112,20 @@ class Configure extends Command {
 	 *  @return array                  Configuration option array with user detail applied.
 	 */
 	protected function apply_user_to_config( $config, InputInterface $input, OutputInterface $output ) {
+		$helper = $this->getHelper( 'question' );
 		$name = $input->getOption( 'user_name' );
 		$email = $input->getOption( 'user_email' );
 
 		if ( empty( $name ) ) {
-			$name = $helper->ask( $input, $output, new Question( 'Your Name: ' ) );
+			$name_question = new Question( 'Your Name: ' );
+			$name_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+			$name = $helper->ask( $input, $output, $name_question );
 		}
+
+		$config['name'] = $name;
 
 		if ( empty( $email ) ) {
 			$email = $helper->ask( $input, $output, new Question( 'Your Email: ' ) );
-		}
-
-		if ( ! empty( $name ) ) {
-			$config['name'] = $name;
 		}
 
 		if ( ! empty( $email ) ) {

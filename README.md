@@ -6,7 +6,7 @@ __WP Snapshots is currently a private tool for internal 10up use only.__
 
 ## How Does It Work?
 
-WP Snapshots stores snapshots in a centralized repository (AWS). Users setup up WP Snapshots with their team's AWS credentials. Users can then push, pull, and search for snapshots. When a user pushes a snapshot, an instance of their current environment (`wp-content/` and database) is pushed to Amazon. When a snapshot is pulled, files are pulled from the cloud replacing `wp-content/` and data is intelligently merged into the database.
+WP Snapshots stores snapshots in a centralized repository (AWS). Users setup up WP Snapshots with their team's AWS credentials. Users can then push, pull, and search for snapshots. When a user pushes a snapshot, an instance of their current environment (`wp-content/` and database) is pushed to Amazon and associated with a particular project slug. When a snapshot is pulled, files are pulled from the cloud replacing `wp-content/` and data is intelligently merged into the database.
 
 Snapshot files (`wp-content/`) and WordPress database tables are stored in Amazon S3. General snapshot meta data is stored in Amazon DynamoDB.
 
@@ -73,7 +73,7 @@ WP Snapshots revolves around pushing, pulling, and searching for snapshots. WP S
 
 Documentation for each operation is as follows:
 
-* __wpsnapshots push [--exclude-uploads] [--no-scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password]__
+* __wpsnapshots push [--exclude-uploads] [--no-scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose]__
 
   This command pushes a snapshot of a WordPress install to the repository. The command will return a snapshot ID once it's finished that you could pass to a team member.
 
@@ -81,7 +81,7 @@ Documentation for each operation is as follows:
 
   Pushing a snapshot will not replace older snapshots with the same name. There's been discussion on this. It seems easier and safer not to delete old snapshots (otherwise we have to deal with permissions). This could certainly change in the future after we see how the project is used.
 
-* __wpsnapshots pull \<instance-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password]__
+* __wpsnapshots pull \<instance-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose]__
 
   This command pulls an existing snapshot from the repository into your current WordPress install (or in a new one it creates) replacing your database and `wp-content` directory entirely. The command will interactively prompt you to map URLs to be search and replaced. If the snapshot is a multisite, you will have to map URLs interactively for each blog in the network.
 
@@ -89,9 +89,13 @@ Documentation for each operation is as follows:
 
   This command searches the repository for snapshots. `<search-text>` will be compared against project names and authors. Searching for "\*" will return all snapshots.
 
-* __wpsnapshots delete \<instance-id\>__
+* __wpsnapshots delete \<instance-id\> [--verbose]__
 
   This command deletes a snapshot from the repository.
+
+## Identity Access Management
+
+WP Snapshots relies on AWS for access management. Each snapshot is associated with a project slug. Using AWS IAM, specific users can be restricted to specific projects.
 
 ## Troubleshooting
 
@@ -102,3 +106,7 @@ Documentation for each operation is as follows:
 * __During a pull, MySQL is timing or erroring out while replacing the database.__
 
   If you are pulling a massive database, there are all sorts of memory and MySQL optimization issues you can encounter. Try running WP Snapshots as root (`--db_user=root`) so it can attempt to tweak settings for the large import.
+
+## Windows
+
+WP Snapshots has been used successfully inside [Windows Subsystem in Linux](https://msdn.microsoft.com/en-us/commandline/wsl/install-win10).

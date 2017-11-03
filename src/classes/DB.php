@@ -44,7 +44,7 @@ class DB {
 			$args['ConditionalOperator'] = 'OR';
 
 			$args['ScanFilter'] = [
-		        'project_search' => [
+		        'project' => [
 		            'AttributeValueList' => [
 		                [ 'S' => strtolower( $query ) ],
 		            ],
@@ -62,7 +62,14 @@ class DB {
 		try {
 			$search_scan = $this->client->getIterator( 'Scan', $args );
 		} catch ( \Exception $e ) {
-			return [];
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		$instances = [];
@@ -77,20 +84,18 @@ class DB {
 	/**
 	 * Insert a snapshot into the DB
 	 *
-	 * @param  array $snapshot [description]
+	 * @param  string $id
+	 * @param  array  $snapshot [description]
 	 * @return Error|array
 	 */
-	public function insertSnapshot( $snapshot ) {
+	public function insertSnapshot( $id, $snapshot ) {
 		$marshaler = new Marshaler();
 
-		$time = time();
-
 		$snapshot_item = [
-			'project'           => $snapshot['project'],
-			'project_search'    => strtolower( $snapshot['project'] ),
-			'id'                => md5( $snapshot['project'] . '-' . $time ),
-			'time'              => $time,
-			'environment'       => $snapshot['environment'],
+			'project'           => strtolower( $snapshot['project'] ),
+			'id'                => $id,
+			'time'              => time(),
+			'description'       => $snapshot['description'],
 			'author'            => $snapshot['author'],
 			'multisite'         => $snapshot['multisite'],
 			'sites'             => $snapshot['sites'],
@@ -106,7 +111,14 @@ class DB {
 				'Item'      => $marshaler->marshalJson( $snapshot_json ),
 			] );
 		} catch ( \Exception $e ) {
-			return new Error( 0, 'Error occurred.' );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		return $snapshot_item;
@@ -129,7 +141,14 @@ class DB {
 				],
 			] );
 		} catch ( \Exception $e ) {
-			return new Error( 0 );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		return true;
@@ -153,7 +172,14 @@ class DB {
 				],
 			] );
 		} catch ( \Exception $e ) {
-			return new Error( 0 );
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		if ( empty( $result['Item'] ) ) {
@@ -196,15 +222,18 @@ class DB {
 				],
 			] );
 
-			$this->client->waitUntil('TableExists', [
+			$this->client->waitUntil( 'TableExists', [
 			    'TableName' => 'wpsnapshots-' . $this->repository,
 			] );
 		} catch ( \Exception $e ) {
-			if ( 'ResourceInUseException' === $e->getAwsErrorCode() ) {
-				return new Error( 1, 'Table already exists' );
-			} else {
-				return new Error( 0, 'Could not create table' );
-			}
+			$error = [
+				'message'        => $e->getMessage(),
+				'aws_request_id' => $e->getAwsRequestId(),
+				'aws_error_type' => $e->getAwsErrorType(),
+				'aws_error_code' => $e->getAwsErrorCode(),
+			];
+
+			return new Error( 0, $error );
 		}
 
 		return true;

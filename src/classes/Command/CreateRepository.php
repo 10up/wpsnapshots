@@ -36,19 +36,32 @@ class CreateRepository extends Command {
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Connection::instance()->connect();
 
+		$verbose = $input->getOption( 'verbose' );
+
 		$create_s3 = Connection::instance()->s3->createBucket();
 
 		$s3_setup = true;
 
 		if ( Utils\is_error( $create_s3 ) ) {
-			if ( 1 === $create_s3->code ) {
+
+			if ( 0 === $create_s3->code ) {
+				$output->writeln( '<comment>Access denied. Could not read AWS buckets. S3 may already be setup.</comment>' );
+			} elseif ( 1 === $create_s3->code ) {
 				$output->writeln( '<comment>S3 already setup.</comment>' );
-			} elseif ( 2 === $create_s3->code ) {
-				$output->writeln( '<error>Cannot write to existing WP Snapshots S3 bucket.</error>' );
-				$s3_setup = false;
 			} else {
-				$output->writeln( '<error>Could not create S3 bucket.</error>' );
-				$s3_setup = false;
+				if ( 'BucketAlreadyOwnedByYou' === $e->getAwsErrorCode() || 'BucketAlreadyExists' === $e->getAwsErrorCode() ) {
+					$output->writeln( '<comment>S3 already setup.</comment>' );
+				} else {
+					$output->writeln( '<error>Could not create S3 bucket.</error>' );
+					$s3_setup = false;
+
+					if ( $verbose ) {
+						$output->writeln( '<error>Error Message: ' . $create_s3->data['message'] . '</error>' );
+						$output->writeln( '<error>AWS Request ID: ' . $create_s3->data['aws_request_id'] . '</error>' );
+						$output->writeln( '<error>AWS Error Type: ' . $create_s3->data['aws_error_type'] . '</error>' );
+						$output->writeln( '<error>AWS Error Code: ' . $create_s3->data['aws_error_code'] . '</error>' );
+					}
+				}
 			}
 		}
 
@@ -57,11 +70,18 @@ class CreateRepository extends Command {
 		$db_setup  = true;
 
 		if ( Utils\is_error( $create_db ) ) {
-			if ( 1 === $create_db->code ) {
+			if ( 'ResourceInUseException' === $create_db->data['aws_error_code'] ) {
 				$output->writeln( '<comment>DynamoDB table already setup.</comment>' );
 			} else {
 				$output->writeln( '<error>Could not create DynamoDB table.</error>' );
 				$db_setup = false;
+
+				if ( $verbose ) {
+					$output->writeln( '<error>Error Message: ' . $create_db->data['message'] . '</error>' );
+					$output->writeln( '<error>AWS Request ID: ' . $create_db->data['aws_request_id'] . '</error>' );
+					$output->writeln( '<error>AWS Error Type: ' . $create_db->data['aws_error_type'] . '</error>' );
+					$output->writeln( '<error>AWS Error Code: ' . $create_db->data['aws_error_code'] . '</error>' );
+				}
 			}
 		}
 
