@@ -27,6 +27,10 @@ class Configure extends Command {
 		$this->setDescription( 'Configure WP Snapshots with an existing repository.' );
 		$this->addArgument( 'repository', InputArgument::REQUIRED, 'Repository to configure.' );
 		$this->addOption( 'region', null, InputOption::VALUE_REQUIRED, 'AWS region to use.' );
+		$this->addOption( 'aws_key', null, InputOption::VALUE_REQUIRED, 'AWS Access Key ID.' );
+		$this->addOption( 'aws_secret', null, InputOption::VALUE_REQUIRED, 'AWS Secret Access Key.' );
+		$this->addOption( 'user_name', null, InputOption::VALUE_REQUIRED, 'Your Name.' );
+		$this->addOption( 'user_email', null, InputOption::VALUE_REQUIRED, 'Your Email.' );
 	}
 
 	/**
@@ -39,6 +43,8 @@ class Configure extends Command {
 		$repository = $input->getArgument( 'repository' );
 
 		$region = $input->getOption( 'region' );
+		$access_key_id = $input->getOption( 'aws_key' );
+		$secret_access_key = $input->getOption( 'aws_secret' );
 
 		if ( empty( $region ) ) {
 			$region = 'us-west-1';
@@ -61,9 +67,13 @@ class Configure extends Command {
 		 */
 		while ( true ) {
 
-			$access_key_id = $helper->ask( $input, $output, new Question( 'AWS Access Key ID: ' ) );
+			if ( empty( $access_key_id ) ) {
+				$access_key_id = $helper->ask( $input, $output, new Question( 'AWS Access Key ID: ' ) );
+			}
 
-			$secret_access_key = $helper->ask( $input, $output, new Question( 'AWS Secret Access Key: ' ) );
+			if ( empty( $secret_access_key ) ) {
+				$secret_access_key = $helper->ask( $input, $output, new Question( 'AWS Secret Access Key: ' ) );
+			}
 
 			$config['access_key_id'] = $access_key_id;
 			$config['secret_access_key'] = $secret_access_key;
@@ -83,9 +93,33 @@ class Configure extends Command {
 			}
 		}
 
-		$name = $helper->ask( $input, $output, new Question( 'Your Name: ' ) );
+		$this->apply_user_to_config( $config, $input, $output );
 
-		$email = $helper->ask( $input, $output, new Question( 'Your Email: ' ) );
+		Config::instance()->write( $config );
+
+		$output->writeln( '<info>WP Snapshots configuration verified and saved.</info>' );
+	}
+
+	/**
+	 * Apply User to Config
+	 *
+	 * @param array           $config Configuration option array.
+	 * @param InputInterface  $input  Input object.
+	 * @param OutputInterface $output Output object.
+	 *
+	 *  @return array                  Configuration option array with user detail applied.
+	 */
+	protected function apply_user_to_config( $config, InputInterface $input, OutputInterface $output ) {
+		$name = $input->getOption( 'user_name' );
+		$email = $input->getOption( 'user_email' );
+
+		if ( empty( $name ) ) {
+			$name = $helper->ask( $input, $output, new Question( 'Your Name: ' ) );
+		}
+
+		if ( empty( $email ) ) {
+			$email = $helper->ask( $input, $output, new Question( 'Your Email: ' ) );
+		}
 
 		if ( ! empty( $name ) ) {
 			$config['name'] = $name;
@@ -94,10 +128,5 @@ class Configure extends Command {
 		if ( ! empty( $email ) ) {
 			$config['email'] = $email;
 		}
-
-		Config::instance()->write( $config );
-
-		$output->writeln( '<info>WP Snapshots configuration verified and saved.</info>' );
 	}
-
 }
