@@ -42,11 +42,22 @@ export PATH=~/.config/composer/vendor/bin:$PATH
 
 WP Snapshots currently relies on AWS to store files and data. As such, you need to connect to a "repository" hosted on AWS:
 
-```
-wpsnapshots configure 10up
-```
+* __wpsnapshots configure \<repository\> [--region] [--aws_key] [--aws_secret] [--user_name] [--user_email]__
 
-You'll be prompted for AWS keys. 10up's AWS keys for WP Snapshots are [located in a Google Doc](https://docs.google.com/document/d/1C0N7mMfAA3KHJhYjrE-U4DRMoF59VxMshDkxtzKV9zc/edit).
+  This command sets up WP Snapshots with AWS info and user info.  If the optional arguments are not passed
+  to the command, the user will be promted to enter them, with the exception of region which will default to
+  `us-west-1`.
+
+  __Example Usage With Prompts :__
+  ```
+  wpsnapshots configure 10up
+  ```
+  __Example Usage Without Prompts (No Interaction) :__
+  ```
+  wpsnapshots configure 10up --aws_key=AAABBBCCC --aws_secret=AAA111BBB222 --user_name="Jane Smith" --user_email="noreply@10up.com"
+  ```
+
+  10up's AWS keys for WP Snapshots are [located in a Google Doc](https://docs.google.com/document/d/1C0N7mMfAA3KHJhYjrE-U4DRMoF59VxMshDkxtzKV9zc/edit).
 
 If WP Snapshots has not been setup for your team/company, you'll need to create the WP Snapshots repository:
 
@@ -61,12 +72,6 @@ If a repository has already been created, this command will do nothing.
 WP Snapshots revolves around pushing, pulling, and searching for snapshots. WP Snapshots can push any setup WordPress install. WP Snapshots can pull any snapshot regardless of whether WordPress is setup or not. If WordPress is not setup during a pull, WP Snapshots will guide you through setting it up.
 
 Documentation for each operation is as follows:
-
-* __wpsnapshots configure \<repository\> [--region] [--aws_key] [--aws_secret] [--user_name] [--user_email]__
-
-  This command sets up WP Snapshots with AWS info and user info.  If the optional arguments are not passed
-  to the command, the user will be promted to enter them, with the exception of region which will default to
-  `us-west-1`.
 
 * __wpsnapshots push [--exclude-uploads] [--no-scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password]__
 
