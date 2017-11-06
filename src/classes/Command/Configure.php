@@ -95,7 +95,7 @@ class Configure extends Command {
 			}
 		}
 
-		$this->apply_user_to_config( $config, $input, $output );
+		$config = $this->apply_user_to_config( $config, $input, $output );
 
 		Config::instance()->write( $config );
 
@@ -131,5 +131,7 @@ class Configure extends Command {
 		if ( ! empty( $email ) ) {
 			$config['email'] = $email;
 		}
+
+		return $config;
 	}
 }
