@@ -10,7 +10,7 @@ class Error {
 	/**
 	 * Construct error
 	 *
-	 * @param int    $code    Error code
+	 * @param int          $code    Error code
 	 * @param string|array $data Error thing
 	 */
 	public function __construct( $code, $data = '' ) {

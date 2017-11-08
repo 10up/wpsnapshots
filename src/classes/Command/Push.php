@@ -177,6 +177,8 @@ class Push extends Command {
 
 		$snapshot['table_prefix'] = $GLOBALS['table_prefix'];
 
+		$no_scrub = $input->getOption( 'no-scrub' );
+
 		/**
 		 * Dump sql to .wpsnapshots/data.sql
 		 */
@@ -194,6 +196,11 @@ class Push extends Command {
 		$tables = Utils\get_tables();
 
 		foreach ( $tables as $table ) {
+			// We separate the users table for scrubbing
+			if ( ! $no_scrub && $GLOBALS['table_prefix'] . 'users' === $table ) {
+				continue;
+			}
+
 			$command .= ' %s';
 			$command_esc_args[] = trim( $table );
 		}
@@ -215,10 +222,30 @@ class Push extends Command {
 
 		Utils\run_mysql_command( $escaped_command, $args );
 
-		$no_scrub = $input->getOption( 'no-scrub' );
-
 		if ( ! $no_scrub ) {
-			$output->writeln( 'Scrubbing personal data...' );
+			$command = '/usr/bin/env mysqldump --no-defaults %s';
+
+			$command_esc_args = array( DB_NAME );
+
+			$command .= ' --tables %s';
+			$command_esc_args[] = $GLOBALS['table_prefix'] . 'users';
+
+			$args = [
+				'host'        => DB_HOST,
+				'pass'        => DB_PASSWORD,
+				'user'        => DB_USER,
+				'result-file' => $temp_path . 'data-users.sql',
+			];
+
+			$escaped_command = call_user_func_array( '\WPSnapshots\Utils\esc_cmd', array_merge( array( $command ), $command_esc_args ) );
+
+			if ( $verbose ) {
+				$output->writeln( 'Exporting users...' );
+			}
+
+			Utils\run_mysql_command( $escaped_command, $args );
+
+			$output->writeln( 'Scrubbing user data...' );
 
 			$all_hashed_passwords = [];
 
@@ -235,14 +262,14 @@ class Push extends Command {
 			$sterile_password = wp_hash_password( 'password' );
 
 			if ( $verbose ) {
-				$output->writeln( 'Opening scrub file...' );
+				$output->writeln( 'Opening users export...' );
 			}
 
-			$handle = @fopen( $temp_path . 'data.sql', 'r' );
-			$scrubbed_handle = @fopen( $temp_path . 'scrubbed-data.sql', 'x' );
+			$users_handle = @fopen( $temp_path . 'data-users.sql', 'r' );
+			$data_handle = @fopen( $temp_path . 'data.sql', 'a' );
 
-			if ( ! $handle || ! $scrubbed_handle ) {
-				$output->writeln( '<error>Could not scrub database.</error>' );
+			if ( ! $users_handle || ! $data_handle ) {
+				$output->writeln( '<error>Could not scrub users.</error>' );
 				return;
 			}
 
@@ -250,11 +277,12 @@ class Push extends Command {
 			$i = 0;
 
 			if ( $verbose ) {
-				$output->writeln( 'Writing scrub data...' );
+				$output->writeln( 'Writing scrubbed user data and merging exports...' );
 			}
 
-			while ( ! feof( $handle ) ) {
-				$chunk = fread( $handle, 4096 );
+			while ( ! feof( $users_handle ) ) {
+				$chunk = fread( $users_handle, 4096 );
+
 				foreach ( $all_hashed_passwords as $password ) {
 					$chunk = str_replace( "'$password'", "'$sterile_password'", $chunk );
 				}
@@ -262,7 +290,7 @@ class Push extends Command {
 				$buffer .= $chunk;
 
 				if ( $i % 10000 === 0 ) {
-					fwrite( $scrubbed_handle, $buffer );
+					fwrite( $data_handle, $buffer );
 					$buffer = '';
 				}
 
@@ -270,19 +298,18 @@ class Push extends Command {
 			}
 
 			if ( ! empty( $buffer ) ) {
-				fwrite( $scrubbed_handle, $buffer );
+				fwrite( $data_handle, $buffer );
 				$buffer = '';
 			}
 
-			fclose( $handle );
-			fclose( $scrubbed_handle );
+			fclose( $data_handle );
+			fclose( $users_handle );
 
 			if ( $verbose ) {
 				$output->writeln( 'Removing old SQL...' );
 			}
 
-			unlink( $temp_path . 'data.sql' );
-			rename( $temp_path . 'scrubbed-data.sql', $temp_path . 'data.sql' );
+			unlink( $temp_path . 'data-users.sql' );
 		}
 
 		$verbose_pipe = ( $verbose ) ? '> /dev/null' : '';
