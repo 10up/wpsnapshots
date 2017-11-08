@@ -332,7 +332,7 @@ class Push extends Command {
 			$output->writeln( 'Compressing files...' );
 		}
 
-		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zcf ../.wpsnapshots/files.tar.gz . ' . $verbose_pipe );
+		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zcf ' . $temp_path . 'files.tar.gz . ' . $verbose_pipe );
 
 		/**
 		 * Insert snapshot into DB
