@@ -106,6 +106,13 @@ WP Snapshots relies on AWS for access management. Each snapshot is associated wi
 * __During a pull, MySQL is timing or erroring out while replacing the database.__
 
   If you are pulling a massive database, there are all sorts of memory and MySQL optimization issues you can encounter. Try running WP Snapshots as root (`--db_user=root`) so it can attempt to tweak settings for the large import.
+  
+  
+* __wpsnapshots search displays  Signature expired error.__
+
+  This happens when you local system clock is skewed. To fix this
+  * If you using VVV do a `vagrant reload`
+  * If you using docker try `docker-machine ssh default 'sudo ntpclient -s -h pool.ntp.org'`
 
 ## Windows
 
