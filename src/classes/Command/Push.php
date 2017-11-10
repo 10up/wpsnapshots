@@ -334,6 +334,12 @@ class Push extends Command {
 
 		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zcf ' . $temp_path . 'files.tar.gz . ' . $verbose_pipe );
 
+		if ( $verbose ) {
+			$output->writeln( 'Compressing database backup...' );
+		}
+
+		exec( 'gzip -9 ' . $temp_path . 'data.sql ' . $verbose_pipe );
+
 		/**
 		 * Insert snapshot into DB
 		 */
@@ -350,7 +356,7 @@ class Push extends Command {
 		/**
 		 * Put files on S3
 		 */
-		$s3_add = Connection::instance()->s3->putSnapshot( $id, $snapshot['project'], $temp_path . 'data.sql', $temp_path . 'files.tar.gz' );
+		$s3_add = Connection::instance()->s3->putSnapshot( $id, $snapshot['project'], $temp_path . 'data.sql.gz', $temp_path . 'files.tar.gz' );
 
 		if ( Utils\is_error( $s3_add ) ) {
 			$output->writeln( '<error>Could not upload files to S3.</error>' );
@@ -374,7 +380,7 @@ class Push extends Command {
 		 */
 		$output->writeln( 'Adding snapshot to database...' );
 
-		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $id, $snapshot, $temp_path . 'data.sql' );
+		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $id, $snapshot, $temp_path . 'data.sql.gz' );
 
 		if ( Utils\is_error( $inserted_snapshot ) ) {
 			if ( 'AccessDeniedException' === $inserted_snapshot->data['aws_error_code'] ) {

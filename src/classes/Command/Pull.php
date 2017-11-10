@@ -262,7 +262,7 @@ class Pull extends Command {
 
 		$output->writeln( 'Downloading snapshot files and database...' );
 
-		$download = Connection::instance()->s3->downloadSnapshot( $id, $snapshot['project'], $temp_path . 'data.sql', $temp_path . 'files.tar.gz' );
+		$download = Connection::instance()->s3->downloadSnapshot( $id, $snapshot['project'], $temp_path . 'data.sql.gz', $temp_path . 'files.tar.gz' );
 
 		if ( Utils\is_error( $download ) ) {
 
@@ -280,6 +280,14 @@ class Pull extends Command {
 			}
 
 			return;
+		}
+
+		if ( isset( $download['database_path'] ) && ( $download['database_path'] === $temp_path . 'data.sql.gz' ) ) {
+
+			$output->writeln( 'Decompressing database backup file...' );
+
+			exec( 'cd ' . $temp_path . ' && gzip -d data.sql.gz' . $verbose_pipe );
+
 		}
 
 		$output->writeln( 'Replacing wp-content/...' );
