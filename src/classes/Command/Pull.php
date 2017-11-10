@@ -282,13 +282,9 @@ class Pull extends Command {
 			return;
 		}
 
-		if ( isset( $download['database_path'] ) && ( $download['database_path'] === $temp_path . 'data.sql.gz' ) ) {
+		$output->writeln( 'Decompressing database backup file...' );
 
-			$output->writeln( 'Decompressing database backup file...' );
-
-			exec( 'cd ' . $temp_path . ' && gzip -d data.sql.gz' . $verbose_pipe );
-
-		}
+		exec( 'cd ' . $temp_path . ' && gzip -d data.sql.gz ' . $verbose_pipe );
 
 		$output->writeln( 'Replacing wp-content/...' );
 

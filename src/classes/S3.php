@@ -86,27 +86,12 @@ class S3 {
 	 */
 	public function downloadSnapshot( $id, $project, $db_path, $files_path ) {
 		try {
-			$compressed_version_downloaded = true;
-
 			$db_download = $this->client->getObject( [
-				'Bucket' => self::getBucketName( $this->repository ),
-				'Key'    => $project . '/' . $id . '/data.sql.gz',
-				'SaveAs' => $db_path,
+			    'Bucket' => self::getBucketName( $this->repository ),
+			    'Key'    => $project . '/' . $id . '/data.sql.gz',
+			    'SaveAs' => $db_path,
 			] );
-		} catch ( \Exception $e ) {
-			$compressed_version_downloaded = false;
-			@unlink( $db_path );
-		}
 
-		try {
-			if ( ! $compressed_version_downloaded ) {
-				$db_path = str_replace( '.sql.gz', '.sql', $db_path );
-				$db_download = $this->client->getObject( [
-					'Bucket' => self::getBucketName( $this->repository ),
-					'Key'    => $project . '/' . $id . '/data.sql',
-					'SaveAs' => $db_path,
-				] );
-			}
 			$files_download = $this->client->getObject( [
 			    'Bucket' => self::getBucketName( $this->repository ),
 			    'Key'    => $project . '/' . $id . '/files.tar.gz',
@@ -123,7 +108,7 @@ class S3 {
 			return new Error( 0, $error );
 		}
 
-		return [ 'files_path' => $files_path, 'database_path' => $db_path ];
+		return true;
 	}
 
 	/**
