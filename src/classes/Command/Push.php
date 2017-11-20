@@ -375,12 +375,14 @@ class Push extends Command {
 			exit;
 		}
 
+		$snapshot['size'] = filesize( $temp_path . 'data.sql.gz' ) + filesize( $temp_path . 'files.tar.gz' );
+
 		/**
 		 * Add snapshot to DB
 		 */
 		$output->writeln( 'Adding snapshot to database...' );
 
-		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $id, $snapshot, $temp_path . 'data.sql.gz' );
+		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $id, $snapshot );
 
 		if ( Utils\is_error( $inserted_snapshot ) ) {
 			if ( 'AccessDeniedException' === $inserted_snapshot->data['aws_error_code'] ) {

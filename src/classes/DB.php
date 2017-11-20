@@ -101,6 +101,7 @@ class DB {
 			'sites'             => $snapshot['sites'],
 			'table_prefix'      => $snapshot['table_prefix'],
 			'subdomain_install' => $snapshot['subdomain_install'],
+			'size'              => $snapshot['size'],
 		];
 
 		$snapshot_json = json_encode( $snapshot_item );

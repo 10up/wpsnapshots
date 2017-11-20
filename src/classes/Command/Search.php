@@ -29,6 +29,20 @@ class Search extends Command {
 	}
 
 	/**
+	 * Pretty format bytes
+	 *
+	 * @param  int  $size
+	 * @param  inte $precision
+	 * @return string
+	 */
+	protected function formatBytes( $size, $precision = 2 ) {
+		$base = log( $size, 1000 );
+		$suffixes = [ '', 'KB', 'MB', 'GB', 'TB' ];
+
+		return round( pow( 1000, $base - floor( $base ) ), $precision ) . ' ' . $suffixes[ floor( $base ) ];
+	}
+
+	/**
 	 * Executes the command
 	 *
 	 * @param  InputInterface  $input
@@ -63,17 +77,22 @@ class Search extends Command {
 		}
 
 		$table = new Table( $output );
-		$table->setHeaders( [ 'ID', 'Project', 'Description', 'Author', 'Created' ] );
+		$table->setHeaders( [ 'ID', 'Project', 'Description', 'Author', 'Size', 'Created' ] );
 
 		$rows = [];
 
 		foreach ( $instances as $instance ) {
+			if ( empty( $instance['time'] ) ) {
+				$instance['time'] = time();
+			}
+
 			$rows[ $instance['time'] ] = [
-				'id' => $instance['id'],
-				'project' => $instance['project'],
-				'description' => $instance['description'],
-				'author' => $instance['author']['name'],
-				'created' => date( 'F j, Y, g:i a', $instance['time'] ),
+				'id' => ( ! empty( $instance['id'] ) ) ? $instance['id'] : '',
+				'project' => ( ! empty( $instance['project'] ) ) ? $instance['project'] : '',
+				'description' => ( ! empty( $instance['description'] ) ) ? $instance['description'] : '',
+				'author' => ( ! empty( $instance['author']['name'] ) ) ? $instance['author']['name'] : '',
+				'size' => ( ! empty( $instance['size'] ) ) ? $this->formatBytes( (int) $instance['size'] ) : '',
+				'created' => ( ! empty( $instance['time'] ) ) ? date( 'F j, Y, g:i a', $instance['time'] ) : '',
 			];
 		}
 
