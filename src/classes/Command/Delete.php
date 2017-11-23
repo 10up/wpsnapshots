@@ -15,7 +15,7 @@ use WPSnapshots\S3;
 
 
 /**
- * This command deletes an instance of a project from the repo given an ID.
+ * This command deletes a snapshot from the repo given an ID.
  */
 class Delete extends Command {
 
@@ -25,7 +25,7 @@ class Delete extends Command {
 	protected function configure() {
 		$this->setName( 'delete' );
 		$this->setDescription( 'Delete a snapshot from the repository.' );
-		$this->addArgument( 'instance-id', InputArgument::REQUIRED, 'Snapshot ID to delete.' );
+		$this->addArgument( 'snapshot-id', InputArgument::REQUIRED, 'Snapshot ID to delete.' );
 	}
 
 	/**
@@ -42,7 +42,7 @@ class Delete extends Command {
 			return;
 		}
 
-		$id = $input->getArgument( 'instance-id' );
+		$id = $input->getArgument( 'snapshot-id' );
 
 		$verbose = $input->getOption( 'verbose' );
 

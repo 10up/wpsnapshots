@@ -29,7 +29,7 @@ class Pull extends Command {
 	protected function configure() {
 		$this->setName( 'pull' );
 		$this->setDescription( 'Pull a snapshot from a repository.' );
-		$this->addArgument( 'instance-id', InputArgument::REQUIRED, 'Snapshot ID to pull.' );
+		$this->addArgument( 'snapshot-id', InputArgument::REQUIRED, 'Snapshot ID to pull.' );
 		$this->addOption( 'confirm', null, InputOption::VALUE_NONE, 'Confirm pull operation.' );
 
 		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
@@ -84,7 +84,7 @@ class Pull extends Command {
 		$helper = $this->getHelper( 'question' );
 
 		if ( ! Utils\is_wp_present( $path ) ) {
-			$output->writeln( '<error>This is not a WordPress install. WordPress needs to be present in order to pull an instance.</error>' );
+			$output->writeln( '<error>This is not a WordPress install. WordPress needs to be present in order to pull a snapshot.</error>' );
 
 			$download_wp = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to download WordPress? (yes|no) ', false ) );
 
@@ -136,7 +136,7 @@ class Pull extends Command {
 		}
 
 		if ( ! Utils\locate_wp_config( $path ) ) {
-			$output->writeln( '<error>No wp-config.php file present. wp-config.php needs to be setup in order to pull an instance.</error>' );
+			$output->writeln( '<error>No wp-config.php file present. wp-config.php needs to be setup in order to pull an snapshot.</error>' );
 
 			$create_config = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to create a wp-config.php file? (yes|no) ', false ) );
 
@@ -232,7 +232,7 @@ class Pull extends Command {
 			}
 		}
 
-		$id = $input->getArgument( 'instance-id' );
+		$id = $input->getArgument( 'snapshot-id' );
 
 		$output->writeln( 'Getting snapshot information...' );
 

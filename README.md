@@ -75,7 +75,7 @@ Documentation for each operation is as follows:
 
   Pushing a snapshot will not replace older snapshots with the same name. There's been discussion on this. It seems easier and safer not to delete old snapshots (otherwise we have to deal with permissions). This could certainly change in the future after we see how the project is used.
 
-* __wpsnapshots pull \<instance-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose]__
+* __wpsnapshots pull \<snapshot-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose]__
 
   This command pulls an existing snapshot from the repository into your current WordPress install replacing your database and `wp-content` directory entirely. If a WordPress install does not exist, it will prompt you to create it. The command will interactively prompt you to map URLs to be search and replaced. If the snapshot is a multisite, you will have to map URLs interactively for each blog in the network.
 
@@ -83,7 +83,7 @@ Documentation for each operation is as follows:
 
   This command searches the repository for snapshots. `<search-text>` will be compared against project names and authors. Searching for "\*" will return all snapshots.
 
-* __wpsnapshots delete \<instance-id\> [--verbose]__
+* __wpsnapshots delete \<snapshot-id\> [--verbose]__
 
   This command deletes a snapshot from the repository.
 
