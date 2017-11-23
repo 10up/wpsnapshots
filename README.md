@@ -1,6 +1,6 @@
 # WP Snapshots
 
-WP Snapshots is a project sharing tool for WordPress. Operated via the command line, this tool empowers developers to easily push snapshots of projects into the cloud for sharing with team members. Team members can pull snapshots into existing WordPress installs such that everything "just works". No more downloading files, SQL dumps, fixing table prefixes, running search/replace commands, etc. WP Snapshots even works with multisite.
+WP Snapshots is a project sharing tool for WordPress. Operated via the command line, this tool empowers developers to easily push snapshots of projects into the cloud for sharing with team members. Team members can pull snapshots, either creating new WordPress development environments or into existing installs such that everything "just works". No more downloading files, SQL dumps, fixing table prefixes, running search/replace commands, etc. WP Snapshots even works with multisite.
 
 ## How Does It Work?
 
