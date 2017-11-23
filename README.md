@@ -83,7 +83,7 @@ Documentation for each operation is as follows:
 
 * __wpsnapshots pull \<instance-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose]__
 
-  This command pulls an existing snapshot from the repository into your current WordPress install (or in a new one it creates) replacing your database and `wp-content` directory entirely. The command will interactively prompt you to map URLs to be search and replaced. If the snapshot is a multisite, you will have to map URLs interactively for each blog in the network.
+  This command pulls an existing snapshot from the repository into your current WordPress install replacing your database and `wp-content` directory entirely. If a WordPress install does not exist, it will prompt you to create it. The command will interactively prompt you to map URLs to be search and replaced. If the snapshot is a multisite, you will have to map URLs interactively for each blog in the network.
 
 * __wpsnapshots search \<search-text\>__
 
