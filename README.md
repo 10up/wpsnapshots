@@ -1,8 +1,6 @@
-# WP Snapshots (beta)
+# WP Snapshots
 
 WP Snapshots is a project sharing tool for WordPress. Operated via the command line, this tool empowers developers to easily push snapshots of projects into the cloud for sharing with team members. Team members can pull snapshots into existing WordPress installs such that everything "just works". No more downloading files, SQL dumps, fixing table prefixes, running search/replace commands, etc. WP Snapshots even works with multisite.
-
-__WP Snapshots is currently a private tool for internal 10up use only.__
 
 ## How Does It Work?
 
@@ -18,11 +16,7 @@ WP Snapshots is easiest to use as a global Composer package. Right now, it is av
   ```
   composer global config repositories.wpsnapshots vcs https://github.com/10up/wpsnapshots
   ```
-2. Lower your global minimum Composer stability to `dev`. This is necessary since WP Snapshots is beta software.
-  ```
-  composer global config minimum-stability dev
-  ```
-3. Install WP Snapshots as a global Composer package:
+2. Install WP Snapshots as a global Composer package:
   ```
   composer global require 10up/wpsnapshots:dev-master -n
   ```
