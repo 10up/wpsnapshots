@@ -10,7 +10,7 @@ Snapshot files (`wp-content/`) and WordPress database tables are stored in Amazo
 
 ## Install
 
-WP Snapshots is easiest to use as a global Composer package. Right now, it is available only as a private 10up package. It's highly recommended you run WP Snapshots from WITHIN your dev environment (inside VM or container). Assuming you have Composer/MySQL installed and SSH keys setup within GitHub/10up organiziation, do the following:
+WP Snapshots is easiest to use as a global Composer package. It's highly recommended you run WP Snapshots from WITHIN your dev environment (inside VM or container). Assuming you have Composer/MySQL installed and SSH keys setup within GitHub/10up organiziation, do the following:
 
 1. Add the 10up/wpsnapshots repository as a global Composer repository:
   ```
