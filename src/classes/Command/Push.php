@@ -177,6 +177,12 @@ class Push extends Command {
 
 		$snapshot['table_prefix'] = $GLOBALS['table_prefix'];
 
+		global $wp_version;
+
+		if ( ! empty( $wp_version ) ) {
+			$snapshot['wp_version'] = $wp_version;
+		}
+
 		$no_scrub = $input->getOption( 'no-scrub' );
 
 		/**
