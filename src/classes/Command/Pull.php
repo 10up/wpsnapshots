@@ -31,12 +31,21 @@ class Pull extends Command {
 		$this->setDescription( 'Pull a snapshot from a repository.' );
 		$this->addArgument( 'snapshot-id', InputArgument::REQUIRED, 'Snapshot ID to pull.' );
 		$this->addOption( 'confirm', null, InputOption::VALUE_NONE, 'Confirm pull operation.' );
+		$this->addOption( 'confirm-wp-download', null, InputOption::VALUE_NONE, 'Confirm WordPress download if needed.' );
+		$this->addOption( 'confirm-wp-config-create', null, InputOption::VALUE_NONE, 'Confirm WordPress config creation if needed.' );
 
 		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
+
 		$this->addOption( 'db_host', null, InputOption::VALUE_REQUIRED, 'Database host.' );
 		$this->addOption( 'db_name', null, InputOption::VALUE_REQUIRED, 'Database name.' );
 		$this->addOption( 'db_user', null, InputOption::VALUE_REQUIRED, 'Database user.' );
 		$this->addOption( 'db_password', null, InputOption::VALUE_REQUIRED, 'Database password.' );
+
+
+		$this->addOption( 'wp-config-db_host', null, InputOption::VALUE_REQUIRED, 'Database host to use in wp-config.php if it is created.' );
+		$this->addOption( 'wp-config-db_name', null, InputOption::VALUE_REQUIRED, 'Database name to use in wp-config.php if it is created.' );
+		$this->addOption( 'wp-config-db_user', null, InputOption::VALUE_REQUIRED, 'Database user to use in wp-config.php if it is created.' );
+		$this->addOption( 'wp-config-db_password', null, InputOption::VALUE_REQUIRED, 'Database password to use in wp-config.php if it is created.' );
 	}
 
 	/**
@@ -84,12 +93,16 @@ class Pull extends Command {
 		$helper = $this->getHelper( 'question' );
 
 		if ( ! Utils\is_wp_present( $path ) ) {
-			$output->writeln( '<error>This is not a WordPress install. WordPress needs to be present in order to pull a snapshot.</error>' );
+			$confirm_wp_download = $input->getOption( 'confirm-wp-download' );
 
-			$download_wp = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to download WordPress? (yes|no) ', false ) );
+			if ( ! $confirm_wp_download ) {
+				$output->writeln( '<error>This is not a WordPress install. WordPress needs to be present in order to pull a snapshot.</error>' );
 
-			if ( ! $download_wp ) {
-				return;
+				$download_wp = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to download WordPress? (yes|no) ', false ) );
+
+				if ( ! $download_wp ) {
+					return;
+				}
 			}
 
 			/**
@@ -136,35 +149,55 @@ class Pull extends Command {
 		}
 
 		if ( ! Utils\locate_wp_config( $path ) ) {
-			$output->writeln( '<error>No wp-config.php file present. wp-config.php needs to be setup in order to pull an snapshot.</error>' );
+			$confirm_wp_config_create = $input->getOption( 'confirm-wp-config-create' );
 
-			$create_config = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to create a wp-config.php file? (yes|no) ', false ) );
+			if ( ! $confirm_wp_config_create ) {
+				$output->writeln( '<error>No wp-config.php file present. wp-config.php needs to be setup in order to pull an snapshot.</error>' );
 
-			if ( ! $create_config ) {
-				return;
+				$create_config = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to create a wp-config.php file? (yes|no) ', false ) );
+
+				if ( ! $create_config ) {
+					return;
+				}
 			}
 
 			$config_constants = [];
 
-			$db_host_question = new Question( 'What is your database host? ' );
-			$db_host_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+			$config_constants['DB_HOST'] = $input->getOption( 'wp-config-db_host' );
 
-			$config_constants['DB_HOST'] = $helper->ask( $input, $output, $db_host_question );
+			if ( empty( $config_constants['DB_HOST'] ) ) {
+				$db_host_question = new Question( 'What is your database host? ' );
+				$db_host_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
 
-			$db_name_question = new Question( 'What is your database name? ' );
-			$db_name_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+				$config_constants['DB_HOST'] = $helper->ask( $input, $output, $db_host_question );
+			}
 
-			$config_constants['DB_NAME'] = $helper->ask( $input, $output, $db_name_question );
+			$config_constants['DB_NAME'] = $input->getOption( 'wp-config-db_name' );
 
-			$db_user_question = new Question( 'What is your database user? ' );
-			$db_user_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+			if ( empty( $config_constants['DB_NAME'] ) ) {
+				$db_name_question = new Question( 'What is your database name? ' );
+				$db_name_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
 
-			$config_constants['DB_USER'] = $helper->ask( $input, $output, $db_user_question );
+				$config_constants['DB_NAME'] = $helper->ask( $input, $output, $db_name_question );
+			}
 
-			$db_password_question = new Question( 'What is your database password? ' );
-			$db_password_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+			$config_constants['DB_USER'] = $input->getOption( 'wp-config-db_user' );
 
-			$config_constants['DB_PASSWORD'] = $helper->ask( $input, $output, $db_password_question );
+			if ( empty( $config_constants['DB_USER'] ) ) {
+				$db_user_question = new Question( 'What is your database user? ' );
+				$db_user_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+
+				$config_constants['DB_USER'] = $helper->ask( $input, $output, $db_user_question );
+			}
+
+			$config_constants['DB_PASSWORD'] = $input->getOption( 'wp-config-db_password' );
+
+			if ( empty( $config_constants['DB_PASSWORD'] ) ) {
+				$db_password_question = new Question( 'What is your database password? ' );
+				$db_password_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+
+				$config_constants['DB_PASSWORD'] = $helper->ask( $input, $output, $db_password_question );
+			}
 
 			if ( $verbose ) {
 				$output->writeln( 'Creating wp-config.php file...' );
