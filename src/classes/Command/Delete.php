@@ -51,15 +51,17 @@ class Delete extends Command {
 		if ( Utils\is_error( $snapshot ) ) {
 			$output->writeln( '<error>Could not get snapshot from database.</error>' );
 
-			if ( 'AccessDeniedException' === $snapshot->data['aws_error_code'] ) {
-				$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
-			}
+			if ( is_array( $snapshot->data ) && ! empty( $snapshot->data['aws_error_code'] ) ) {
+				if ( 'AccessDeniedException' === $snapshot->data['aws_error_code'] ) {
+					$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
+				}
 
-			if ( $verbose ) {
-				$output->writeln( '<error>Error Message: ' . $snapshot->data['message'] . '</error>' );
-				$output->writeln( '<error>AWS Request ID: ' . $snapshot->data['aws_request_id'] . '</error>' );
-				$output->writeln( '<error>AWS Error Type: ' . $snapshot->data['aws_error_type'] . '</error>' );
-				$output->writeln( '<error>AWS Error Code: ' . $snapshot->data['aws_error_code'] . '</error>' );
+				if ( $verbose ) {
+					$output->writeln( '<error>Error Message: ' . $snapshot->data['message'] . '</error>' );
+					$output->writeln( '<error>AWS Request ID: ' . $snapshot->data['aws_request_id'] . '</error>' );
+					$output->writeln( '<error>AWS Error Type: ' . $snapshot->data['aws_error_type'] . '</error>' );
+					$output->writeln( '<error>AWS Error Code: ' . $snapshot->data['aws_error_code'] . '</error>' );
+				}
 			}
 
 			return;
