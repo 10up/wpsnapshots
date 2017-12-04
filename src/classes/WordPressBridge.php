@@ -24,6 +24,19 @@ class WordPressBridge {
 		$found_wp_settings = false;
 		$lines_to_run = [];
 
+		if ( file_exists( $path . 'wp-config.php' ) ) {
+			$path_replacements = [
+				'__FILE__' => "'" . $path . "wp-config.php'",
+				'__DIR__'  => "'" . $path . "'",
+			];
+		} else {
+			// Must be one directory up
+			$path_replacements = [
+				'__FILE__' => "'" . dirname( $path ) . "/wp-config.php'",
+				'__DIR__'  => "'" . dirname( $path ) . "'",
+			];
+		}
+
 		foreach ( $wp_config_code as $line ) {
 			if ( preg_match( '/^\s*require.+wp-settings\.php/', $line ) ) {
 				continue;
@@ -38,16 +51,17 @@ class WordPressBridge {
 				}
 			}
 
+			/**
+			 * Swap path related constants so we can run WP as a composer dependancy
+			 */
+			$line = str_replace( array_keys( $path_replacements ), array_values( $path_replacements ), $line );
+
 			$lines_to_run[] = $line;
 		}
 
 		$source = implode( "\n", $lines_to_run );
 
-		if ( file_exists( $path . 'wp-config.php' ) ) {
-			define( 'ABSPATH', $path );
-		} else {
-			define( 'ABSPATH', $path . '../' );
-		}
+		define( 'ABSPATH', $path );
 
 		/**
 		 * Define some server variables we might need

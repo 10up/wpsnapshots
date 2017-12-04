@@ -191,12 +191,14 @@ function is_wp_present( $path ) {
  */
 function locate_wp_config( $path ) {
 	if ( file_exists( $path . 'wp-config.php' ) ) {
-		return $path . 'wp-config.php';
+		$path =  $path . 'wp-config.php';
 	} elseif ( file_exists( $path . '../wp-config.php' ) ) {
-		return $path . '../wp-config.php';
+		$path = $path . '../wp-config.php';
 	} else {
 		return false;
 	}
+
+	return realpath( $path );
 }
 
 /**
