@@ -296,6 +296,12 @@ function get_tables( $wp = true ) {
 	return $tables;
 }
 
+/**
+ * Translate mysql host to cli args
+ *
+ * @param  string $raw_host
+ * @return array
+ */
 function mysql_host_to_cli_args( $raw_host ) {
 	$assoc_args = array();
 	$host_parts = explode( ':',  $raw_host );
@@ -317,6 +323,12 @@ function mysql_host_to_cli_args( $raw_host ) {
 	return $assoc_args;
 }
 
+/**
+ * Shell escape command as an array
+ *
+ * @param  array $cmd
+ * @return array
+ */
 function esc_cmd( $cmd ) {
 	if ( func_num_args() < 2 ) {
 		trigger_error( 'esc_cmd() requires at least two arguments.', E_USER_WARNING );
@@ -328,6 +340,12 @@ function esc_cmd( $cmd ) {
 	return vsprintf( $cmd, array_map( 'escapeshellarg', $args ) );
 }
 
+/**
+ * Make sure env path is used on *nix
+ *
+ * @param  string $command
+ * @return string
+ */
 function force_env_on_nix_systems( $command ) {
 	$env_prefix = '/usr/bin/env ';
 	$env_prefix_len = strlen( $env_prefix );
@@ -354,6 +372,12 @@ function is_windows() {
 	return strtoupper( substr( PHP_OS, 0, 3 ) ) === 'WIN';
 }
 
+/**
+ * Convert assoc array to string to command
+ *
+ * @param  array $assoc_args
+ * @return string
+ */
 function assoc_args_to_str( $assoc_args ) {
 	$str = '';
 
