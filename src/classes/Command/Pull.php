@@ -289,16 +289,22 @@ class Pull extends Command {
 		$output->writeln( 'Replacing wp-content/...' );
 
 		if ( $verbose ) {
+			$output->writeln( 'wp-content path set to ' . WP_CONTENT_DIR );
+		}
+
+		if ( $verbose ) {
 			$output->writeln( 'Removing old wp-content/...' );
 		}
 
-		exec( 'rm -rf ' . $path . 'wp-content/..?* ' . $path . 'wp-content/.[!.]* ' . $path . 'wp-content/*' );
+		exec( 'rm -rf ' . WP_CONTENT_DIR . '/..?* ' . WP_CONTENT_DIR . '/.[!.]* ' . WP_CONTENT_DIR . '/*' );
 
 		if ( $verbose ) {
 			$output->writeln( 'Extracting snapshot wp-content/...' );
 		}
 
-		exec( 'tar -C ' . $path . 'wp-content' . ' -xf ' . $temp_path . 'files.tar.gz ' . $verbose_pipe );
+		exec( 'mkdir -p ' . WP_CONTENT_DIR );
+
+		exec( 'tar -C ' . WP_CONTENT_DIR . ' -xf ' . $temp_path . 'files.tar.gz ' . $verbose_pipe );
 
 		/**
 		 * Import tables
