@@ -211,11 +211,14 @@ class Pull extends Command {
 		$pre_update_site_url = site_url();
 		$pre_update_home_url = home_url();
 
-		$pre_update_site_url_parsed = parse_url( $pre_update_site_url );
 		$use_https = false;
 
-		if ( 'https' === $pre_update_site_url_parsed['scheme'] ) {
-			$use_https = true;
+		if ( ! empty( $pre_update_site_url ) ) {
+			$pre_update_site_url_parsed = parse_url( $pre_update_site_url );
+
+			if ( 'https' === $pre_update_site_url_parsed['scheme'] ) {
+				$use_https = true;
+			}
 		}
 
 		/**
@@ -528,12 +531,12 @@ define('BLOG_ID_CURRENT_SITE', 1);");
 					$output->writeln( 'URLs replaced.' );
 				}
 			} else {
-				$home_question = new Question( 'Home URL (' . $pre_update_home_url . ' is recommended): ', $pre_update_home_url );
+				$home_question = new Question( 'Home URL' . ( ( ! empty( $pre_update_home_url ) ) ? ' (' . $pre_update_home_url . ' is recommended)' : '' ) . ': ', $pre_update_home_url );
 				$home_question->setValidator( $url_validator );
 
 				$new_home_url = $helper->ask( $input, $output, $home_question );
 
-				$site_question = new Question( 'Site URL (' . $pre_update_site_url . ' is recommended): ', $pre_update_site_url );
+				$site_question = new Question( 'Site URL' . ( ( ! empty( $pre_update_site_url ) ) ? ' (' . $pre_update_site_url . ' is recommended)' : '' ) . ': ', $pre_update_site_url );
 				$site_question->setValidator( $url_validator );
 
 				$new_site_url = $helper->ask( $input, $output, $site_question );
