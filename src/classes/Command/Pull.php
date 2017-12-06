@@ -118,7 +118,7 @@ class Pull extends Command {
 				$output->writeln( 'Extracting WordPress...' );
 			}
 
-			exec( 'tar -C ' . $path . ' -xf ' . $temp_path . 'wp.tar.gz ' . $verbose_pipe );
+			exec( 'rm -rf ' . $path . 'wordpress && tar -C ' . $path . ' -xf ' . $temp_path . 'wp.tar.gz ' . $verbose_pipe );
 
 			if ( $verbose ) {
 				$output->writeln( 'Moving WordPress files...' );
@@ -375,6 +375,58 @@ class Pull extends Command {
 					$new_table = $GLOBALS['table_prefix'] . str_replace( $snapshot['table_prefix'], '', $table );
 					$wpdb->query( $wpdb->prepare( 'RENAME TABLE `%s` TO `%s`', esc_sql( $table ), esc_sql( $new_table ) ) );
 				}
+			}
+		}
+
+		global $wp_version;
+
+		if ( ! empty( $snapshot['wp_version'] ) && $snapshot['wp_version'] !== $wp_version ) {
+			$change_wp_version = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot is running WordPress version ' . $snapshot['wp_version'] . ', and you are running ' . $wp_version . '. Do you want to change your WordPress version to ' . $snapshot['wp_version'] . '? (yes|no) ', true ) );
+
+
+			if ( ! empty( $change_wp_version ) ) {
+				// Delete old WordPress
+				exec( 'rm -rf ' . $path . 'wp-includes ' . $path . 'wp-admin' );
+				exec( 'cd ' . $path . ' && rm index.php && find . ! -path . -type f -maxdepth 1 -name "wp-*.php" ! -iname "wp-config.php" -delete' );
+
+				if ( $verbose ) {
+					$output->writeln( 'Getting WordPress download URL...' );
+				}
+
+				$download_url = Utils\get_download_url( $snapshot['wp_version'] );
+
+				$headers = [ 'Accept' => 'application/json' ];
+				$options = [
+					'timeout' => 600,
+					'filename' => $temp_path . 'wp.tar.gz',
+				];
+
+				if ( $verbose ) {
+					$output->writeln( 'Downloading WordPress ' . $snapshot['wp_version'] . '...' );
+				}
+
+				$request = Requests::get( $download_url, $headers, $options );
+
+				if ( $verbose ) {
+					$output->writeln( 'Extracting WordPress...' );
+				}
+
+				exec( 'tar -C ' . $path . ' -xf ' . $temp_path . 'wp.tar.gz ' . $verbose_pipe );
+
+
+				if ( $verbose ) {
+					$output->writeln( 'Moving WordPress files...' );
+				}
+
+				exec( 'mv ' . $path . 'wordpress/* .' );
+
+				if ( $verbose ) {
+					$output->writeln( 'Removing temporary WordPress files...' );
+				}
+
+				exec( 'rmdir ' . $path . 'wordpress' );
+
+				$output->writeln( 'WordPress version changed.' );
 			}
 		}
 
