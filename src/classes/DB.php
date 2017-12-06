@@ -102,6 +102,7 @@ class DB {
 			'table_prefix'      => $snapshot['table_prefix'],
 			'subdomain_install' => $snapshot['subdomain_install'],
 			'size'              => $snapshot['size'],
+			'wp_version'        => $snapshot['wp_version'],
 		];
 
 		$snapshot_json = json_encode( $snapshot_item );

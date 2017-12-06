@@ -181,9 +181,7 @@ class Push extends Command {
 
 		global $wp_version;
 
-		if ( ! empty( $wp_version ) ) {
-			$snapshot['wp_version'] = $wp_version;
-		}
+		$snapshot['wp_version'] = ( ! empty( $wp_version ) ) ? $wp_version : '';
 
 		$no_scrub = $input->getOption( 'no-scrub' );
 
