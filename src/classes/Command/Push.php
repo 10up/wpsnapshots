@@ -92,7 +92,9 @@ class Push extends Command {
 			return;
 		}
 
-		$extra_config_constants = [];
+		$extra_config_constants = [
+			'WP_CACHE' => false,
+		];
 
 		$db_host = $input->getOption( 'db_host' );
 		$db_name = $input->getOption( 'db_name' );

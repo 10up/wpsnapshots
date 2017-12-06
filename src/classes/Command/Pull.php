@@ -175,7 +175,9 @@ class Pull extends Command {
 			$output->writeln( 'wp-config.php created.' );
 		}
 
-		$extra_config_constants = [];
+		$extra_config_constants = [
+			'WP_CACHE' => false,
+		];
 
 		$db_host = $input->getOption( 'db_host' );
 		$db_name = $input->getOption( 'db_name' );
