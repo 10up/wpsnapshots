@@ -48,10 +48,8 @@ WP Snapshots currently relies on AWS to store files and data. As such, you need 
   ```
   __Example Usage Without Prompts (No Interaction) :__
   ```
-  wpsnapshots configure 10up --aws_key=AAABBBCCC --aws_secret=AAA111BBB222 --user_name="Jane Smith" --user_email="noreply@10up.com"
+  wpsnapshots configure yourcompany --aws_key=AAABBBCCC --aws_secret=AAA111BBB222 --user_name="Jane Smith" --user_email="noreply@yourcompany.com"
   ```
-
-  10up's AWS keys for WP Snapshots are [located in a Google Doc](https://docs.google.com/document/d/1C0N7mMfAA3KHJhYjrE-U4DRMoF59VxMshDkxtzKV9zc/edit).
 
 If WP Snapshots has not been setup for your team/company, you'll need to create the WP Snapshots repository:
 
