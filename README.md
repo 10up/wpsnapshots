@@ -113,4 +113,4 @@ WP Snapshots relies on AWS for access management. Each snapshot is associated wi
 
 ## Windows
 
-WP Snapshots has been used successfully inside [Windows Subsystem in Linux](https://msdn.microsoft.com/en-us/commandline/wsl/install-win10).
+WP Snapshots has been used successfully inside [Windows Subsystem for Linux](https://msdn.microsoft.com/en-us/commandline/wsl/install-win10).
