@@ -62,6 +62,11 @@ class WordPressBridge {
 		$source = implode( "\n", $lines_to_run );
 
 		define( 'ABSPATH', $path );
+		
+		/**
+		 * Set constant for instances in theme or plugin code that may prevent wpsnapshots from executing properly.
+		 */
+		define( 'WPSNAPSHOTS', true );
 
 		/**
 		 * Define some server variables we might need
