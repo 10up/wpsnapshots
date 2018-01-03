@@ -93,7 +93,11 @@ WP Snapshots relies on AWS for access management. Each snapshot is associated wi
 
 * __WP Snapshots can't establish a connection to the database__
 
-  This can happen if you are calling WP Snapshots outside of your dev environment running in a VM or container. WP Snapshots reads database credentials from `wp-config.php`. In order to connect to your database from your host machine, the database host address will need to be different. For VVV it's 192.168.50.4, for WP Local Docker, it's 127.0.0.1. You can pass a host override via the command line using the `--db_host` option. We recommend running WP Snapshots from inside your development environment.
+  This can happen if you are calling WP Snapshots outside of your dev environment running in a VM or container. WP Snapshots reads database credentials from `wp-config.php`. In order to connect to your database from your host machine, the database host address will need to be different. For VVV it's 192.168.50.4, for WP Local Docker, it's 127.0.0.1. You can pass a host override via the command line using the `--db_host` option. For VVV, you also might need to pass in a special database user and password like so `--db_user=external --db_password=external`. We recommend running WP Snapshots from inside your development environment.
+
+* __I received the error: `env: mysqldump: No such file or directory`__
+
+  You don't have `mysqldump` installed. This is most likely because you are running WP Snapshots from outside your container or VM. Either install `mysqldump` or run WP Snapshots inside your container or VM.
 
 * __During a pull, MySQL is timing or erroring out while replacing the database.__
 
