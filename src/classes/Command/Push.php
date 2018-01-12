@@ -338,13 +338,13 @@ class Push extends Command {
 			$output->writeln( 'Compressing files...' );
 		}
 
-		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zcf ' . $temp_path . 'files.tar.gz . ' . $verbose_pipe );
+		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zcf ' . Utils\escape_shell_path( $temp_path ) . 'files.tar.gz . ' . $verbose_pipe );
 
 		if ( $verbose ) {
 			$output->writeln( 'Compressing database backup...' );
 		}
 
-		exec( 'gzip -9 ' . $temp_path . 'data.sql ' . $verbose_pipe );
+		exec( 'gzip -9 ' . Utils\escape_shell_path( $temp_path ) . 'data.sql ' . $verbose_pipe );
 
 		/**
 		 * Insert snapshot into DB

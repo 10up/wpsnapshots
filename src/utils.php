@@ -53,6 +53,16 @@ function normalize_path( $path ) {
 }
 
 /**
+ * Escape a path that will be passed to a shell
+ *
+ * @param  string $path
+ * @return string
+ */
+function escape_shell_path( $path ) {
+	return str_replace( ' ', '\ ', $path );
+}
+
+/**
  * Validator for Symfony Question
  *
  * @param  string $answer

@@ -118,19 +118,19 @@ class Pull extends Command {
 				$output->writeln( 'Extracting WordPress...' );
 			}
 
-			exec( 'rm -rf ' . $path . 'wordpress && tar -C ' . $path . ' -xf ' . $temp_path . 'wp.tar.gz ' . $verbose_pipe );
+			exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress && tar -C ' . Utils\escape_shell_path( $path ) . ' -xf ' . Utils\escape_shell_path( $path ) . 'wp.tar.gz ' . $verbose_pipe );
 
 			if ( $verbose ) {
 				$output->writeln( 'Moving WordPress files...' );
 			}
 
-			exec( 'mv ' . $path . 'wordpress/* .' );
+			exec( 'mv ' . Utils\escape_shell_path( $path ) . 'wordpress/* .' );
 
 			if ( $verbose ) {
 				$output->writeln( 'Removing temporary WordPress files...' );
 			}
 
-			exec( 'rmdir ' . $path . 'wordpress' );
+			exec( 'rmdir ' . Utils\escape_shell_path( $path ) . 'wordpress' );
 
 			$output->writeln( 'WordPress downloaded.' );
 		}
@@ -289,7 +289,7 @@ class Pull extends Command {
 
 		$output->writeln( 'Decompressing database backup file...' );
 
-		exec( 'cd ' . $temp_path . ' && gzip -d data.sql.gz ' . $verbose_pipe );
+		exec( 'cd ' . Utils\escape_shell_path( $temp_path ) . ' && gzip -d data.sql.gz ' . $verbose_pipe );
 
 		$output->writeln( 'Replacing wp-content/...' );
 
@@ -301,15 +301,15 @@ class Pull extends Command {
 			$output->writeln( 'Removing old wp-content/...' );
 		}
 
-		exec( 'rm -rf ' . WP_CONTENT_DIR . '/..?* ' . WP_CONTENT_DIR . '/.[!.]* ' . WP_CONTENT_DIR . '/*' );
+		exec( 'rm -rf ' . Utils\escape_shell_path( WP_CONTENT_DIR ) . '/..?* ' . Utils\escape_shell_path( WP_CONTENT_DIR ) . '/.[!.]* ' . Utils\escape_shell_path( WP_CONTENT_DIR ) . '/*' );
 
 		if ( $verbose ) {
 			$output->writeln( 'Extracting snapshot wp-content/...' );
 		}
 
-		exec( 'mkdir -p ' . WP_CONTENT_DIR );
+		exec( 'mkdir -p ' . Utils\escape_shell_path( WP_CONTENT_DIR ) );
 
-		exec( 'tar -C ' . WP_CONTENT_DIR . ' -xf ' . $temp_path . 'files.tar.gz ' . $verbose_pipe );
+		exec( 'tar -C ' . Utils\escape_shell_path( WP_CONTENT_DIR ) . ' -xf ' . Utils\escape_shell_path( $temp_path ) . 'files.tar.gz ' . $verbose_pipe );
 
 		/**
 		 * Import tables
@@ -386,8 +386,8 @@ class Pull extends Command {
 
 			if ( ! empty( $change_wp_version ) ) {
 				// Delete old WordPress
-				exec( 'rm -rf ' . $path . 'wp-includes ' . $path . 'wp-admin' );
-				exec( 'cd ' . $path . ' && rm index.php && find . ! -path . -type f -maxdepth 1 -name "wp-*.php" ! -iname "wp-config.php" -delete' );
+				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wp-includes ' . Utils\escape_shell_path( $path ) . 'wp-admin' );
+				exec( 'cd ' . Utils\escape_shell_path( $path ) . ' && rm index.php && find . ! -path . -type f -maxdepth 1 -name "wp-*.php" ! -iname "wp-config.php" -delete' );
 
 				if ( $verbose ) {
 					$output->writeln( 'Getting WordPress download URL...' );
@@ -411,20 +411,20 @@ class Pull extends Command {
 					$output->writeln( 'Extracting WordPress...' );
 				}
 
-				exec( 'tar -C ' . $path . ' -xf ' . $temp_path . 'wp.tar.gz ' . $verbose_pipe );
+				exec( 'tar -C ' . Utils\escape_shell_path( $path ) . ' -xf ' . Utils\escape_shell_path( $temp_path ) . 'wp.tar.gz ' . $verbose_pipe );
 
 
 				if ( $verbose ) {
 					$output->writeln( 'Moving WordPress files...' );
 				}
 
-				exec( 'mv ' . $path . 'wordpress/* .' );
+				exec( 'mv ' . Utils\escape_shell_path( $path ) . 'wordpress/* .' );
 
 				if ( $verbose ) {
 					$output->writeln( 'Removing temporary WordPress files...' );
 				}
 
-				exec( 'rmdir ' . $path . 'wordpress' );
+				exec( 'rmdir ' . Utils\escape_shell_path( $path ) . 'wordpress' );
 
 				$output->writeln( 'WordPress version changed.' );
 			}
