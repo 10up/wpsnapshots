@@ -388,6 +388,7 @@ class Pull extends Command {
 				// Delete old WordPress
 				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wp-includes ' . Utils\escape_shell_path( $path ) . 'wp-admin' );
 				exec( 'cd ' . Utils\escape_shell_path( $path ) . ' && rm index.php && find . ! -path . -type f -maxdepth 1 -name "wp-*.php" ! -iname "wp-config.php" -delete' );
+				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress' );
 
 				if ( $verbose ) {
 					$output->writeln( 'Getting WordPress download URL...' );
@@ -424,7 +425,7 @@ class Pull extends Command {
 					$output->writeln( 'Removing temporary WordPress files...' );
 				}
 
-				exec( 'rmdir ' . Utils\escape_shell_path( $path ) . 'wordpress' );
+				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress' );
 
 				$output->writeln( 'WordPress version changed.' );
 			}
