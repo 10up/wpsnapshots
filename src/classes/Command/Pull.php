@@ -118,7 +118,7 @@ class Pull extends Command {
 				$output->writeln( 'Extracting WordPress...' );
 			}
 
-			exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress && tar -C ' . Utils\escape_shell_path( $path ) . ' -xf ' . Utils\escape_shell_path( $path ) . 'wp.tar.gz ' . $verbose_pipe );
+			exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress && tar -C ' . Utils\escape_shell_path( $path ) . ' -xf ' . Utils\escape_shell_path( $temp_path ) . 'wp.tar.gz ' . $verbose_pipe );
 
 			if ( $verbose ) {
 				$output->writeln( 'Moving WordPress files...' );
