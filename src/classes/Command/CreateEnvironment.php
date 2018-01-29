@@ -39,23 +39,7 @@ class CreateEnvironment extends Command {
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		$command = $this->getApplication()->find('pull');
 
-		$arguments = [
-			'snapshot-id'                => $input->getArgument( 'snapshot-id' ),
-			'--confirm-wp-download'      => true,
-			'--confirm-wp-config-create' => true,
-			'--wp-config-db_host'        => 'mysql',
-			'--wp-config-db_name'        => 'wordpress',
-			'--wp-config-db_user'        => 'wordpress',
-			'--wp-config-db_password'    => 'password',
-		];
-
-		$pull_input = new ArrayInput( $arguments );
-		$returnCode = $command->run($pull_input, $output);
-
-		exit;
-
 		$connection = Connection::instance()->connect();
-
 		if ( Utils\is_error( $connection ) ) {
 			$output->writeln( '<error>Could not connect to repository.</error>' );
 			return;
@@ -68,7 +52,7 @@ class CreateEnvironment extends Command {
 			exit;
 		}
 
-		exec( 'docker-compose ps > /dev/null 2>&1', $docker_compose_check_output, $docker_compose_check_return );
+		exec( 'docker-compose version > /dev/null 2>&1', $docker_compose_check_output, $docker_compose_check_return );
 
 		if ( 0 !== $docker_compose_check_return ) {
 			$output->writeln( '<error>docker-compose is not installed or broken. See https://docs.docker.com/compose/install/#install-compose' );
@@ -108,15 +92,47 @@ class CreateEnvironment extends Command {
 
 		exec( 'cd ' .$path . ' && docker-compose up -d' );
 
-		$command = $this->getApplication()->find('demo:greet');
+		$output->writeln( 'Copying WP Snapshots configuration to WP Local Docker' );
 
-		$arguments = array(
-		'command' => 'demo:greet',
-		'name'    => 'Fabien',
-		'--yell'  => true,
-		);
+		$config_file = Config::instance()->path();
 
-		$greetInput = new ArrayInput($arguments);
-		$returnCode = $command->run($greetInput, $output);
+		copy( $config_file, $path . 'config/wpsnapshots/.wpsnapshots.json' );
+
+		$output->writeln( 'Waiting for containers...' );
+		chdir( $path );
+		sleep( 10 );
+
+		$output->writeln( 'Installing WordPress' );
+
+		exec( './bin/setup.sh', $download_wp_output, $download_wp_return );
+
+		if ( 0 !== $download_wp_return ) {
+			$output->writeln( '<error>An error occured while attempting to download WordPress</error>' );
+		}
+
+		$output->writeln( $download_wp_output );
+
+		exec( 'docker-compose exec --user www-data phpfpm wp core download', $download_wp_output, $download_wp_return );
+
+		if ( 0 !== $download_wp_return ) {
+			$output->writeln( '<error>An error occured while attempting to download WordPress</error>' );
+		}
+
+		$output->writeln( $download_wp_output );
+
+		exec( 'docker-compose exec --user www-data phpfpm wp core config --dbhost=mysql --dbname=wordpress --dbuser=root --dbpass=password', $install_wp_output, $install_wp_return );
+
+		if ( 0 !== $install_wp_return ) {
+			$output->writeln( '<error>An error occured while attempting to install WordPress</error>' );
+		}
+
+		$output->writeln( $install_wp_output );
+
+		$output->writeln( 'Pulling Snapshot' );
+
+		$cmd = 'docker-compose exec wpsnapshots /snapshots.sh pull ' . $input->getArgument( 'snapshot-id' );
+
+		passthru( $cmd );
+
 	}
 }

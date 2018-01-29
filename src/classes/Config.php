@@ -14,7 +14,7 @@ class Config {
 	 * @param  array $config
 	 */
 	public function write( $config ) {
-		file_put_contents( $_SERVER['HOME'] . '/.wpsnapshots.json', json_encode( $config ) );
+		file_put_contents( $this->path() , json_encode( $config ) );
 	}
 
 	/**
@@ -23,13 +23,22 @@ class Config {
 	 * @return array|Error
 	 */
 	public function get() {
-		if ( ! file_exists( $_SERVER['HOME'] . '/.wpsnapshots.json' ) ) {
+		if ( ! file_exists( $this->path()  ) ) {
 			return new Error( 0, 'No json file exists.' );
 		}
 
-		$snapshots_config_file = json_decode( file_get_contents( $_SERVER['HOME'] . '/.wpsnapshots.json' ), true );
+		$snapshots_config_file = json_decode( file_get_contents( $this->path()  ), true );
 
 		return $snapshots_config_file;
+	}
+
+	/**
+	 * Get path to config.
+	 *
+	 * @return string Path to config file.
+	 */
+	public function path() {
+		return $_SERVER['HOME'] . '/.wpsnapshots.json';
 	}
 
 	/**
