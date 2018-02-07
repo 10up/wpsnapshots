@@ -9,6 +9,7 @@ use WPSnapshots\Utils;
 class S3 {
 	private $client;
 	private $repository;
+	private $region;
 
 	/**
 	 * Setup S3 client
@@ -21,9 +22,12 @@ class S3 {
 				'key'    => $config['access_key_id'],
 				'secret' => $config['secret_access_key'],
 			],
+            'signature' => 'v4',
+            'region' => $config['region']
 		] );
 
 		$this->repository = $config['repository'];
+		$this->region = $config['region'];
 	}
 
 	/**
@@ -218,7 +222,7 @@ class S3 {
 		}
 
 		try {
-			$result = $this->client->createBucket( [ 'Bucket' => self::getBucketName( $this->repository ) ] );
+			$result = $this->client->createBucket( [ 'Bucket' => self::getBucketName( $this->repository ), 'LocationConstraint' => $this->region ] );
 		} catch ( \Exception $e ) {
 			$error = [
 				'message'        => $e->getMessage(),
