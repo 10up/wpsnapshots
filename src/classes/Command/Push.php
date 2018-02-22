@@ -31,9 +31,9 @@ class Push extends Command {
 		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 
 		$this->addOption( 'project', false, InputOption::VALUE_REQUIRED, 'Project slug.' );
-        $this->addOption( 'description', false, InputOption::VALUE_REQUIRED, 'Project description.' );
+		$this->addOption( 'description', false, InputOption::VALUE_REQUIRED, 'Project description.' );
 
-        $this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
+		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
 		$this->addOption( 'db_host', null, InputOption::VALUE_REQUIRED, 'Database host.' );
 		$this->addOption( 'db_name', null, InputOption::VALUE_REQUIRED, 'Database name.' );
 		$this->addOption( 'db_user', null, InputOption::VALUE_REQUIRED, 'Database user.' );
@@ -141,19 +141,19 @@ class Push extends Command {
 			$snapshot['author']['email'] = $config['email'];
 		}
 
-        $snapshot['project'] = $input->getOption( 'project' );
-        $snapshot['description'] = $input->getOption( 'description' );
+		$snapshot['project'] = $input->getOption( 'project' );
+		$snapshot['description'] = $input->getOption( 'description' );
 
 		if( empty( $snapshot['project'] ) ) {
-            $project_question = new Question('Project Slug (letters, numbers, _, and - only): ');
+		    $project_question = new Question('Project Slug (letters, numbers, _, and - only): ');
             $project_question->setValidator('\WPSnapshots\Utils\slug_validator');
             $snapshot['project'] = $helper->ask($input, $output, $project_question);
         }
 
         if( empty( $snapshot['description'] ) ) {
-            $description_question = new Question('Snapshot Description (e.g. Local environment): ');
-            $description_question->setValidator('\WPSnapshots\Utils\not_empty_validator');
-            $snapshot['description'] = $helper->ask($input, $output, $description_question);
+		    $description_question = new Question('Snapshot Description (e.g. Local environment): ');
+		    $description_question->setValidator('\WPSnapshots\Utils\not_empty_validator');
+		    $snapshot['description'] = $helper->ask($input, $output, $description_question);
         }
 
 		$snapshot['multisite'] = false;
