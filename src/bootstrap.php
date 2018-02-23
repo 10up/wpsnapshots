@@ -6,7 +6,7 @@ use \Symfony\Component\Console\Application;
 
 require_once __DIR__ . '/utils.php';
 
-$app = new Application( 'WP Snapshots - A project sharing tool for WordPress.', '1.1.1' );
+$app = new Application( 'WP Snapshots - A project sharing tool for WordPress.', '1.1.2' );
 
 /**
  * Attempt to set this as WP Snapahots can consume a lot of memory.
