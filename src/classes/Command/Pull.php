@@ -493,7 +493,12 @@ class Pull extends Command {
 
 				foreach ( $snapshot['sites'] as $site ) {
 
-					$output->writeln( 'Replacing URLs for blog ' . $site['blog_id'] . '. Path for blog is ' . $site['path'] . '.' );
+					$subdomain_domain_lang = '';
+					if ( ! empty( $snapshot['subdomain_intall'] ) ) {
+						$subdomain_domain_lang = ' Domain for blog is ' . $site['domain'] . '.';
+					}
+
+					$output->writeln( 'Replacing URLs for blog ' . $site['blog_id'] . '.' . $subdomain_domain_lang . ' Path for blog is ' . $site['path'] . '.' );
 
 					if ( ! empty( $snapshot['subdomain_install'] ) ) {
 						$domain = $helper->ask( $input, $output, $main_domain_question );
