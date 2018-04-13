@@ -34,7 +34,7 @@ export PATH=~/.config/composer/vendor/bin:$PATH
 
 ## Configure
 
-WP Snapshots currently relies on AWS to store files and data. As such, you need to connect to a "repository" hosted on AWS. We have [instructions on how to setup a repository on AWS](https://github.com/10up/wpsnapshots/wiki/Setting-up-Amazon-Web-Services-to-Store-Snapshots) in the repository wiki.
+WP Snapshots currently relies on AWS to store files and data. As such, you need to connect to a "repository" hosted on AWS. We have compiled [instructions on how to setup a repository on AWS.](https://github.com/10up/wpsnapshots/wiki/Setting-up-Amazon-Web-Services-to-Store-Snapshots)
 
 * __wpsnapshots configure \<repository\> [--region] [--aws_key] [--aws_secret] [--user_name] [--user_email]__
 
