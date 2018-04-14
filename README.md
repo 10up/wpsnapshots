@@ -34,7 +34,7 @@ export PATH=~/.config/composer/vendor/bin:$PATH
 
 ## Configure
 
-WP Snapshots currently relies on AWS to store files and data. As such, you need to connect to a "repository" hosted on AWS:
+WP Snapshots currently relies on AWS to store files and data. As such, you need to connect to a "repository" hosted on AWS. We have compiled [instructions on how to setup a repository on AWS.](https://github.com/10up/wpsnapshots/wiki/Setting-up-Amazon-Web-Services-to-Store-Snapshots)
 
 * __wpsnapshots configure \<repository\> [--region] [--aws_key] [--aws_secret] [--user_name] [--user_email]__
 
@@ -102,8 +102,8 @@ WP Snapshots relies on AWS for access management. Each snapshot is associated wi
 * __During a pull, MySQL is timing or erroring out while replacing the database.__
 
   If you are pulling a massive database, there are all sorts of memory and MySQL optimization issues you can encounter. Try running WP Snapshots as root (`--db_user=root`) so it can attempt to tweak settings for the large import.
-  
-  
+
+
 * __wpsnapshots search displays signature expired error.__
 
   This happens when your local system clock is skewed. To fix:
@@ -111,7 +111,7 @@ WP Snapshots relies on AWS for access management. Each snapshot is associated wi
   * If you're using Docker, try `docker-machine ssh default 'sudo ntpclient -s -h pool.ntp.org'`
 
 * __wpsnapshots push or pull is crashing.__
-  
+
   A fatal error is most likely occuring when bootstrapping WordPress. Look at your error log to see what's happening. Often this happens because of a missing PHP class (Memcached) which is a result of not running WP Snapshots inside your environment (container or VM).
 
 
