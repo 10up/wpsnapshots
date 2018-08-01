@@ -62,16 +62,18 @@ class Configure extends Command {
 
 		$helper = $this->getHelper( 'question' );
 
+		$i = 0;
+
 		/**
 		 * Loop until we get S3 credentials that work
 		 */
 		while ( true ) {
 
-			if ( empty( $access_key_id ) ) {
+			if ( 0 < $i || empty( $access_key_id ) ) {
 				$access_key_id = $helper->ask( $input, $output, new Question( 'AWS Access Key ID: ' ) );
 			}
 
-			if ( empty( $secret_access_key ) ) {
+			if ( 0 < $i || empty( $secret_access_key ) ) {
 				$secret_access_key = $helper->ask( $input, $output, new Question( 'AWS Secret Access Key: ' ) );
 			}
 
@@ -93,6 +95,8 @@ class Configure extends Command {
 					break;
 				}
 			}
+
+			$i++;
 		}
 
 		$config = $this->apply_user_to_config( $config, $input, $output );
