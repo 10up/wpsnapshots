@@ -419,7 +419,10 @@ class Pull extends Command {
 					$output->writeln( 'Moving WordPress files...' );
 				}
 
-				exec( 'mv ' . Utils\escape_shell_path( $path ) . 'wordpress/* .' );
+				/**
+				 * We suppress the error message because wp-content/ might already exist
+				 */
+				exec( 'mv ' . Utils\escape_shell_path( $path ) . 'wordpress/* . &> /dev/null' );
 
 				if ( $verbose ) {
 					$output->writeln( 'Removing temporary WordPress files...' );
