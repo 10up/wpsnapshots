@@ -387,7 +387,8 @@ class Pull extends Command {
 			if ( ! empty( $change_wp_version ) ) {
 				// Delete old WordPress
 				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wp-includes ' . Utils\escape_shell_path( $path ) . 'wp-admin' );
-				exec( 'cd ' . Utils\escape_shell_path( $path ) . ' && rm index.php && find . ! -path . -type f -maxdepth 1 -name "wp-*.php" ! -iname "wp-config.php" -delete' );
+				exec( 'cd ' . Utils\escape_shell_path( $path ) . ' && rm index.php' );
+				exec( 'cd ' . Utils\escape_shell_path( $path ) . ' && find . -maxdepth 1 ! -path . -type f -name "wp-*.php" ! -iname "wp-config.php" -delete' );
 				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress' );
 
 				if ( $verbose ) {
