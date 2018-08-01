@@ -49,7 +49,7 @@ class CreateRepository extends Command {
 			} elseif ( 1 === $create_s3->code ) {
 				$output->writeln( '<comment>S3 already setup.</comment>' );
 			} else {
-				if ( 'BucketAlreadyOwnedByYou' === $e->getAwsErrorCode() || 'BucketAlreadyExists' === $e->getAwsErrorCode() ) {
+				if ( 'BucketAlreadyOwnedByYou' === $create_s3->data['aws_error_code'] || 'BucketAlreadyExists' === $create_s3->data['aws_error_code'] ) {
 					$output->writeln( '<comment>S3 already setup.</comment>' );
 				} else {
 					$output->writeln( '<error>Could not create S3 bucket.</error>' );
