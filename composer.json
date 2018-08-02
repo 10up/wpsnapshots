@@ -10,7 +10,7 @@
     }
   ],
   "require": {
-    "symfony/console": "^3.3",
+    "symfony/console": "^3.3 || ^4.1",
     "aws/aws-sdk-php": "2.*",
     "rmccue/requests": "^1.7"
   },
