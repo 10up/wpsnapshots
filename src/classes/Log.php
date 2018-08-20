@@ -5,7 +5,7 @@
  * @package wpsnapshots
  */
 
-namespace AssureWP;
+namespace WPSnapshots;
 
 use Symfony\Component\Console\Output\OutputInterface;
 
