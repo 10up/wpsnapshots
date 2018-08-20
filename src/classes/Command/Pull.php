@@ -41,7 +41,13 @@ class Pull extends Command {
 		$this->addOption( 'confirm_wp_download', null, InputOption::VALUE_NONE, 'Confirm WordPress download.' );
 		$this->addOption( 'confirm_config_create', null, InputOption::VALUE_NONE, 'Confirm wp-config.php create.' );
 
+		$this->addOption( 'config_db_host', null, InputOption::VALUE_REQUIRED, 'Config database host.' );
+		$this->addOption( 'config_db_name', null, InputOption::VALUE_REQUIRED, 'Config database name.' );
+		$this->addOption( 'config_db_user', null, InputOption::VALUE_REQUIRED, 'Config database user.' );
+		$this->addOption( 'config_db_password', null, InputOption::VALUE_REQUIRED, 'Config database password.' );
+
 		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
+
 		$this->addOption( 'db_host', null, InputOption::VALUE_REQUIRED, 'Database host.' );
 		$this->addOption( 'db_name', null, InputOption::VALUE_REQUIRED, 'Database name.' );
 		$this->addOption( 'db_user', null, InputOption::VALUE_REQUIRED, 'Database user.' );
@@ -161,25 +167,41 @@ class Pull extends Command {
 
 			$config_constants = [];
 
-			$db_host_question = new Question( 'What is your database host? ' );
-			$db_host_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+			if ( ! empty( $input->getOption( 'config_db_host' ) ) ) {
+				$config_constants['DB_HOST'] = $input->getOption( 'config_db_host' );
+			} else {
+				$db_host_question = new Question( 'What is your database host? ' );
+				$db_host_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
 
-			$config_constants['DB_HOST'] = $helper->ask( $input, $output, $db_host_question );
+				$config_constants['DB_HOST'] = $helper->ask( $input, $output, $db_host_question );
+			}
 
-			$db_name_question = new Question( 'What is your database name? ' );
-			$db_name_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+			if ( ! empty( $input->getOption( 'config_db_name' ) ) ) {
+				$config_constants['DB_NAME'] = $input->getOption( 'config_db_name' );
+			} else {
+				$db_name_question = new Question( 'What is your database name? ' );
+				$db_name_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
 
-			$config_constants['DB_NAME'] = $helper->ask( $input, $output, $db_name_question );
+				$config_constants['DB_NAME'] = $helper->ask( $input, $output, $db_name_question );
+			}
 
-			$db_user_question = new Question( 'What is your database user? ' );
-			$db_user_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+			if ( ! empty( $input->getOption( 'config_db_user' ) ) ) {
+				$config_constants['DB_USER'] = $input->getOption( 'config_db_user' );
+			} else {
+				$db_user_question = new Question( 'What is your database user? ' );
+				$db_user_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
 
-			$config_constants['DB_USER'] = $helper->ask( $input, $output, $db_user_question );
+				$config_constants['DB_USER'] = $helper->ask( $input, $output, $db_user_question );
+			}
 
-			$db_password_question = new Question( 'What is your database password? ' );
-			$db_password_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+			if ( ! empty( $input->getOption( 'config_db_password' ) ) ) {
+				$config_constants['DB_PASSWORD'] = $input->getOption( 'config_db_password' );
+			} else {
+				$db_password_question = new Question( 'What is your database password? ' );
+				$db_password_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
 
-			$config_constants['DB_PASSWORD'] = $helper->ask( $input, $output, $db_password_question );
+				$config_constants['DB_PASSWORD'] = $helper->ask( $input, $output, $db_password_question );
+			}
 
 			Log::instance()->write( 'Creating wp-config.php file...', 1 );
 
