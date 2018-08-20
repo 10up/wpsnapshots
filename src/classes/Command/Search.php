@@ -1,4 +1,9 @@
 <?php
+/**
+ * Search command
+ *
+ * @package wpsnapshots
+ */
 
 namespace WPSnapshots\Command;
 
@@ -13,6 +18,7 @@ use Symfony\Component\Console\Helper\Table;
 use WPSnapshots\WordPressBridge;
 use WPSnapshots\Utils;
 use WPSnapshots\Connection;
+use WPSnapshots\Log;
 
 /**
  * The search command searches for projects within the repository.
@@ -49,30 +55,30 @@ class Search extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
+		Log::instance()->setOutput( $output );
+
 		$connection = Connection::instance()->connect();
 
-		$verbose = $input->getOption( 'verbose' );
-
 		if ( Utils\is_error( $connection ) ) {
-			$output->writeln( '<error>Could not connect to repository.</error>' );
+			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
 			return;
 		}
 
 		$instances = Connection::instance()->db->search( $input->getArgument( 'search-text' ) );
 
 		if ( Utils\is_error( $instances ) ) {
-			$output->writeln( '<error>An error occured while searching.</error>' );
+			Log::instance()->write( 'An error occured while searching.', 0, 'success' );
 
-			if ( $verbose ) {
-				$output->writeln( '<error>Error Message: ' . $inserted_snapshot->data['message'] . '</error>' );
-				$output->writeln( '<error>AWS Request ID: ' . $inserted_snapshot->data['aws_request_id'] . '</error>' );
-				$output->writeln( '<error>AWS Error Type: ' . $inserted_snapshot->data['aws_error_type'] . '</error>' );
-				$output->writeln( '<error>AWS Error Code: ' . $inserted_snapshot->data['aws_error_code'] . '</error>' );
+			if ( is_array( $inserted_snapshot->data ) ) {
+				Log::instance()->write( 'Error Message: ' . $inserted_snapshot->data['message'], 1, 'error' );
+				Log::instance()->write( 'AWS Request ID: ' . $inserted_snapshot->data['aws_request_id'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Type: ' . $inserted_snapshot->data['aws_error_type'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Code: ' . $inserted_snapshot->data['aws_error_code'], 1, 'error' );
 			}
 		}
 
 		if ( empty( $instances ) ) {
-			$output->writeln( '<comment>No snapshots found.</comment>' );
+			Log::instance()->write( 'No snapshots found.', 0, 'warning' );
 			return;
 		}
 

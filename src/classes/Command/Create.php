@@ -1,8 +1,8 @@
 <?php
 /**
- * Push command
+ * Create command
  *
- * @package wpsnapshots
+ * @package  wpsnapshots
  */
 
 namespace WPSnapshots\Command;
@@ -23,16 +23,16 @@ use WPSnapshots\Snapshot;
 use WPSnapshots\Log;
 
 /**
- * The push command first runs "create" to create the snapshot, then pushes it to a remote repository.
+ * The create command creates a snapshot in the .wpsnapshots directory but does not push it remotely.
  */
-class Push extends Command {
+class Create extends Command {
 
 	/**
 	 * Setup up command
 	 */
 	protected function configure() {
-		$this->setName( 'push' );
-		$this->setDescription( 'Push a snapshot to a repository.' );
+		$this->setName( 'create' );
+		$this->setDescription( 'Create a snapshot locally.' );
 		$this->addOption( 'exclude-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
 		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 
@@ -67,8 +67,6 @@ class Push extends Command {
 
 		$helper = $this->getHelper( 'question' );
 
-		$verbose = $input->getOption( 'verbose' );
-
 		$project_question = new Question( 'Project Slug (letters, numbers, _, and - only): ' );
 		$project_question->setValidator( '\WPSnapshots\Utils\slug_validator' );
 
@@ -80,70 +78,19 @@ class Push extends Command {
 		$description = $helper->ask( $input, $output, $description_question );
 
 		$snapshot = Snapshot::create( [
-			'path'            => $path,
 			'db_host'         => $input->getOption( 'db_host' ),
 			'db_name'         => $input->getOption( 'db_name' ),
 			'db_user'         => $input->getOption( 'db_user' ),
 			'db_password'     => $input->getOption( 'db_password' ),
 			'project'         => $project,
+			'path'            => $path,
 			'description'     => $description,
 			'no_scrub'        => $input->getOption( 'no-scrub' ),
 			'exclude_uploads' => $input->getOption( 'exclude-uploads' ),
-		], $output, $verbose );
+		], $output, $input->getOption( 'verbose' ) );
 
-		if ( ! is_a( $snapshot, '\WPSnapshots\Snapshot' ) ) {
-			return;
+		if ( is_a( $snapshot, '\WPSnapshots\Snapshot' ) ) {
+			Log::instance()->write( 'Create finished! Snapshot ID is ' . $snapshot->id, 0, 'success' );
 		}
-
-		/**
-		 * Put files on S3
-		 */
-		Log::instance()->write( 'Uploading files...' );
-
-		$s3_add = Connection::instance()->s3->putSnapshot( $snapshot->id, $snapshot->meta['project'], Utils\get_snapshot_directory() . $snapshot->id . '/data.sql.gz', Utils\get_snapshot_directory() . $snapshot->id . '/files.tar.gz' );
-
-		if ( Utils\is_error( $s3_add ) ) {
-			Log::instance()->write( 'Could not upload files to S3.', 0, 'error' );
-
-			if ( is_array( $s3_add->data ) ) {
-				if ( 'AccessDenied' === $s3_add->data['aws_error_code'] ) {
-					Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
-				}
-
-				Log::instance()->write( 'Error Message: ' . $s3_add->data['message'], 1, 'error' );
-				Log::instance()->write( 'AWS Request ID: ' . $s3_add->data['aws_request_id'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Type: ' . $s3_add->data['aws_error_type'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Code: ' . $s3_add->data['aws_error_code'], 1, 'error' );
-			}
-
-			return;
-		}
-
-		/**
-		 * Add snapshot to DB
-		 */
-		Log::instance()->write( 'Adding snapshot to database...' );
-
-		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $snapshot->id, $snapshot->meta );
-
-		if ( Utils\is_error( $inserted_snapshot ) ) {
-			Log::instance()->write( 'Could not add snapshot to database.', 0, 'error' );
-
-			if ( is_array( $inserted_snapshot->data ) ) {
-				if ( 'AccessDeniedException' === $inserted_snapshot->data['aws_error_code'] ) {
-					Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
-				}
-
-				Log::instance()->write( 'Error Message: ' . $inserted_snapshot->data['message'], 1, 'error' );
-				Log::instance()->write( 'AWS Request ID: ' . $inserted_snapshot->data['aws_request_id'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Type: ' . $inserted_snapshot->data['aws_error_type'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Code: ' . $inserted_snapshot->data['aws_error_code'], 1, 'error' );
-			}
-
-			return;
-		}
-
-		Log::instance()->write( 'Push finished! Snapshot ID is ' . $snapshot->id, 0, 'success' );
 	}
-
 }

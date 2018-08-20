@@ -18,6 +18,9 @@
     "bin/wpsnapshots"
   ],
   "autoload": {
+    "files": [
+      "src/utils.php"
+    ],
     "psr-4": {
       "WPSnapshots\\": "./src/classes"
     }

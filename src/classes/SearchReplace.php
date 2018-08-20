@@ -34,6 +34,9 @@ class SearchReplace {
 			'user_pass'
 		];
 
+		/**
+		 * @todo: need to remove this hardcode
+		 */
 		$php_only = false;
 
 		if ( false === $tables ) {

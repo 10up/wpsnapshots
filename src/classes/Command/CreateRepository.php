@@ -1,4 +1,9 @@
 <?php
+/**
+ * Create repository command
+ *
+ * @package wpsnapshots
+ */
 
 namespace WPSnapshots\Command;
 
@@ -10,7 +15,8 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
 use WPSnapshots\Connection;
-use \WPSnapshots\Utils;
+use WPSnapshots\Utils;
+use WPSnapshots\Log;
 
 /**
  * The create-repository command creates the wpsnapshots bucket in the provided
@@ -34,9 +40,9 @@ class CreateRepository extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		Connection::instance()->connect();
+		Log::instance()->setOutput( $output );
 
-		$verbose = $input->getOption( 'verbose' );
+		Connection::instance()->connect();
 
 		$create_s3 = Connection::instance()->s3->createBucket();
 
@@ -45,22 +51,20 @@ class CreateRepository extends Command {
 		if ( Utils\is_error( $create_s3 ) ) {
 
 			if ( 0 === $create_s3->code ) {
-				$output->writeln( '<comment>Access denied. Could not read AWS buckets. S3 may already be setup.</comment>' );
+				Log::instance()->write( 'Access denied. Could not read AWS buckets. S3 may already be setup.', 0, 'warning' );
 			} elseif ( 1 === $create_s3->code ) {
-				$output->writeln( '<comment>S3 already setup.</comment>' );
+				Log::instance()->write( 'S3 already setup.', 0, 'warning' );
 			} else {
 				if ( 'BucketAlreadyOwnedByYou' === $create_s3->data['aws_error_code'] || 'BucketAlreadyExists' === $create_s3->data['aws_error_code'] ) {
-					$output->writeln( '<comment>S3 already setup.</comment>' );
+					Log::instance()->write( 'S3 already setup.', 0, 'warning' );
 				} else {
-					$output->writeln( '<error>Could not create S3 bucket.</error>' );
+					Log::instance()->write( 'Could not create S3 bucket.', 0, 'error' );
 					$s3_setup = false;
 
-					if ( $verbose ) {
-						$output->writeln( '<error>Error Message: ' . $create_s3->data['message'] . '</error>' );
-						$output->writeln( '<error>AWS Request ID: ' . $create_s3->data['aws_request_id'] . '</error>' );
-						$output->writeln( '<error>AWS Error Type: ' . $create_s3->data['aws_error_type'] . '</error>' );
-						$output->writeln( '<error>AWS Error Code: ' . $create_s3->data['aws_error_code'] . '</error>' );
-					}
+					Log::instance()->write( 'Error Message: ' . $create_s3->data['message'], 1, 'error' );
+					Log::instance()->write( 'AWS Request ID: ' . $create_s3->data['aws_request_id'], 1, 'error' );
+					Log::instance()->write( 'AWS Error Type: ' . $create_s3->data['aws_error_type'], 1, 'error' );
+					Log::instance()->write( 'AWS Error Code: ' . $create_s3->data['aws_error_code'], 1, 'error' );
 				}
 			}
 		}
@@ -71,24 +75,22 @@ class CreateRepository extends Command {
 
 		if ( Utils\is_error( $create_db ) ) {
 			if ( 'ResourceInUseException' === $create_db->data['aws_error_code'] ) {
-				$output->writeln( '<comment>DynamoDB table already setup.</comment>' );
+				Log::instance()->write( 'DynamoDB table already setup.', 0, 'warning' );
 			} else {
-				$output->writeln( '<error>Could not create DynamoDB table.</error>' );
+				Log::instance()->write( 'Could not create DynamoDB table.', 0, 'error' );
 				$db_setup = false;
 
-				if ( $verbose ) {
-					$output->writeln( '<error>Error Message: ' . $create_db->data['message'] . '</error>' );
-					$output->writeln( '<error>AWS Request ID: ' . $create_db->data['aws_request_id'] . '</error>' );
-					$output->writeln( '<error>AWS Error Type: ' . $create_db->data['aws_error_type'] . '</error>' );
-					$output->writeln( '<error>AWS Error Code: ' . $create_db->data['aws_error_code'] . '</error>' );
-				}
+				Log::instance()->write( 'Error Message: ' . $create_db->data['message'], 1, 'error' );
+				Log::instance()->write( 'AWS Request ID: ' . $create_db->data['aws_request_id'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Type: ' . $create_db->data['aws_error_type'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Code: ' . $create_db->data['aws_error_code'], 1, 'error' );
 			}
 		}
 
 		if ( ! $db_setup || ! $s3_setup ) {
-			$output->writeln( '<error>Repository could not be created.</error>' );
+			Log::instance()->write( 'Repository could not be created.', 0, 'error' );
 		} else {
-			$output->writeln( '<info>Repository setup!</info>' );
+			Log::instance()->write( 'Repository setup!', 0, 'success' );
 		}
 	}
 

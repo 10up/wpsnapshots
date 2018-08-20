@@ -1,4 +1,9 @@
 <?php
+/**
+ * Configure command
+ *
+ * @package wpsnapshots
+ */
 
 namespace WPSnapshots\Command;
 
@@ -12,6 +17,7 @@ use Symfony\Component\Console\Question\Question;
 use WPSnapshots\Config;
 use WPSnapshots\Utils;
 use WPSnapshots\S3;
+use WPSnapshots\Log;
 
 
 /**
@@ -40,6 +46,8 @@ class Configure extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
+		Log::instance()->setOutput( $output );
+
 		$repository = $input->getArgument( 'repository' );
 
 		$region = $input->getOption( 'region' );
@@ -53,7 +61,7 @@ class Configure extends Command {
 		$config = Config::instance()->get();
 
 		if ( ! Utils\is_error( $config ) ) {
-			$output->writeln( 'Repository config already exists. Proceeding will overwrite it.' );
+			Log::instance()->write( 'Repository config already exists. Proceeding will overwrite it.' );
 		}
 
 		$config = [
@@ -103,7 +111,7 @@ class Configure extends Command {
 
 		Config::instance()->write( $config );
 
-		$output->writeln( '<info>WP Snapshots configuration verified and saved.</info>' );
+		Log::instance()->write( 'WP Snapshots configuration verified and saved.', 0, 'success' );
 	}
 
 	/**
