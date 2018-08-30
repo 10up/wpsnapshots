@@ -409,12 +409,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/10up/phpcs-composer.git",
-                "reference": "37345580ebd4bf137cd0d639e2a32cdb7686f96c"
+                "reference": "b3b1f2149dd01a42e8c384f1f8e1d01f161eb04f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/10up/phpcs-composer/zipball/37345580ebd4bf137cd0d639e2a32cdb7686f96c",
-                "reference": "37345580ebd4bf137cd0d639e2a32cdb7686f96c",
+                "url": "https://api.github.com/repos/10up/phpcs-composer/zipball/b3b1f2149dd01a42e8c384f1f8e1d01f161eb04f",
+                "reference": "b3b1f2149dd01a42e8c384f1f8e1d01f161eb04f",
                 "shasum": ""
             },
             "require": {
@@ -441,7 +441,7 @@
                     "email": "ephraim.gregor@10up.com"
                 }
             ],
-            "time": "2018-07-06T04:57:03+00:00"
+            "time": "2018-08-30T03:14:09+00:00"
         },
         {
             "name": "squizlabs/php_codesniffer",

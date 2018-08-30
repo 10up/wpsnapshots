@@ -42,8 +42,8 @@ class Configure extends Command {
 	/**
 	 * Execute command
 	 *
-	 * @param  InputInterface  $input
-	 * @param  OutputInterface $output
+	 * @param  InputInterface  $input Command input
+	 * @param  OutputInterface $output Command output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );

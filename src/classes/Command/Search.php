@@ -37,8 +37,8 @@ class Search extends Command {
 	/**
 	 * Pretty format bytes
 	 *
-	 * @param  int  $size
-	 * @param  inte $precision
+	 * @param  int  $size Size in bytes
+	 * @param  inte $precision Precision level
 	 * @return string
 	 */
 	protected function formatBytes( $size, $precision = 2 ) {
@@ -51,8 +51,8 @@ class Search extends Command {
 	/**
 	 * Executes the command
 	 *
-	 * @param  InputInterface  $input
-	 * @param  OutputInterface $output
+	 * @param  InputInterface  $input Command input
+	 * @param  OutputInterface $output Command output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );

@@ -21,10 +21,10 @@ class Config {
 	/**
 	 * Write wp snapshots config to ~/.wpsnapshots.json
 	 *
-	 * @param  array $config
+	 * @param array $config Config array.
 	 */
 	public function write( $config ) {
-		file_put_contents( Utils\get_snapshot_directory() . '/config.json', json_encode( $config ) );
+		file_put_contents( Utils\get_snapshot_directory() . '/config.json', json_encode( $config, JSON_PRETTY_PRINT ) );
 	}
 
 	/**
@@ -43,6 +43,10 @@ class Config {
 
 			if ( ! file_exists( $file_path ) ) {
 				return new Error( 0, 'No json file exists.' );
+			} else {
+				rename( $file_path, Utils\get_snapshot_directory() . '/config.json' );
+
+				$file_path = Utils\get_snapshot_directory() . '/config.json';
 			}
 		}
 

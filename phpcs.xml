@@ -1,13 +1,32 @@
 <?xml version="1.0"?>
 <ruleset name="Project Rules">
-  <rule ref="10up-Default">
-    <exclude name="WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_ini_set" />
-    <exclude name="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid" />
+  <file>./src/</file>
+
+  <rule ref="WordPress-Core">
+    <exclude name="Squiz.PHP.DisallowMultipleAssignments.Found" />
+    <exclude name="WordPress.NamingConventions.ValidVariableName.NotSnakeCaseMemberVar" />
+    <exclude name="WordPress.NamingConventions.ValidVariableName.MemberNotSnakeCase" />
     <exclude name="WordPress.NamingConventions.ValidVariableName.NotSnakeCase" />
-    <exclude name="WordPress.WP.AlternativeFunctions.file_system_read_fsockopen" />
-    <exclude name="WordPress.WP.AlternativeFunctions.file_system_read_fclose" />
-    <exclude name="WordPress.WP.AlternativeFunctions.parse_url_parse_url" />
+    <exclude name="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid" />
     <exclude name="WordPress.WP.CapitalPDangit.Misspelled" />
-    <exclude name="WordPress.WP.AlternativeFunctions.json_encode_json_encode" />
+    <exclude name="Squiz.PHP.Eval.Discouraged" />
+    <exclude name="WordPress.DB.PreparedSQL.NotPrepared" />
+    <exclude name="WordPress.DB.RestrictedFunctions.mysql_mysql_host_to_cli_args" />
+    <exclude name="WordPress.DB.PreparedSQLPlaceholders.QuotedSimplePlaceholder" />
+    <exclude name="Generic.PHP.NoSilencedErrors.Discouraged" />
+  </rule>
+
+  <rule ref="WordPress-Docs">
+    <!-- Don't worry about capitolizing long lines -->
+    <exclude name="Generic.Commenting.DocComment.LongNotCapital"/>
+    <exclude name="Squiz.Commenting.FunctionComment.ParamCommentFullStop" />
+    <exclude name="Squiz.Commenting.InlineComment.InvalidEndChar" />
+  </rule>
+
+  <rule ref="WordPress.Files.FileName">
+    <properties>
+      <property name="strict_class_file_names" value="false"/>
+    </properties>
+    <exclude name="WordPress.Files.FileName.NotHyphenatedLowercase" />
   </rule>
 </ruleset>
