@@ -383,9 +383,6 @@ class Pull extends Command {
 
 				Log::instance()->write( 'Moving WordPress files...', 1 );
 
-				/**
-				 * We suppress the error message because wp-content/ might already exist
-				 */
 				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress/wp-content && mv ' . Utils\escape_shell_path( $path ) . 'wordpress/* .' );
 
 				Log::instance()->write( 'Removing temporary WordPress files...', 1 );
