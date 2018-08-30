@@ -1,4 +1,9 @@
 <?php
+/**
+ * Handle search and replace on MySQL tables
+ *
+ * @package wpsnapshots
+ */
 
 namespace WPSnapshots;
 
@@ -26,12 +31,12 @@ class SearchReplace {
 		global $wpdb;
 
 		$this->max_recursion = intval( ini_get( 'xdebug.max_nesting_level' ) );
-		$this->old = $old;
-		$this->new = $new;
-		$this->updated = 0;
+		$this->old           = $old;
+		$this->new           = $new;
+		$this->updated       = 0;
 
 		$skip_columns = [
-			'user_pass'
+			'user_pass',
 		];
 
 		/**
@@ -59,7 +64,7 @@ class SearchReplace {
 					continue;
 				}
 
-				if ( ! $php_only  ) {
+				if ( ! $php_only ) {
 					$col_sql = $this->esc_sql_ident( $col );
 
 					$wpdb->last_error = '';
@@ -92,7 +97,7 @@ class SearchReplace {
 	private function get_columns( $table ) {
 		global $wpdb;
 
-		$table_sql = $this->esc_sql_ident( $table );
+		$table_sql    = $this->esc_sql_ident( $table );
 		$primary_keys = $text_columns = $all_columns = array();
 
 		foreach ( $wpdb->get_results( "DESCRIBE $table_sql" ) as $col ) {
@@ -157,7 +162,7 @@ class SearchReplace {
 		global $wpdb;
 
 		$table_sql = $this->esc_sql_ident( $table );
-		$col_sql = $this->esc_sql_ident( $col );
+		$col_sql   = $this->esc_sql_ident( $col );
 
 		$count = $wpdb->query( $wpdb->prepare( "UPDATE $table_sql SET $col_sql = REPLACE($col_sql, %s, %s);", $this->old, $this->new ) );
 
@@ -179,9 +184,9 @@ class SearchReplace {
 		$count = 0;
 
 		$table_sql = $this->esc_sql_ident( $table );
-		$col_sql = $this->esc_sql_ident( $col );
+		$col_sql   = $this->esc_sql_ident( $col );
 
-		$where = " WHERE $col_sql" . $wpdb->prepare( ' LIKE %s', '%' . $wpdb->esc_like( $this->old ) . '%' );
+		$where            = " WHERE $col_sql" . $wpdb->prepare( ' LIKE %s', '%' . $wpdb->esc_like( $this->old ) . '%' );
 		$primary_keys_sql = implode( ',', $this->esc_sql_ident( $primary_keys ) );
 
 		$rows = $wpdb->get_results( "SELECT {$primary_keys_sql} FROM {$table_sql} {$where}" );

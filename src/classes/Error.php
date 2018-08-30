@@ -1,4 +1,9 @@
 <?php
+/**
+ * Generic error class
+ *
+ * @package wpsnapshots
+ */
 
 namespace WPSnapshots;
 

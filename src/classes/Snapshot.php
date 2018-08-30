@@ -1,4 +1,9 @@
 <?php
+/**
+ * Handle snapshot actions
+ *
+ * @package wpsnapshots
+ */
 
 namespace WPSnapshots;
 
@@ -7,6 +12,9 @@ use \Exception;
 use WPSnapshots\Utils;
 use WPSnapshots\Log;
 
+/**
+ * Create, download, save, push, and pull snapshots
+ */
 class Snapshot {
 	/**
 	 * Snapshot id
@@ -73,7 +81,7 @@ class Snapshot {
 		}
 
 		if ( ! Utils\is_wp_present( $path ) ) {
-			Log::instance()->write( 'This is not a WordPress install.', 0, 'error');
+			Log::instance()->write( 'This is not a WordPress install.', 0, 'error' );
 
 			return false;
 		}
@@ -312,7 +320,7 @@ class Snapshot {
 		/**
 		 * Finally save snapshot meta to meta.json
 		 */
-		$meta_handle   = @fopen( $snapshot_path . 'meta.json', 'x' ); // Create file and fail if it exists.
+		$meta_handle = @fopen( $snapshot_path . 'meta.json', 'x' ); // Create file and fail if it exists.
 
 		if ( ! $users_handle || ! $data_handle ) {
 			Log::instance()->write( 'Could not create .wpsnapshots/SNAPSHOT_ID/meta.json.', 0, 'error' );
@@ -330,7 +338,7 @@ class Snapshot {
 	/**
 	 * Download snapshot.
 	 *
-	 * @param string               $id Snapshot id
+	 * @param string $id Snapshot id
 	 * @return  bool|Snapshot
 	 */
 	public static function download( $id ) {
@@ -393,7 +401,6 @@ class Snapshot {
 				Log::instance()->write( 'AWS Error Type: ' . $download->data['aws_error_type'], 1, 'error' );
 				Log::instance()->write( 'AWS Error Code: ' . $download->data['aws_error_code'], 1, 'error' );
 			}
-
 
 			return false;
 		}

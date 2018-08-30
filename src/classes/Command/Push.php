@@ -79,17 +79,19 @@ class Push extends Command {
 
 		$description = $helper->ask( $input, $output, $description_question );
 
-		$snapshot = Snapshot::create( [
-			'path'            => $path,
-			'db_host'         => $input->getOption( 'db_host' ),
-			'db_name'         => $input->getOption( 'db_name' ),
-			'db_user'         => $input->getOption( 'db_user' ),
-			'db_password'     => $input->getOption( 'db_password' ),
-			'project'         => $project,
-			'description'     => $description,
-			'no_scrub'        => $input->getOption( 'no-scrub' ),
-			'exclude_uploads' => $input->getOption( 'exclude-uploads' ),
-		], $output, $verbose );
+		$snapshot = Snapshot::create(
+			[
+				'path'            => $path,
+				'db_host'         => $input->getOption( 'db_host' ),
+				'db_name'         => $input->getOption( 'db_name' ),
+				'db_user'         => $input->getOption( 'db_user' ),
+				'db_password'     => $input->getOption( 'db_password' ),
+				'project'         => $project,
+				'description'     => $description,
+				'no_scrub'        => $input->getOption( 'no-scrub' ),
+				'exclude_uploads' => $input->getOption( 'exclude-uploads' ),
+			], $output, $verbose
+		);
 
 		if ( ! is_a( $snapshot, '\WPSnapshots\Snapshot' ) ) {
 			return;

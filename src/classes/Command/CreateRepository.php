@@ -71,7 +71,7 @@ class CreateRepository extends Command {
 
 		$create_db = Connection::instance()->db->createTables();
 
-		$db_setup  = true;
+		$db_setup = true;
 
 		if ( Utils\is_error( $create_db ) ) {
 			if ( 'ResourceInUseException' === $create_db->data['aws_error_code'] ) {

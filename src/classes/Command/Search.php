@@ -42,7 +42,7 @@ class Search extends Command {
 	 * @return string
 	 */
 	protected function formatBytes( $size, $precision = 2 ) {
-		$base = log( $size, 1000 );
+		$base     = log( $size, 1000 );
 		$suffixes = [ '', 'KB', 'MB', 'GB', 'TB' ];
 
 		return round( pow( 1000, $base - floor( $base ) ), $precision ) . ' ' . $suffixes[ floor( $base ) ];
@@ -93,12 +93,12 @@ class Search extends Command {
 			}
 
 			$rows[ $instance['time'] ] = [
-				'id' => ( ! empty( $instance['id'] ) ) ? $instance['id'] : '',
-				'project' => ( ! empty( $instance['project'] ) ) ? $instance['project'] : '',
+				'id'          => ( ! empty( $instance['id'] ) ) ? $instance['id'] : '',
+				'project'     => ( ! empty( $instance['project'] ) ) ? $instance['project'] : '',
 				'description' => ( ! empty( $instance['description'] ) ) ? $instance['description'] : '',
-				'author' => ( ! empty( $instance['author']['name'] ) ) ? $instance['author']['name'] : '',
-				'size' => ( ! empty( $instance['size'] ) ) ? $this->formatBytes( (int) $instance['size'] ) : '',
-				'created' => ( ! empty( $instance['time'] ) ) ? date( 'F j, Y, g:i a', $instance['time'] ) : '',
+				'author'      => ( ! empty( $instance['author']['name'] ) ) ? $instance['author']['name'] : '',
+				'size'        => ( ! empty( $instance['size'] ) ) ? $this->formatBytes( (int) $instance['size'] ) : '',
+				'created'     => ( ! empty( $instance['time'] ) ) ? date( 'F j, Y, g:i a', $instance['time'] ) : '',
 			];
 		}
 

@@ -57,12 +57,12 @@ class Pull extends Command {
 		 * Site Mapping JSON should look like this:
 		 *
 		 * [
-		 * 	{
-		 * 		"home_url" : "http://homeurl1",
-		 * 		"site_url" : "http://siteurl1"
-		 * 		"blog_id"  : 1
-		 * 	}
-		 * 	...
+		 *  {
+		 *      "home_url" : "http://homeurl1",
+		 *      "site_url" : "http://siteurl1"
+		 *      "blog_id"  : 1
+		 *  }
+		 *  ...
 		 * ]
 		 *
 		 * If blog_id isn't used, order will be respected as compared to the snapshot meta.
@@ -214,9 +214,9 @@ class Pull extends Command {
 			'WP_CACHE' => false,
 		];
 
-		$db_host = $input->getOption( 'db_host' );
-		$db_name = $input->getOption( 'db_name' );
-		$db_user = $input->getOption( 'db_user' );
+		$db_host     = $input->getOption( 'db_host' );
+		$db_name     = $input->getOption( 'db_name' );
+		$db_user     = $input->getOption( 'db_user' );
 		$db_password = $input->getOption( 'db_password' );
 
 		if ( ! empty( $db_host ) ) {
@@ -292,16 +292,16 @@ class Pull extends Command {
 		 */
 
 		$args = array(
-			'host' => DB_HOST,
-			'user' => DB_USER,
-			'pass' => DB_PASSWORD,
+			'host'     => DB_HOST,
+			'user'     => DB_USER,
+			'pass'     => DB_PASSWORD,
 			'database' => DB_NAME,
-			'execute' => 'SET GLOBAL max_allowed_packet=51200000;',
+			'execute'  => 'SET GLOBAL max_allowed_packet=51200000;',
 		);
 
 		Log::instance()->write( 'Attempting to set max_allowed_packet...', 1 );
 
-		$command_result  = Utils\run_mysql_command( 'mysql --no-defaults --no-auto-rehash', $args, '', false );
+		$command_result = Utils\run_mysql_command( 'mysql --no-defaults --no-auto-rehash', $args, '', false );
 
 		if ( 0 !== $command_result ) {
 			Log::instance()->write( 'Could not set MySQL max_allowed_packet. If MySQL import fails, try running WP Snapshots using root DB user.', 0, 'warning' );
@@ -311,11 +311,11 @@ class Pull extends Command {
 		$query = 'SET autocommit = 0; SET unique_checks = 0; SET foreign_key_checks = 0; SOURCE %s; COMMIT;';
 
 		$args = array(
-			'host' => DB_HOST,
-			'user' => DB_USER,
-			'pass' => DB_PASSWORD,
+			'host'     => DB_HOST,
+			'user'     => DB_USER,
+			'pass'     => DB_PASSWORD,
 			'database' => DB_NAME,
-			'execute' => sprintf( $query, $snapshot_path . 'data.sql' ),
+			'execute'  => sprintf( $query, $snapshot_path . 'data.sql' ),
 		);
 
 		if ( ! isset( $assoc_args['default-character-set'] ) && defined( 'DB_CHARSET' ) && constant( 'DB_CHARSET' ) ) {
@@ -355,7 +355,6 @@ class Pull extends Command {
 
 		if ( ! empty( $snapshot->meta['wp_version'] ) && $snapshot->meta['wp_version'] !== $wp_version ) {
 			$change_wp_version = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot is running WordPress version ' . $snapshot->meta['wp_version'] . ', and you are running ' . $wp_version . '. Do you want to change your WordPress version to ' . $snapshot->meta['wp_version'] . '? (yes|no) ', true ) );
-
 
 			if ( ! empty( $change_wp_version ) ) {
 				// Delete old WordPress
@@ -462,15 +461,17 @@ class Pull extends Command {
 					$main_domain_question = new Question( 'Domain (localhost.dev for example): ', $current_main_domain );
 				}
 
-				$main_domain_question->setValidator( function( $answer ) {
-					if ( '' === trim( $answer ) || false !== strpos( $answer, ' ' ) || preg_match( '#https?:#i', $answer ) ) {
-						throw new \RuntimeException(
-							'Domain not valid. The domain should be in the form of `google.com`, no https:// needed'
-						);
-					}
+				$main_domain_question->setValidator(
+					function( $answer ) {
+						if ( '' === trim( $answer ) || false !== strpos( $answer, ' ' ) || preg_match( '#https?:#i', $answer ) ) {
+							throw new \RuntimeException(
+								'Domain not valid. The domain should be in the form of `google.com`, no https:// needed'
+							);
+						}
 
-					return $answer;
-				} );
+							return $answer;
+					}
+				);
 
 				if ( empty( $snapshot->meta['subdomain_install'] ) ) {
 					$main_domain = $helper->ask( $input, $output, $main_domain_question );
@@ -566,13 +567,15 @@ class Pull extends Command {
 				if ( ! defined( 'BLOG_ID_CURRENT_SITE' ) || ! defined( 'SITE_ID_CURRENT_SITE' ) || ! defined( 'PATH_CURRENT_SITE' ) || ! defined( 'MULTISITE' ) || ! MULTISITE || ! defined( 'DOMAIN_CURRENT_SITE' ) || $main_domain !== DOMAIN_CURRENT_SITE || ! defined( 'SUBDOMAIN_INSTALL' ) || $snapshot->meta['subdomain_install'] !== SUBDOMAIN_INSTALL ) {
 
 					Log::instance()->write( 'URLs replaced. Since you are running multisite, the following code should be in your wp-config.php file:', 0, 'warning' );
-					Log::instance()->write( "define('WP_ALLOW_MULTISITE', true);
+					Log::instance()->write(
+						"define('WP_ALLOW_MULTISITE', true);
 define('MULTISITE', true);
 define('SUBDOMAIN_INSTALL', false);
 define('DOMAIN_CURRENT_SITE', '" . $main_domain . "');
 define('PATH_CURRENT_SITE', '/');
 define('SITE_ID_CURRENT_SITE', 1);
-define('BLOG_ID_CURRENT_SITE', 1);");
+define('BLOG_ID_CURRENT_SITE', 1);"
+					);
 				} else {
 					Log::instance()->write( 'URLs replaced.' );
 				}

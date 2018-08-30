@@ -1,10 +1,18 @@
 <?php
+/**
+ * Amazon Dynamo wrapper functionality
+ *
+ * @package wpsnapshots
+ */
 
 namespace WPSnapshots;
 
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\DynamoDb\Marshaler;
 
+/**
+ * Class for handling Amazon dynamodb calls
+ */
 class DB {
 	public $client;
 	public $repository;
@@ -15,13 +23,15 @@ class DB {
 	 * @param array $config
 	 */
 	public function __construct( $config ) {
-		$this->client = DynamoDbClient::factory( [
-			'credentials' => [
-				'key'    => $config['access_key_id'],
-				'secret' => $config['secret_access_key'],
-			],
-			'region'      => $config['region'],
-		] );
+		$this->client = DynamoDbClient::factory(
+			[
+				'credentials' => [
+					'key'    => $config['access_key_id'],
+					'secret' => $config['secret_access_key'],
+				],
+				'region'      => $config['region'],
+			]
+		);
 
 		$this->repository = $config['repository'];
 	}
@@ -37,26 +47,26 @@ class DB {
 		$marshaler = new Marshaler();
 
 		$args = [
-			'TableName'  => 'wpsnapshots-' . $this->repository,
+			'TableName' => 'wpsnapshots-' . $this->repository,
 		];
 
 		if ( '*' !== $query ) {
 			$args['ConditionalOperator'] = 'OR';
 
 			$args['ScanFilter'] = [
-		        'project' => [
-		            'AttributeValueList' => [
-		                [ 'S' => strtolower( $query ) ],
-		            ],
-		            'ComparisonOperator' => 'CONTAINS',
-		        ],
-		        'id' => [
-		            'AttributeValueList' => [
-		                [ 'S' => strtolower( $query ) ],
-		            ],
-		            'ComparisonOperator' => 'EQ',
-		        ],
-		    ];
+				'project' => [
+					'AttributeValueList' => [
+						[ 'S' => strtolower( $query ) ],
+					],
+					'ComparisonOperator' => 'CONTAINS',
+				],
+				'id'      => [
+					'AttributeValueList' => [
+						[ 'S' => strtolower( $query ) ],
+					],
+					'ComparisonOperator' => 'EQ',
+				],
+			];
 		}
 
 		try {
@@ -108,10 +118,12 @@ class DB {
 		$snapshot_json = json_encode( $snapshot_item );
 
 		try {
-			$result = $this->client->putItem( [
-				'TableName' => 'wpsnapshots-' . $this->repository,
-				'Item'      => $marshaler->marshalJson( $snapshot_json ),
-			] );
+			$result = $this->client->putItem(
+				[
+					'TableName' => 'wpsnapshots-' . $this->repository,
+					'Item'      => $marshaler->marshalJson( $snapshot_json ),
+				]
+			);
 		} catch ( \Exception $e ) {
 			$error = [
 				'message'        => $e->getMessage(),
@@ -134,14 +146,16 @@ class DB {
 	 */
 	public function deleteSnapshot( $id ) {
 		try {
-			$result = $this->client->deleteItem( [
-				'TableName' => 'wpsnapshots-' . $this->repository,
-				'Key' => [
-					'id'   => [
-						'S' => $id,
+			$result = $this->client->deleteItem(
+				[
+					'TableName' => 'wpsnapshots-' . $this->repository,
+					'Key'       => [
+						'id' => [
+							'S' => $id,
+						],
 					],
-				],
-			] );
+				]
+			);
 		} catch ( \Exception $e ) {
 			$error = [
 				'message'        => $e->getMessage(),
@@ -164,15 +178,17 @@ class DB {
 	 */
 	public function getSnapshot( $id ) {
 		try {
-			$result = $this->client->getItem( [
-				'ConsistentRead' => true,
-				'TableName'      => 'wpsnapshots-' . $this->repository,
-				'Key'            => [
-					'id' => [
-						'S' => $id,
+			$result = $this->client->getItem(
+				[
+					'ConsistentRead' => true,
+					'TableName'      => 'wpsnapshots-' . $this->repository,
+					'Key'            => [
+						'id' => [
+							'S' => $id,
+						],
 					],
-				],
-			] );
+				]
+			);
 		} catch ( \Exception $e ) {
 			$error = [
 				'message'        => $e->getMessage(),
@@ -204,29 +220,33 @@ class DB {
 	 */
 	public function createTables() {
 		try {
-			$this->client->createTable( [
-				'TableName' => 'wpsnapshots-' . $this->repository,
-				'AttributeDefinitions' => [
-					[
-						'AttributeName' => 'id',
-						'AttributeType' => 'S',
+			$this->client->createTable(
+				[
+					'TableName'             => 'wpsnapshots-' . $this->repository,
+					'AttributeDefinitions'  => [
+						[
+							'AttributeName' => 'id',
+							'AttributeType' => 'S',
+						],
 					],
-				],
-				'KeySchema' => [
-					[
-						'AttributeName' => 'id',
-						'KeyType'       => 'HASH',
+					'KeySchema'             => [
+						[
+							'AttributeName' => 'id',
+							'KeyType'       => 'HASH',
+						],
 					],
-				],
-				'ProvisionedThroughput' => [
-					'ReadCapacityUnits'  => 10,
-					'WriteCapacityUnits' => 20,
-				],
-			] );
+					'ProvisionedThroughput' => [
+						'ReadCapacityUnits'  => 10,
+						'WriteCapacityUnits' => 20,
+					],
+				]
+			);
 
-			$this->client->waitUntil( 'TableExists', [
-			    'TableName' => 'wpsnapshots-' . $this->repository,
-			] );
+			$this->client->waitUntil(
+				'TableExists', [
+					'TableName' => 'wpsnapshots-' . $this->repository,
+				]
+			);
 		} catch ( \Exception $e ) {
 			$error = [
 				'message'        => $e->getMessage(),

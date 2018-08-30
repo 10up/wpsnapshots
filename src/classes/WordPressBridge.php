@@ -1,7 +1,15 @@
 <?php
+/**
+ * Start up WP so we can use it's functions
+ *
+ * @package wpsnapshots
+ */
 
 namespace WPSnapshots;
 
+/**
+ * Bridge to Wordpress
+ */
 class WordPressBridge {
 
 	/**
@@ -22,7 +30,7 @@ class WordPressBridge {
 		$wp_config_code = explode( "\n", file_get_contents( Utils\locate_wp_config( $path ) ) );
 
 		$found_wp_settings = false;
-		$lines_to_run = [];
+		$lines_to_run      = [];
 
 		if ( file_exists( $path . 'wp-config.php' ) ) {
 			$path_replacements = [
@@ -62,7 +70,7 @@ class WordPressBridge {
 		$source = implode( "\n", $lines_to_run );
 
 		define( 'ABSPATH', $path );
-		
+
 		/**
 		 * Set constant for instances in theme or plugin code that may prevent wpsnapshots from executing properly.
 		 */
@@ -107,13 +115,13 @@ class WordPressBridge {
 				$_SERVER['SERVER_NAME'] = $url_parts['host'];
 			}
 
-			$_SERVER['REQUEST_URI'] = $url_parts['path'] . ( isset( $url_parts['query'] ) ? '?' . $url_parts['query'] : '' );
-			$_SERVER['SERVER_PORT'] = ( isset( $url_parts['port'] ) ) ? $url_parts['port'] : 80;
+			$_SERVER['REQUEST_URI']  = $url_parts['path'] . ( isset( $url_parts['query'] ) ? '?' . $url_parts['query'] : '' );
+			$_SERVER['SERVER_PORT']  = ( isset( $url_parts['port'] ) ) ? $url_parts['port'] : 80;
 			$_SERVER['QUERY_STRING'] = ( isset( $url_parts['query'] ) ) ? $url_parts['query'] : '';
 		}
 
 		// We can require settings after we fake $_SERVER keys
-		require_once( ABSPATH . 'wp-settings.php' );
+		require_once ABSPATH . 'wp-settings.php';
 	}
 
 	/**
@@ -125,7 +133,7 @@ class WordPressBridge {
 		static $instance;
 
 		if ( empty( $instance ) ) {
-			$instance = new self;
+			$instance = new self();
 		}
 
 		return $instance;

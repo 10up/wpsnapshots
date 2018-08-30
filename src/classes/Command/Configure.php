@@ -50,8 +50,8 @@ class Configure extends Command {
 
 		$repository = $input->getArgument( 'repository' );
 
-		$region = $input->getOption( 'region' );
-		$access_key_id = $input->getOption( 'aws_key' );
+		$region            = $input->getOption( 'region' );
+		$access_key_id     = $input->getOption( 'aws_key' );
 		$secret_access_key = $input->getOption( 'aws_secret' );
 
 		if ( empty( $region ) ) {
@@ -85,9 +85,9 @@ class Configure extends Command {
 				$secret_access_key = $helper->ask( $input, $output, new Question( 'AWS Secret Access Key: ' ) );
 			}
 
-			$config['access_key_id'] = $access_key_id;
+			$config['access_key_id']     = $access_key_id;
 			$config['secret_access_key'] = $secret_access_key;
-			$config['region'] = $region;
+			$config['region']            = $region;
 
 			$test = S3::test( $config );
 
@@ -125,8 +125,8 @@ class Configure extends Command {
 	 */
 	protected function apply_user_to_config( $config, InputInterface $input, OutputInterface $output ) {
 		$helper = $this->getHelper( 'question' );
-		$name = $input->getOption( 'user_name' );
-		$email = $input->getOption( 'user_email' );
+		$name   = $input->getOption( 'user_name' );
+		$email  = $input->getOption( 'user_email' );
 
 		if ( empty( $name ) ) {
 			$name_question = new Question( 'Your Name: ' );

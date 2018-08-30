@@ -14,6 +14,17 @@
     "aws/aws-sdk-php": "2.*",
     "rmccue/requests": "^1.7"
   },
+  "scripts": {
+    "lint": [
+      "phpcs ."
+    ],
+    "lint-fix": [
+      "phpcbf ."
+    ]
+  },
+  "require-dev": {
+    "10up/phpcs-composer": "dev-master"
+  },
   "bin": [
     "bin/wpsnapshots"
   ],

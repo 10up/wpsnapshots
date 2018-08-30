@@ -112,7 +112,7 @@ function create_config_file( $path, $path_to_template, $constants = [] ) {
 	$template = file_get_contents( $path_to_template );
 
 	$template_code = explode( "\n", $template );
-	$new_file = [];
+	$new_file      = [];
 
 	foreach ( $template_code as $line ) {
 		if ( preg_match( '/^\s*require.+wp-settings\.php/', $line ) ) {
@@ -345,7 +345,7 @@ function get_tables( $wp = true ) {
 
 	foreach ( $results as $table_info ) {
 		$table_info = array_values( $table_info );
-		$table = $table_info[0];
+		$table      = $table_info[0];
 
 		if ( $wp ) {
 			if ( 0 === strpos( $table, $GLOBALS['table_prefix'] ) ) {
@@ -371,10 +371,10 @@ function mysql_host_to_cli_args( $raw_host ) {
 
 	if ( count( $host_parts ) == 2 ) {
 		list( $assoc_args['host'], $extra ) = $host_parts;
-		$extra = trim( $extra );
+		$extra                              = trim( $extra );
 
 		if ( is_numeric( $extra ) ) {
-			$assoc_args['port'] = intval( $extra );
+			$assoc_args['port']     = intval( $extra );
 			$assoc_args['protocol'] = 'tcp';
 		} elseif ( '' !== $extra ) {
 			$assoc_args['socket'] = $extra;
@@ -398,7 +398,7 @@ function esc_cmd( $cmd ) {
 	}
 
 	$args = func_get_args();
-	$cmd = array_shift( $args );
+	$cmd  = array_shift( $args );
 
 	return vsprintf( $cmd, array_map( 'escapeshellarg', $args ) );
 }
@@ -410,7 +410,7 @@ function esc_cmd( $cmd ) {
  * @return string
  */
 function force_env_on_nix_systems( $command ) {
-	$env_prefix = '/usr/bin/env ';
+	$env_prefix     = '/usr/bin/env ';
 	$env_prefix_len = strlen( $env_prefix );
 
 	if ( is_windows() ) {

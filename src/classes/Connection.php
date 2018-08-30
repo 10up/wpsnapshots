@@ -1,9 +1,17 @@
 <?php
+/**
+ * Manage connection to Amazon
+ *
+ * @package wpsnapshots
+ */
 
 namespace WPSnapshots;
 
 use WPSnapshots\Utils;
 
+/**
+ * Class for handling connection to S3 and DynamoDB
+ */
 class Connection {
 
 	/**
@@ -53,7 +61,7 @@ class Connection {
 		static $instance;
 
 		if ( empty( $instance ) ) {
-			$instance = new self;
+			$instance = new self();
 		}
 
 		return $instance;
