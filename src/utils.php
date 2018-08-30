@@ -11,6 +11,21 @@ use WPSnapshots\Error;
 use Requests;
 
 /**
+ * Test MySQL connection
+ *
+ * @param  string $host     DB host
+ * @param  string $database DB name
+ * @param  string $user     User
+ * @param  string $password Password
+ * @return bool
+ */
+function test_mysql_connection( $host, $database, $user, $password ) {
+	$mysqli = mysqli_init();
+
+	return ( ! @$mysqli->real_connect( $host, $user, $password, $database ) ) ? mysqli_connect_error() : true;
+}
+
+/**
  * Check if object is of type Error
  *
  * @param  Object $obj Object to check

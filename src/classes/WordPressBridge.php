@@ -24,7 +24,7 @@ class WordPressBridge {
 	 * also loads $wpdb so we can perform database operations.
 	 *
 	 * @param string $path Path to WordPress
-	 * @param array  $extra_config_constants
+	 * @param array  $extra_config_constants Array of extra constants
 	 */
 	public function load( $path, $extra_config_constants = [] ) {
 		$wp_config_code = explode( "\n", file_get_contents( Utils\locate_wp_config( $path ) ) );
@@ -118,6 +118,19 @@ class WordPressBridge {
 			$_SERVER['REQUEST_URI']  = $url_parts['path'] . ( isset( $url_parts['query'] ) ? '?' . $url_parts['query'] : '' );
 			$_SERVER['SERVER_PORT']  = ( isset( $url_parts['port'] ) ) ? $url_parts['port'] : 80;
 			$_SERVER['QUERY_STRING'] = ( isset( $url_parts['query'] ) ) ? $url_parts['query'] : '';
+		}
+
+		// Test DB connect
+		$connection = Utils\test_mysql_connection( DB_HOST, DB_NAME, DB_USER, DB_PASSWORD );
+
+		if ( true !== $connection ) {
+			if ( false !== strpos( $connection, 'php_network_getaddresses' ) ) {
+				Log::instance()->write( "Couldn't connect to MySQL host. Try running this command again with the --db_host=127.0.0.1 parameter.", 0, 'error' );
+			} else {
+				Log::instance()->write( 'Could not connect to MySQL. Is your connection info correct?', 0, 'error' );
+			}
+
+			exit;
 		}
 
 		// We can require settings after we fake $_SERVER keys
