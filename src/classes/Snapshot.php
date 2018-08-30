@@ -53,9 +53,15 @@ class Snapshot {
 	 * @return Snapshot
 	 */
 	public static function get( $id ) {
-		$meta_file_contents = file_get_contents( Utils\get_snapshot_directory() . $id . '/meta.json' );
+		$meta_file_contents = @file_get_contents( Utils\get_snapshot_directory() . $id . '/meta.json' );
 
-		return new self( $id, json_decode( $meta_file_contents, true ) );
+		if ( empty( $meta_file_contents ) ) {
+			$meta = [];
+		} else {
+			$meta = json_decode( $meta_file_contents, true );
+		}
+
+		return new self( $id, $meta );
 	}
 
 	/**
