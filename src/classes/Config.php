@@ -4,6 +4,7 @@
  *
  * @package wpsnapshots
  */
+
 namespace WPSnapshots;
 
 use WPSnapshots\Utils;
@@ -38,7 +39,7 @@ class Config {
 			/**
 			 * Backwards compat for old config file path
 			 */
-			$file_path = $_SERVER['HOME'] . '/.wpsnapshots.json' );
+			$file_path = $_SERVER['HOME'] . '/.wpsnapshots.json';
 
 			if ( ! file_exists( $file_path ) ) {
 				return new Error( 0, 'No json file exists.' );
