@@ -53,12 +53,11 @@ class Snapshot {
 	 * @return Snapshot
 	 */
 	public static function get( $id ) {
-		$meta_file_contents = @file_get_contents( Utils\get_snapshot_directory() . $id . '/meta.json' );
-
-		if ( empty( $meta_file_contents ) ) {
-			$meta = [];
-		} else {
+		if ( file_exists( Utils\get_snapshot_directory() . $id . '/meta.json' ) ) {
+			$meta_file_contents = file_get_contents( Utils\get_snapshot_directory() . $id . '/meta.json' );
 			$meta = json_decode( $meta_file_contents, true );
+		} else {
+			$meta = [];
 		}
 
 		return new self( $id, $meta );
@@ -410,6 +409,19 @@ class Snapshot {
 
 			return false;
 		}
+
+		/**
+		 * Finally save snapshot meta to meta.json
+		 */
+		$meta_handle = @fopen( $snapshot_path . 'meta.json', 'x' ); // Create file and fail if it exists.
+
+		if ( ! $meta_handle ) {
+			Log::instance()->write( 'Could not create meta.json.', 0, 'error' );
+
+			return false;
+		}
+
+		fwrite( $meta_handle, json_encode( $snapshot, JSON_PRETTY_PRINT ) );
 
 		return new self( $id, $snapshot );
 	}
