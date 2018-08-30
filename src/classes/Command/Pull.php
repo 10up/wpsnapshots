@@ -149,7 +149,7 @@ class Pull extends Command {
 
 			Log::instance()->write( 'Removing temporary WordPress files...', 1 );
 
-			exec( 'rmdir ' . Utils\escape_shell_path( $path ) . 'wordpress' );
+			exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress' );
 
 			Log::instance()->write( 'WordPress downloaded.' );
 		}
@@ -359,7 +359,7 @@ class Pull extends Command {
 			if ( ! empty( $change_wp_version ) ) {
 				// Delete old WordPress
 				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wp-includes ' . Utils\escape_shell_path( $path ) . 'wp-admin' );
-				exec( 'cd ' . Utils\escape_shell_path( $path ) . ' && rm index.php' );
+				exec( 'cd ' . Utils\escape_shell_path( $path ) . ' && rm index.php && rm xmlrpc.php && rm license.txt && rm readme.html' );
 				exec( 'cd ' . Utils\escape_shell_path( $path ) . ' && find . -maxdepth 1 ! -path . -type f -name "wp-*.php" ! -iname "wp-config.php" -delete' );
 				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress' );
 
@@ -386,7 +386,7 @@ class Pull extends Command {
 				/**
 				 * We suppress the error message because wp-content/ might already exist
 				 */
-				exec( 'mv ' . Utils\escape_shell_path( $path ) . 'wordpress/* . 2>&1 /dev/null' );
+				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress/wp-content && mv ' . Utils\escape_shell_path( $path ) . 'wordpress/* .' );
 
 				Log::instance()->write( 'Removing temporary WordPress files...', 1 );
 
