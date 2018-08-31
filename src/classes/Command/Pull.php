@@ -561,7 +561,7 @@ class Pull extends Command {
 				 */
 				$wpdb->query( $wpdb->prepare( 'UPDATE ' . $GLOBALS['table_prefix'] . "site SET domain='%s'", esc_sql( $main_domain ) ) );
 
-				if ( ! defined( 'BLOG_ID_CURRENT_SITE' ) || ! defined( 'SITE_ID_CURRENT_SITE' ) || ! defined( 'PATH_CURRENT_SITE' ) || ! defined( 'MULTISITE' ) || ! MULTISITE || ! defined( 'DOMAIN_CURRENT_SITE' ) || $main_domain !== DOMAIN_CURRENT_SITE || ! defined( 'SUBDOMAIN_INSTALL' ) || $snapshot->meta['subdomain_install'] !== SUBDOMAIN_INSTALL ) {
+				if ( ! defined( 'BLOG_ID_CURRENT_SITE' ) || ! defined( 'SITE_ID_CURRENT_SITE' ) || ! defined( 'PATH_CURRENT_SITE' ) || ! defined( 'MULTISITE' ) || ! MULTISITE || ! defined( 'DOMAIN_CURRENT_SITE' ) || DOMAIN_CURRENT_SITE !== $main_domain || ! defined( 'SUBDOMAIN_INSTALL' ) || SUBDOMAIN_INSTALL !== $snapshot->meta['subdomain_install'] ) {
 
 					Log::instance()->write( 'URLs replaced. Since you are running multisite, the following code should be in your wp-config.php file:', 0, 'warning' );
 					Log::instance()->write(

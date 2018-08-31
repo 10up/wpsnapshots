@@ -1,7 +1,5 @@
 <?xml version="1.0"?>
 <ruleset name="Project Rules">
-  <file>./src/</file>
-
   <rule ref="WordPress-Core">
     <exclude name="Squiz.PHP.DisallowMultipleAssignments.Found" />
     <exclude name="WordPress.NamingConventions.ValidVariableName.NotSnakeCaseMemberVar" />
@@ -11,9 +9,9 @@
     <exclude name="WordPress.WP.CapitalPDangit.Misspelled" />
     <exclude name="Squiz.PHP.Eval.Discouraged" />
     <exclude name="WordPress.DB.PreparedSQL.NotPrepared" />
-    <exclude name="WordPress.DB.RestrictedFunctions.mysql_mysql_host_to_cli_args" />
     <exclude name="WordPress.DB.PreparedSQLPlaceholders.QuotedSimplePlaceholder" />
     <exclude name="Generic.PHP.NoSilencedErrors.Discouraged" />
+    <exclude name="WordPress.DB.RestrictedFunctions" />
   </rule>
 
   <rule ref="WordPress-Docs">

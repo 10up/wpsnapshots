@@ -15,14 +15,31 @@ use WPSnapshots\Utils;
  * Handle calls to Amazon S3
  */
 class S3 {
+	/**
+	 * S3 client
+	 *
+	 * @var S3Client
+	 */
 	private $client;
+
+	/**
+	 * Repository name
+	 *
+	 * @var string
+	 */
 	private $repository;
+
+	/**
+	 * Current S3 region
+	 *
+	 * @var string
+	 */
 	private $region;
 
 	/**
 	 * Setup S3 client
 	 *
-	 * @param array $config
+	 * @param array $config Config array.
 	 */
 	public function __construct( $config ) {
 		$this->client = S3Client::factory(
@@ -141,7 +158,7 @@ class S3 {
 	 * Delete a snapshot given an id
 	 *
 	 * @param  string $id Snapshot id
-	 * @param  string $project
+	 * @param  string $project Project name
 	 * @return bool|error
 	 */
 	public function deleteSnapshot( $id, $project ) {
@@ -176,6 +193,12 @@ class S3 {
 		return true;
 	}
 
+	/**
+	 * Get bucket name
+	 *
+	 * @param  string $repository Repository name
+	 * @return string
+	 */
 	public static function getBucketName( $repository ) {
 		return 'wpsnapshots-' . $repository;
 	}
@@ -183,7 +206,7 @@ class S3 {
 	/**
 	 * Test S3 connection by attempting to list S3 objects.
 	 *
-	 * @param  array $creds
+	 * @param  array $config Config array
 	 * @return bool|Error
 	 */
 	public static function test( $config ) {

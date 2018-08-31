@@ -14,13 +14,24 @@ use Aws\DynamoDb\Marshaler;
  * Class for handling Amazon dynamodb calls
  */
 class DB {
+	/**
+	 * Instance of DynamoDB client
+	 *
+	 * @var DynamoDbClient
+	 */
 	public $client;
+
+	/**
+	 * Name of repository
+	 *
+	 * @var string
+	 */
 	public $repository;
 
 	/**
 	 * Init dynamodb client
 	 *
-	 * @param array $config
+	 * @param array $config Array of config
 	 */
 	public function __construct( $config ) {
 		$this->client = DynamoDbClient::factory(
@@ -40,7 +51,7 @@ class DB {
 	 * Use DynamoDB scan to search tables for snapshots where project, id, or author information
 	 * matches search text. Searching for "*" returns all snapshots.
 	 *
-	 * @param  string $query
+	 * @param  string $query Search query string
 	 * @return array
 	 */
 	public function search( $query ) {
@@ -94,8 +105,8 @@ class DB {
 	/**
 	 * Insert a snapshot into the DB
 	 *
-	 * @param  string $id
-	 * @param  array  $snapshot [description]
+	 * @param  string $id Snapshot ID
+	 * @param  array  $snapshot Description of snapshot
 	 * @return Error|array
 	 */
 	public function insertSnapshot( $id, $snapshot ) {
@@ -141,7 +152,7 @@ class DB {
 	/**
 	 * Delete a snapshot given an id
 	 *
-	 * @param  string $id
+	 * @param  string $id Snapshot ID
 	 * @return bool|Error
 	 */
 	public function deleteSnapshot( $id ) {
@@ -173,7 +184,7 @@ class DB {
 	/**
 	 * Get a snapshot given an id
 	 *
-	 * @param  string $id
+	 * @param  string $id Snapshot ID
 	 * @return bool|Error
 	 */
 	public function getSnapshot( $id ) {

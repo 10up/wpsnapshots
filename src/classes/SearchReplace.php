@@ -26,6 +26,7 @@ class SearchReplace {
 	 *
 	 * @param string $old  String to find
 	 * @param string $new  Replacement string
+	 * @param array  $tables Allow for specifying tables
 	 */
 	public function __construct( $old, $new, $tables = false ) {
 		global $wpdb;
@@ -39,9 +40,7 @@ class SearchReplace {
 			'user_pass',
 		];
 
-		/**
-		 * @todo: need to remove this hardcode
-		 */
+		// @todo: need to remove this hardcode
 		$php_only = false;
 
 		if ( false === $tables ) {
@@ -91,7 +90,7 @@ class SearchReplace {
 	/**
 	 * Get columns for a table organizing by text/primary.
 	 *
-	 * @param  string $table
+	 * @param  string $table Table name
 	 * @return array
 	 */
 	private function get_columns( $table ) {
@@ -118,7 +117,7 @@ class SearchReplace {
 	/**
 	 * Check if column type is text
 	 *
-	 * @param  string $type
+	 * @param  string $type Column type
 	 * @return boolean
 	 */
 	private function is_text_col( $type ) {
@@ -134,7 +133,7 @@ class SearchReplace {
 	/**
 	 * Escape SQL identifiers i.e. table name, column name with backticks
 	 *
-	 * @param  string|array $idents
+	 * @param  string|array $idents Identifiers
 	 * @return string|array
 	 */
 	private function esc_sql_ident( $idents ) {
@@ -154,8 +153,8 @@ class SearchReplace {
 	 * Handle search/replace with only SQL. This won't work for serialized data. Returns
 	 * number of updates made.
 	 *
-	 * @param  string $col
-	 * @param  string $table
+	 * @param  string $col Column name
+	 * @param  string $table Table name
 	 * @return int
 	 */
 	private function sql_handle_col( $col, $table ) {
@@ -173,9 +172,9 @@ class SearchReplace {
 	 * Use PHP to run search and replace on a column. This is mostly used for serialized data.
 	 * Returns number of updates made
 	 *
-	 * @param  string $col
-	 * @param  array  $primary_keys
-	 * @param  string $table
+	 * @param  string $col Column name
+	 * @param  array  $primary_keys Array of keys
+	 * @param  string $table Table name
 	 * @return int
 	 */
 	private function php_handle_col( $col, $primary_keys, $table ) {
@@ -228,17 +227,17 @@ class SearchReplace {
 	/**
 	 * Perform php search and replace on data. Returns updated data
 	 *
-	 * @param  string|object|array $data
-	 * @param  bool                $serialised
-	 * @param  integer             $recursion_level [description]
-	 * @param  array               $visited_data
+	 * @param  string|object|array $data Data to search
+	 * @param  bool                $serialised Serialized data or not
+	 * @param  integer             $recursion_level Recursion level
+	 * @param  array               $visited_data Array of visited data
 	 * @return string|object|array
 	 */
 	private function php_search_replace( $data, $serialised, $recursion_level = 0, $visited_data = array() ) {
 		// some unseriliased data cannot be re-serialised eg. SimpleXMLElements
 		try {
 			// If we've reached the maximum recursion level, short circuit
-			if ( $this->max_recursion != 0 && $recursion_level >= $this->max_recursion ) {
+			if ( $this->max_recursion !== 0 && $recursion_level >= $this->max_recursion ) { // @codingStandardsIgnoreLine
 				return $data;
 			}
 			if ( is_array( $data ) || is_object( $data ) ) {

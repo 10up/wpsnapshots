@@ -55,7 +55,7 @@ class Snapshot {
 	public static function get( $id ) {
 		if ( file_exists( Utils\get_snapshot_directory() . $id . '/meta.json' ) ) {
 			$meta_file_contents = file_get_contents( Utils\get_snapshot_directory() . $id . '/meta.json' );
-			$meta = json_decode( $meta_file_contents, true );
+			$meta               = json_decode( $meta_file_contents, true );
 		} else {
 			$meta = [];
 		}
