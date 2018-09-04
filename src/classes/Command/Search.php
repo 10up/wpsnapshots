@@ -25,6 +25,7 @@ class Search extends Command {
 	protected function configure() {
 		$this->setName( 'search' );
 		$this->setDescription( 'Search for snapshots within a repository.' );
+		$this->addArgument( 'repository', InputArgument::REQUIRED, 'Repository to search in.' );
 		$this->addArgument( 'search-text', InputArgument::REQUIRED, 'Text to search against snapshots.' );
 	}
 
@@ -49,7 +50,9 @@ class Search extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		$connection = Connection::instance()->connect();
+		$repository = $input->getArgument( 'repository' );
+		$connection = new Connection( $repository );
+		$connection->connect();
 
 		$verbose = $input->getOption( 'verbose' );
 
@@ -58,7 +61,7 @@ class Search extends Command {
 			return;
 		}
 
-		$instances = Connection::instance()->db->search( $input->getArgument( 'search-text' ) );
+		$instances = $connection->db->search( $input->getArgument( 'search-text' ) );
 
 		if ( Utils\is_error( $instances ) ) {
 			$output->writeln( '<error>An error occured while searching.</error>' );
