@@ -25,6 +25,7 @@ class CreateRepository extends Command {
 	protected function configure() {
 		$this->setName( 'create-repository' );
 		$this->setDescription( 'Create new WP Snapshots repository.' );
+		$this->addArgument( 'repository', InputArgument::REQUIRED, 'Repository to create.' );
 	}
 
 	/**
@@ -34,11 +35,14 @@ class CreateRepository extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		Connection::instance()->connect();
+		$repository = $input->getArgument( 'repository' );
+
+		$connection = new Connection( $repository );
+		$connection->connect();
 
 		$verbose = $input->getOption( 'verbose' );
 
-		$create_s3 = Connection::instance()->s3->createBucket();
+		$create_s3 = $connection->s3->createBucket();
 
 		$s3_setup = true;
 
@@ -65,7 +69,7 @@ class CreateRepository extends Command {
 			}
 		}
 
-		$create_db = Connection::instance()->db->createTables();
+		$create_db = $connection->db->createTables();
 
 		$db_setup  = true;
 
