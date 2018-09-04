@@ -25,6 +25,7 @@ class Delete extends Command {
 	protected function configure() {
 		$this->setName( 'delete' );
 		$this->setDescription( 'Delete a snapshot from the repository.' );
+		$this->addArgument( 'repository', InputArgument::REQUIRED, 'Repository to delete from.' );
 		$this->addArgument( 'snapshot-id', InputArgument::REQUIRED, 'Snapshot ID to delete.' );
 	}
 
@@ -35,7 +36,9 @@ class Delete extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		$connection = Connection::instance()->connect();
+		$repository = $input->getArgument( 'repository' );
+		$connection = new Connection( $repository );
+		$connection->connect();
 
 		if ( Utils\is_error( $connection ) ) {
 			$output->writeln( '<error>Could not connect to repository.</error>' );
@@ -46,7 +49,7 @@ class Delete extends Command {
 
 		$verbose = $input->getOption( 'verbose' );
 
-		$snapshot = Connection::instance()->db->getSnapshot( $id );
+		$snapshot = $connection->db->getSnapshot( $id );
 
 		if ( Utils\is_error( $snapshot ) ) {
 			$output->writeln( '<error>Could not get snapshot from database.</error>' );
@@ -67,7 +70,7 @@ class Delete extends Command {
 			return;
 		}
 
-		$files_result = Connection::instance()->s3->deleteSnapshot( $id, $snapshot['project'] );
+		$files_result = $connection->s3->deleteSnapshot( $id, $snapshot['project'] );
 
 		if ( Utils\is_error( $files_result ) ) {
 			if ( Utils\is_error( $files_result ) && $verbose ) {
@@ -82,7 +85,7 @@ class Delete extends Command {
 			return;
 		}
 
-		$db_result = Connection::instance()->db->deleteSnapshot( $id );
+		$db_result = $connection->db->deleteSnapshot( $id );
 
 		if ( Utils\is_error( $db_result ) ) {
 			if ( Utils\is_error( $db_result ) && $verbose ) {
