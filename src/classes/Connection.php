@@ -6,6 +6,8 @@ use WPSnapshots\Utils;
 
 class Connection {
 
+	public $config = null;
+
 	/**
 	 * Instance of S3 client
 	 *
@@ -20,10 +22,9 @@ class Connection {
 	 */
 	public $db = null;
 
-	/**
-	 * Singleton
-	 */
-	private function construct() { }
+	public function __construct( $repository ) {
+		$this->config = new Config( $repository );
+	}
 
 	/**
 	 * Connect to S3/DynamoDB
@@ -31,7 +32,7 @@ class Connection {
 	 * @return bool|Error
 	 */
 	public function connect() {
-		$config = Config::instance()->get();
+		$config = $this->config->get();
 
 		if ( Utils\is_error( $config ) ) {
 			return $config;
@@ -42,20 +43,5 @@ class Connection {
 		$this->db = new DB( $config );
 
 		return true;
-	}
-
-	/**
-	 * Return singleton instance of class
-	 *
-	 * @return object
-	 */
-	public static function instance() {
-		static $instance;
-
-		if ( empty( $instance ) ) {
-			$instance = new self;
-		}
-
-		return $instance;
 	}
 }
