@@ -35,6 +35,13 @@ class Log {
 	protected $verbosity = true;
 
 	/**
+	 * Verbosity offset
+	 *
+	 * @var  int
+	 */
+	protected $verbosity_offset = 0;
+
+	/**
 	 * Singleton
 	 */
 	private function __construct() { }
@@ -47,6 +54,16 @@ class Log {
 	public function setOutput( OutputInterface $output ) {
 		$this->output    = $output;
 		$this->verbosity = $output->isVerbose();
+	}
+
+	/**
+	 * Verbosity offset lets us make normal output verbose if we are using this logger
+	 * within another application.
+	 *
+	 * @param int $verbosity_offset Offset number
+	 */
+	public function setVerbosityOffset( $verbosity_offset ) {
+		$this->$verbosity_offset = (int) $verbosity_offset;
 	}
 
 	/**
@@ -83,7 +100,7 @@ class Log {
 				$console_verbosity_level = OutputInterface::VERBOSITY_VERBOSE;
 			}
 
-			$this->output->writeln( $message, $console_verbosity_level );
+			$this->output->writeln( $message, $console_verbosity_level + $this->verbosity_offset );
 		}
 
 		return $entry;
