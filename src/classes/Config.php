@@ -24,7 +24,7 @@ class Config {
 	 * @param array $config Config array.
 	 */
 	public function write( $config ) {
-		file_put_contents( Utils\get_snapshot_directory() . '/config.json', json_encode( $config, JSON_PRETTY_PRINT ) );
+		file_put_contents( Utils\get_snapshot_directory() . 'config.json', json_encode( $config, JSON_PRETTY_PRINT ) );
 	}
 
 	/**
@@ -33,7 +33,7 @@ class Config {
 	 * @return array|Error
 	 */
 	public function get() {
-		$file_path = Utils\get_snapshot_directory() . '/config.json';
+		$file_path = Utils\get_snapshot_directory() . 'config.json';
 
 		if ( ! file_exists( $file_path ) ) {
 			/**
@@ -44,9 +44,9 @@ class Config {
 			if ( ! file_exists( $file_path ) ) {
 				return new Error( 0, 'No json file exists.' );
 			} else {
-				rename( $file_path, Utils\get_snapshot_directory() . '/config.json' );
+				rename( $file_path, Utils\get_snapshot_directory() . 'config.json' );
 
-				$file_path = Utils\get_snapshot_directory() . '/config.json';
+				$file_path = Utils\get_snapshot_directory() . 'config.json';
 			}
 		}
 
