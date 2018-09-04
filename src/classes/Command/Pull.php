@@ -29,6 +29,7 @@ class Pull extends Command {
 	protected function configure() {
 		$this->setName( 'pull' );
 		$this->setDescription( 'Pull a snapshot from a repository.' );
+		$this->addArgument( 'repository', InputArgument::REQUIRED, 'Repository to pull from.' );
 		$this->addArgument( 'snapshot-id', InputArgument::REQUIRED, 'Snapshot ID to pull.' );
 		$this->addOption( 'confirm', null, InputOption::VALUE_NONE, 'Confirm pull operation.' );
 
@@ -46,7 +47,9 @@ class Pull extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		$connection = Connection::instance()->connect();
+		$repository = $input->getArgument( 'repository' );
+		$connection = new Connection( $repository );
+		$connection->connect();
 
 		if ( Utils\is_error( $connection ) ) {
 			$output->writeln( '<error>Could not connect to repository.</error>' );
@@ -241,7 +244,7 @@ class Pull extends Command {
 
 		$output->writeln( 'Getting snapshot information...' );
 
-		$snapshot = Connection::instance()->db->getSnapshot( $id );
+		$snapshot = $connection->db->getSnapshot( $id );
 
 		if ( Utils\is_error( $snapshot ) ) {
 			$output->writeln( '<error>Could not get snapshot from database.</error>' );
@@ -267,7 +270,7 @@ class Pull extends Command {
 
 		$output->writeln( 'Downloading snapshot files and database...' );
 
-		$download = Connection::instance()->s3->downloadSnapshot( $id, $snapshot['project'], $temp_path . 'data.sql.gz', $temp_path . 'files.tar.gz' );
+		$download = $connection->s3->downloadSnapshot( $id, $snapshot['project'], $temp_path . 'data.sql.gz', $temp_path . 'files.tar.gz' );
 
 		if ( Utils\is_error( $download ) ) {
 
