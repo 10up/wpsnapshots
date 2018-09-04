@@ -50,9 +50,9 @@ class Configure extends Command {
 			$region = 'us-west-1';
 		}
 
-		$config = Config::instance()->get();
+		$config_object = new Config( $repository );
 
-		if ( ! Utils\is_error( $config ) ) {
+		if ( ! Utils\is_error( $config_object->get() ) ) {
 			$output->writeln( 'Repository config already exists. Proceeding will overwrite it.' );
 		}
 
@@ -89,7 +89,7 @@ class Configure extends Command {
 				if ( 'InvalidAccessKeyId' === $test->data['aws_error_code'] ) {
 					$output->writeln( '<comment>Repository connection did not work. Try again?</comment>' );
 				} elseif ( 'NoSuchBucket' === $test->data['aws_error_code'] ) {
-					$output->writeln( '<comment>We successfully connected to AWS. However, no repository has been created. Run `wpsnapshots create-repository` after configuration is complete.</comment>' );
+					$output->writeln( '<comment>We successfully connected to AWS. However, no repository has been created. Run `wpsnapshots create-repository ' . $repository . '` after configuration is complete.</comment>' );
 					break;
 				} else {
 					break;
@@ -101,7 +101,7 @@ class Configure extends Command {
 
 		$config = $this->apply_user_to_config( $config, $input, $output );
 
-		Config::instance()->write( $config );
+		$config_object->write( $config );
 
 		$output->writeln( '<info>WP Snapshots configuration verified and saved.</info>' );
 	}
