@@ -27,6 +27,9 @@ class Push extends Command {
 	protected function configure() {
 		$this->setName( 'push' );
 		$this->setDescription( 'Push a snapshot to a repository.' );
+
+		$this->addArgument( 'repository', InputArgument::REQUIRED, 'Repository to push to.' );
+
 		$this->addOption( 'exclude-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
 		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 
@@ -44,7 +47,9 @@ class Push extends Command {
 	 * @param  OutputInterface $output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
-		$connection = Connection::instance()->connect();
+		$repository = $input->getArgument( 'repository' );
+		$connection = new Connection( $repository );
+		$connection->connect();
 
 		if ( Utils\is_error( $connection ) ) {
 			$output->writeln( '<error>Could not connect to repository.</error>' );
@@ -362,7 +367,7 @@ class Push extends Command {
 		/**
 		 * Put files on S3
 		 */
-		$s3_add = Connection::instance()->s3->putSnapshot( $id, $snapshot['project'], $temp_path . 'data.sql.gz', $temp_path . 'files.tar.gz' );
+		$s3_add = $connection->s3->putSnapshot( $id, $snapshot['project'], $temp_path . 'data.sql.gz', $temp_path . 'files.tar.gz' );
 
 		if ( Utils\is_error( $s3_add ) ) {
 			$output->writeln( '<error>Could not upload files to S3.</error>' );
@@ -388,7 +393,7 @@ class Push extends Command {
 		 */
 		$output->writeln( 'Adding snapshot to database...' );
 
-		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $id, $snapshot );
+		$inserted_snapshot = $connection->db->insertSnapshot( $id, $snapshot );
 
 		if ( Utils\is_error( $inserted_snapshot ) ) {
 			if ( 'AccessDeniedException' === $inserted_snapshot->data['aws_error_code'] ) {
