@@ -70,12 +70,18 @@ class Snapshot {
 	 * @return bool|Snapshot
 	 */
 	public static function create( $args ) {
+		$path = Utils\normalize_path( $args['path'] );
+
+		if ( ! Utils\is_wp_present( $path ) ) {
+			Log::instance()->write( 'This is not a WordPress install. You can only create a snapshot from the root of a WordPress install.', 0, 'error' );
+
+			return;
+		}
+
 		/**
 		 * Define snapshot ID
 		 */
 		$id = Utils\generate_snapshot_id();
-
-		$path = Utils\normalize_path( $args['path'] );
 
 		$create_dir = Utils\create_snapshot_directory( $id );
 
