@@ -109,6 +109,14 @@ class Configure extends Command {
 
 		$config = $this->apply_user_to_config( $config, $input, $output );
 
+		$create_dir = Utils\create_snapshot_directory();
+
+		if ( ! $create_dir ) {
+			Log::instance()->write( 'Cannot create necessary snapshot directory.', 0, 'error' );
+
+			return false;
+		}
+
 		Config::instance()->write( $config );
 
 		Log::instance()->write( 'WP Snapshots configuration verified and saved.', 0, 'success' );
