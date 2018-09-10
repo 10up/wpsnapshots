@@ -67,12 +67,6 @@ class Create extends Command {
 
 		$path = Utils\normalize_path( $path );
 
-		if ( ! Utils\is_wp_present( $path ) ) {
-			Log::instance()->write( 'This is not a WordPress install. You can only create a snapshot from the root of a WordPress install.', 0, 'error' );
-
-			return;
-		}
-
 		$helper = $this->getHelper( 'question' );
 
 		$project_question = new Question( 'Project Slug (letters, numbers, _, and - only): ' );
