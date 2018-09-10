@@ -65,6 +65,8 @@ class Create extends Command {
 			$path = getcwd();
 		}
 
+		$path = Utils\normalize_path( $path );
+
 		if ( ! Utils\is_wp_present( $path ) ) {
 			Log::instance()->write( 'This is not a WordPress install. You can only create a snapshot from the root of a WordPress install.', 0, 'error' );
 

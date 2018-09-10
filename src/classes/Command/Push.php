@@ -65,6 +65,8 @@ class Push extends Command {
 			$path = getcwd();
 		}
 
+		$path = Utils\normalize_path( $path );
+
 		$helper = $this->getHelper( 'question' );
 
 		$verbose = $input->getOption( 'verbose' );
