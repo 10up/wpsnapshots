@@ -36,6 +36,16 @@ function is_error( $obj ) {
 }
 
 /**
+ * Add trailing slash to path
+ *
+ * @param  string $path Path
+ * @return string
+ */
+function trailingslash( $path ) {
+	return rtrim( $path, '/' ) . '/';
+}
+
+/**
  * Normalizes paths. Note that we DO always add a trailing slash here
  *
  * /
@@ -54,10 +64,6 @@ function normalize_path( $path ) {
 		return $path;
 	}
 
-	if ( '/' !== substr( $path, -1 ) ) {
-		$path .= '/';
-	}
-
 	/**
 	 * Replace ~ with home directory
 	 */
@@ -69,7 +75,7 @@ function normalize_path( $path ) {
 		$path = $home . $path;
 	}
 
-	return $path;
+	return trailingslash( $path );
 }
 
 /**
@@ -213,7 +219,7 @@ function get_download_url( $version = 'latest', $locale = 'en_US' ) {
  * @return boolean
  */
 function is_wp_present( $path ) {
-	return ( file_exists( $path . 'wp-settings.php' ) );
+	return ( file_exists( trailingslash( $path ) . 'wp-settings.php' ) );
 }
 
 /**
@@ -223,6 +229,8 @@ function is_wp_present( $path ) {
  * @return string
  */
 function locate_wp_config( $path ) {
+	$path = trailingslash( $path );
+
 	if ( file_exists( $path . 'wp-config.php' ) ) {
 		$path = $path . 'wp-config.php';
 	} elseif ( file_exists( $path . '../wp-config.php' ) ) {
