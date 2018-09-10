@@ -11,6 +11,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use \Exception;
 use WPSnapshots\Utils;
 use WPSnapshots\Log;
+use WPSnapshots\Connection;
 
 /**
  * Create, download, save, push, and pull snapshots
@@ -31,15 +32,24 @@ class Snapshot {
 	public $meta = [];
 
 	/**
+	 * Does snapshot exist on remote or not
+	 *
+	 * @var boolean
+	 */
+	public $remote = false;
+
+	/**
 	 * Snapshot constructor. Snapshot must already exist locally in $path.
 	 *
 	 * @param string $id Snapshot id
 	 * @param array  $meta Snapshot meta data
+	 * @param bool   $remote Does snapshot exist remotely or not
 	 * @throws Exception Throw exception if files don't exist.
 	 */
-	public function __construct( $id, $meta ) {
-		$this->id   = $id;
-		$this->meta = $meta;
+	public function __construct( $id, $meta, $remote = false ) {
+		$this->id     = $id;
+		$this->meta   = $meta;
+		$this->remote = $remote;
 
 		if ( ! file_exists( Utils\get_snapshot_directory() . $id . '/data.sql.gz' ) || ! file_exists( Utils\get_snapshot_directory() . $id . '/files.tar.gz' ) ) {
 			throw new Exception( 'Snapshot data or files do not exist locally.' );
@@ -429,6 +439,70 @@ class Snapshot {
 
 		fwrite( $meta_handle, json_encode( $snapshot, JSON_PRETTY_PRINT ) );
 
-		return new self( $id, $snapshot );
+		return new self( $id, $snapshot, true );
+	}
+
+	/**
+	 * Push snapshot to repository
+	 *
+	 * @return boolean
+	 */
+	public function push() {
+		if ( $this->remote ) {
+			Log::instance()->write( 'Snapshot already pushed.', 0, 'error' );
+			return false;
+		}
+
+		/**
+		 * Put files to S3
+		 */
+		Log::instance()->write( 'Uploading files...' );
+
+		$s3_add = Connection::instance()->s3->putSnapshot( $this->id, $this->meta['project'], Utils\get_snapshot_directory() . $this->id . '/data.sql.gz', Utils\get_snapshot_directory() . $this->id . '/files.tar.gz' );
+
+		if ( Utils\is_error( $s3_add ) ) {
+			Log::instance()->write( 'Could not upload files to S3.', 0, 'error' );
+
+			if ( is_array( $s3_add->data ) ) {
+				if ( 'AccessDenied' === $s3_add->data['aws_error_code'] ) {
+					Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
+				}
+
+				Log::instance()->write( 'Error Message: ' . $s3_add->data['message'], 1, 'error' );
+				Log::instance()->write( 'AWS Request ID: ' . $s3_add->data['aws_request_id'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Type: ' . $s3_add->data['aws_error_type'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Code: ' . $s3_add->data['aws_error_code'], 1, 'error' );
+			}
+
+			return false;
+		}
+
+		/**
+		 * Add snapshot to DB
+		 */
+		Log::instance()->write( 'Adding snapshot to database...' );
+
+		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $this->id, $this->meta );
+
+		if ( Utils\is_error( $inserted_snapshot ) ) {
+			Log::instance()->write( 'Could not add snapshot to database.', 0, 'error' );
+
+			if ( is_array( $inserted_snapshot->data ) ) {
+				if ( 'AccessDeniedException' === $inserted_snapshot->data['aws_error_code'] ) {
+					Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
+				}
+
+				Log::instance()->write( 'Error Message: ' . $inserted_snapshot->data['message'], 1, 'error' );
+				Log::instance()->write( 'AWS Request ID: ' . $inserted_snapshot->data['aws_request_id'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Type: ' . $inserted_snapshot->data['aws_error_type'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Code: ' . $inserted_snapshot->data['aws_error_code'], 1, 'error' );
+			}
+
+			return false;
+		}
+
+		$this->remote = true;
+
+		return true;
 	}
 }

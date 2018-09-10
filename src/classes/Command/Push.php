@@ -99,55 +99,9 @@ class Push extends Command {
 			return;
 		}
 
-		/**
-		 * Put files on S3
-		 */
-		Log::instance()->write( 'Uploading files...' );
-
-		$s3_add = Connection::instance()->s3->putSnapshot( $snapshot->id, $snapshot->meta['project'], Utils\get_snapshot_directory() . $snapshot->id . '/data.sql.gz', Utils\get_snapshot_directory() . $snapshot->id . '/files.tar.gz' );
-
-		if ( Utils\is_error( $s3_add ) ) {
-			Log::instance()->write( 'Could not upload files to S3.', 0, 'error' );
-
-			if ( is_array( $s3_add->data ) ) {
-				if ( 'AccessDenied' === $s3_add->data['aws_error_code'] ) {
-					Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
-				}
-
-				Log::instance()->write( 'Error Message: ' . $s3_add->data['message'], 1, 'error' );
-				Log::instance()->write( 'AWS Request ID: ' . $s3_add->data['aws_request_id'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Type: ' . $s3_add->data['aws_error_type'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Code: ' . $s3_add->data['aws_error_code'], 1, 'error' );
-			}
-
-			return;
+		if ( $snapshot->push() ) {
+			Log::instance()->write( 'Push finished! Snapshot ID is ' . $snapshot->id, 0, 'success' );
 		}
-
-		/**
-		 * Add snapshot to DB
-		 */
-		Log::instance()->write( 'Adding snapshot to database...' );
-
-		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $snapshot->id, $snapshot->meta );
-
-		if ( Utils\is_error( $inserted_snapshot ) ) {
-			Log::instance()->write( 'Could not add snapshot to database.', 0, 'error' );
-
-			if ( is_array( $inserted_snapshot->data ) ) {
-				if ( 'AccessDeniedException' === $inserted_snapshot->data['aws_error_code'] ) {
-					Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
-				}
-
-				Log::instance()->write( 'Error Message: ' . $inserted_snapshot->data['message'], 1, 'error' );
-				Log::instance()->write( 'AWS Request ID: ' . $inserted_snapshot->data['aws_request_id'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Type: ' . $inserted_snapshot->data['aws_error_type'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Code: ' . $inserted_snapshot->data['aws_error_code'], 1, 'error' );
-			}
-
-			return;
-		}
-
-		Log::instance()->write( 'Push finished! Snapshot ID is ' . $snapshot->id, 0, 'success' );
 	}
 
 }
