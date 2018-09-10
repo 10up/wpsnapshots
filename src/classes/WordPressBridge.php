@@ -160,7 +160,7 @@ class WordPressBridge {
 
 		if ( true !== $connection ) {
 			if ( false !== strpos( $connection, 'php_network_getaddresses' ) ) {
-				Log::instance()->write( "Couldn't connect to MySQL host. Try running this command again with the --db_host=127.0.0.1 parameter.", 0, 'error' );
+				Log::instance()->write( "Couldn't connect to MySQL host.", 0, 'error' );
 			} else {
 				Log::instance()->write( 'Could not connect to MySQL. Is your connection info correct?', 0, 'error' );
 			}
