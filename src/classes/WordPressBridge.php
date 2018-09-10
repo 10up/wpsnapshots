@@ -45,6 +45,41 @@ class WordPressBridge {
 			];
 		}
 
+		/**
+		 * First thing we do is try to test config DB settings mixed in with user defined DB settings
+		 * before defining constants. The purpose of this is to guess the correct DB_HOST if the connection
+		 * doesn't work.
+		 */
+		$pre_config_constants = [];
+
+		foreach ( $wp_config_code as $line ) {
+			if ( preg_match( '#define\(.*?("|\')DB_HOST("|\').*?\).*?;#', $line ) ) {
+				$pre_config_constants['DB_HOST'] = preg_replace( '#define\(.*?("|\')DB_HOST("|\').*?,.*?("|\')(.*?)("|\').*?\).*?;#', '$4', $line );
+			} elseif ( preg_match( '#define\(.*?("|\')DB_USER("|\').*?\).*?;#', $line ) ) {
+				$pre_config_constants['DB_USER'] = preg_replace( '#define\(.*?("|\')DB_USER("|\').*?,.*?("|\')(.*?)("|\').*?\).*?;#', '$4', $line );
+			} elseif ( preg_match( '#define\(.*?("|\')DB_NAME("|\').*?\).*?;#', $line ) ) {
+				$pre_config_constants['DB_NAME'] = preg_replace( '#define\(.*?("|\')DB_NAME("|\').*?,.*?("|\')(.*?)("|\').*?\).*?;#', '$4', $line );
+			} elseif ( preg_match( '#define\(.*?("|\')DB_PASSWORD("|\').*?\).*?;#', $line ) ) {
+				$pre_config_constants['DB_PASSWORD'] = preg_replace( '#define\(.*?("|\')DB_PASSWORD("|\').*?,.*?("|\')(.*?)("|\').*?\).*?;#', '$4', $line );
+			}
+		}
+
+		foreach ( $extra_config_constants as $config_constant => $config_constant_value ) {
+			$pre_config_constants[ $config_constant ] = $config_constant_value;
+		}
+
+		if ( ! empty( $pre_config_constants['DB_HOST'] ) && ! empty( $pre_config_constants['DB_NAME'] ) && ! empty( $pre_config_constants['DB_USER'] ) && ! empty( $pre_config_constants['DB_PASSWORD'] ) ) {
+			$connection = Utils\test_mysql_connection( $pre_config_constants['DB_HOST'], $pre_config_constants['DB_NAME'], $pre_config_constants['DB_USER'], $pre_config_constants['DB_PASSWORD'] );
+
+			if ( true !== $connection ) {
+				$connection = Utils\test_mysql_connection( '127.0.0.1', $pre_config_constants['DB_NAME'], $pre_config_constants['DB_USER'], $pre_config_constants['DB_PASSWORD'] );
+
+				if ( true === $connection ) {
+					$extra_config_constants['DB_HOST'] = '127.0.0.1';
+				}
+			}
+		}
+
 		foreach ( $wp_config_code as $line ) {
 			if ( preg_match( '/^\s*require.+wp-settings\.php/', $line ) ) {
 				continue;
