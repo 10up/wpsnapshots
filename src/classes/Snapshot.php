@@ -129,9 +129,7 @@ class Snapshot {
 
 		Log::instance()->write( 'Bootstrapping WordPress...', 1 );
 
-		$wp = WordPressBridge::instance()->load( $path, $extra_config_constants );
-
-		if ( Utils\is_error( $wp ) ) {
+		if ( ! WordPressBridge::instance()->load( $path, $extra_config_constants ) ) {
 			Log::instance()->write( 'Could not connect to WordPress database.', 0, 'error' );
 
 			return false;

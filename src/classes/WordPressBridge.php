@@ -23,8 +23,9 @@ class WordPressBridge {
 	 * This method loads wp-config.php without wp-settings.php ensuring we get the constants we need. It
 	 * also loads $wpdb so we can perform database operations.
 	 *
-	 * @param string $path Path to WordPress
-	 * @param array  $extra_config_constants Array of extra constants
+	 * @param  string $path Path to WordPress
+	 * @param  array  $extra_config_constants Array of extra constants
+	 * @return boolean
 	 */
 	public function load( $path, $extra_config_constants = [] ) {
 		$wp_config_code = explode( "\n", file_get_contents( Utils\locate_wp_config( $path ) ) );
@@ -165,11 +166,13 @@ class WordPressBridge {
 				Log::instance()->write( 'Could not connect to MySQL. Is your connection info correct?', 0, 'error' );
 			}
 
-			exit;
+			return false;
 		}
 
 		// We can require settings after we fake $_SERVER keys
 		require_once ABSPATH . 'wp-settings.php';
+
+		return true;
 	}
 
 	/**

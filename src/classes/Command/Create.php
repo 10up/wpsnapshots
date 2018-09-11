@@ -95,6 +95,8 @@ class Create extends Command {
 
 		if ( is_a( $snapshot, '\WPSnapshots\Snapshot' ) ) {
 			Log::instance()->write( 'Create finished! Snapshot ID is ' . $snapshot->id, 0, 'success' );
+		} else {
+			return 1;
 		}
 	}
 }
