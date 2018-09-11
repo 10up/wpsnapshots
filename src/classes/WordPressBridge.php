@@ -166,6 +166,12 @@ class WordPressBridge {
 				Log::instance()->write( 'Could not connect to MySQL. Is your connection info correct?', 0, 'error' );
 			}
 
+			Log::instance()->write( 'MySQL connection info:', 1 );
+			Log::instance()->write( 'DB_HOST: ' . DB_HOST, 1 );
+			Log::instance()->write( 'DB_NAME: ' . DB_NAME, 1 );
+			Log::instance()->write( 'DB_USER: ' . DB_USER, 1 );
+			Log::instance()->write( 'DB_PASSWORD: ' . DB_PASSWORD, 1 );
+
 			return false;
 		}
 
