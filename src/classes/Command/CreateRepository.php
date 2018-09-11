@@ -89,6 +89,7 @@ class CreateRepository extends Command {
 
 		if ( ! $db_setup || ! $s3_setup ) {
 			Log::instance()->write( 'Repository could not be created.', 0, 'error' );
+			return 1;
 		} else {
 			Log::instance()->write( 'Repository setup!', 0, 'success' );
 		}

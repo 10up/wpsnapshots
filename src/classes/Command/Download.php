@@ -49,7 +49,7 @@ class Download extends Command {
 
 		if ( Utils\is_error( $connection ) ) {
 			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
-			return;
+			return 1;
 		}
 
 		$id = $input->getArgument( 'snapshot-id' );

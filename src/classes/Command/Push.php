@@ -56,7 +56,7 @@ class Push extends Command {
 
 		if ( Utils\is_error( $connection ) ) {
 			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
-			return;
+			return 1;
 		}
 
 		$path = $input->getOption( 'path' );
@@ -96,7 +96,7 @@ class Push extends Command {
 		);
 
 		if ( ! is_a( $snapshot, '\WPSnapshots\Snapshot' ) ) {
-			return;
+			return 1;
 		}
 
 		if ( $snapshot->push() ) {

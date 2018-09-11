@@ -47,7 +47,7 @@ class Delete extends Command {
 
 		if ( Utils\is_error( $connection ) ) {
 			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
-			return;
+			return 1;
 		}
 
 		$id = $input->getArgument( 'snapshot-id' );
@@ -68,7 +68,7 @@ class Delete extends Command {
 				Log::instance()->write( 'AWS Error Code: ' . $snapshot->data['aws_error_code'], 1, 'error' );
 			}
 
-			return;
+			return 1;
 		}
 
 		$files_result = Connection::instance()->s3->deleteSnapshot( $id, $snapshot['project'] );
@@ -84,7 +84,7 @@ class Delete extends Command {
 				Log::instance()->write( 'AWS Error Code: ' . $files_result->data['aws_error_code'], 1, 'error' );
 			}
 
-			return;
+			return 1;
 		}
 
 		$db_result = Connection::instance()->db->deleteSnapshot( $id );
@@ -100,7 +100,7 @@ class Delete extends Command {
 				Log::instance()->write( 'AWS Error Code: ' . $db_result->data['aws_error_code'], 1, 'error' );
 			}
 
-			return;
+			return 1;
 		}
 
 		Log::instance()->write( 'Snapshot deleted.', 0, 'success' );

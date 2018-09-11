@@ -114,7 +114,7 @@ class Configure extends Command {
 		if ( ! $create_dir ) {
 			Log::instance()->write( 'Cannot create necessary snapshot directory.', 0, 'error' );
 
-			return false;
+			return 1;
 		}
 
 		Config::instance()->write( $config );

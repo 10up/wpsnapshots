@@ -83,7 +83,7 @@ class Pull extends Command {
 
 		if ( Utils\is_error( $connection ) ) {
 			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
-			return;
+			return 1;
 		}
 
 		$id = $input->getArgument( 'snapshot-id' );
@@ -101,7 +101,7 @@ class Pull extends Command {
 		$snapshot = Snapshot::download( $id, $output );
 
 		if ( ! is_a( $snapshot, '\WPSnapshots\Snapshot' ) ) {
-			return;
+			return 1;
 		}
 
 		$verbose = $input->getOption( 'verbose' );
@@ -117,7 +117,7 @@ class Pull extends Command {
 				$download_wp = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to download WordPress? (yes|no) ', false ) );
 
 				if ( ! $download_wp ) {
-					return;
+					return 1;
 				}
 			}
 
@@ -161,7 +161,7 @@ class Pull extends Command {
 				$create_config = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to create a wp-config.php file? (yes|no) ', false ) );
 
 				if ( ! $create_config ) {
-					return;
+					return 1;
 				}
 			}
 
@@ -240,7 +240,7 @@ class Pull extends Command {
 
 		if ( Utils\is_error( $wp ) ) {
 			Log::instance()->write( 'Could not connect to WordPress database.', 0, 'error' );
-			return;
+			return 1;
 		}
 
 		$pre_update_site_url = site_url();
@@ -266,7 +266,7 @@ class Pull extends Command {
 			$confirm = $helper->ask( $input, $output, new ConfirmationQuestion( 'Are you sure you want to do this? This is a potentially destructive operation. You should run a back up first. (yes|no) ', false ) );
 
 			if ( ! $confirm ) {
-				return;
+				return 1;
 			}
 		}
 

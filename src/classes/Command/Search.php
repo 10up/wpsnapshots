@@ -61,7 +61,7 @@ class Search extends Command {
 
 		if ( Utils\is_error( $connection ) ) {
 			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
-			return;
+			return 1;
 		}
 
 		$instances = Connection::instance()->db->search( $input->getArgument( 'search-text' ) );
