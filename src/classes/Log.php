@@ -54,12 +54,12 @@ class Log {
 	public function setOutput( OutputInterface $output ) {
 		$this->output = $output;
 
-		if ( $output->isVerbose() ) {
-			$this->verbosity = 1;
+		if ( $output->isDebug() ) {
+			$this->verbosity = 3;
 		} elseif ( $output->isVeryVerbose() ) {
 			$this->verbosity = 2;
-		} elseif ( $output->isDebug() ) {
-			$this->verbosity = 3;
+		} elseif ( $output->isVerbose() ) {
+			$this->verbosity = 1;
 		}
 	}
 
