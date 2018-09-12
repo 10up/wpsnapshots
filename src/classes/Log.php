@@ -28,11 +28,11 @@ class Log {
 	protected $log = [];
 
 	/**
-	 * Is output verbose
+	 * Output verbosity
 	 *
-	 * @var bool
+	 * @var int
 	 */
-	protected $verbosity = true;
+	protected $verbosity = 0;
 
 	/**
 	 * Verbosity offset
@@ -52,8 +52,15 @@ class Log {
 	 * @param OutputInterface $output Output to log to.
 	 */
 	public function setOutput( OutputInterface $output ) {
-		$this->output    = $output;
-		$this->verbosity = $output->isVerbose();
+		$this->output = $output;
+
+		if ( $output->isVerbose() ) {
+			$this->verbosity = 1;
+		} elseif ( $output->isVeryVerbose() ) {
+			$this->verbosity = 2;
+		} elseif ( $output->isDebug() ) {
+			$this->verbosity = 3;
+		}
 	}
 
 	/**
@@ -117,7 +124,7 @@ class Log {
 	 *
 	 * @return bool
 	 */
-	public function isVerbose() {
+	public function getVerbosity() {
 		return $this->verbosity;
 	}
 
