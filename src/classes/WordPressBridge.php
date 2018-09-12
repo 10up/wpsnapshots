@@ -156,7 +156,7 @@ class WordPressBridge {
 			$_SERVER['QUERY_STRING'] = ( isset( $url_parts['query'] ) ) ? $url_parts['query'] : '';
 		}
 
-		Log::instance()->write( 'Testing MySQL connection.', 1, );
+		Log::instance()->write( 'Testing MySQL connection.', 1 );
 
 		// Test DB connect
 		$connection = Utils\test_mysql_connection( DB_HOST, DB_NAME, DB_USER, DB_PASSWORD );
