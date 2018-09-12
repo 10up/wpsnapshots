@@ -98,6 +98,10 @@ class Log {
 
 			if ( 1 === $verbosity_level ) {
 				$console_verbosity_level = OutputInterface::VERBOSITY_VERBOSE;
+			} elseif ( 2 === $verbosity_level ) {
+				$console_verbosity_level = OutputInterface::VERBOSITY_VERY_VERBOSE;
+			} elseif ( 3 === $verbosity_level ) {
+				$console_verbosity_level = OutputInterface::VERBOSITY_DEBUG;
 			}
 
 			$this->output->writeln( $message, $console_verbosity_level + $this->verbosity_offset );
