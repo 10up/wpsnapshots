@@ -164,6 +164,8 @@ class WordPressBridge {
 				Log::instance()->write( "Couldn't connect to MySQL host.", 0, 'error' );
 			} else {
 				Log::instance()->write( 'Could not connect to MySQL. Is your connection info correct?', 0, 'error' );
+
+				Log::instance()->write( 'MySQL error: ' . $connection, 1, 'error' );
 			}
 
 			Log::instance()->write( 'MySQL connection info:', 1 );
