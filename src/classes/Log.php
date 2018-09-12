@@ -63,7 +63,7 @@ class Log {
 	 * @param int $verbosity_offset Offset number
 	 */
 	public function setVerbosityOffset( $verbosity_offset ) {
-		$this->$verbosity_offset = (int) $verbosity_offset;
+		$this->verbosity_offset = (int) $verbosity_offset;
 	}
 
 	/**
@@ -76,6 +76,8 @@ class Log {
 	 * @return array
 	 */
 	public function write( $message, $verbosity_level = 0, $type = 'info', $data = [] ) {
+		$verbosity_level += $this->verbosity_offset;
+
 		$entry = [
 			'message'         => $message,
 			'data'            => $data,
@@ -104,7 +106,7 @@ class Log {
 				$console_verbosity_level = OutputInterface::VERBOSITY_DEBUG;
 			}
 
-			$this->output->writeln( $message, $console_verbosity_level + $this->verbosity_offset );
+			$this->output->writeln( $message, $console_verbosity_level );
 		}
 
 		return $entry;
