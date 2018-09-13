@@ -312,7 +312,7 @@ class Snapshot {
 			unlink( $snapshot_path . 'data-users.sql' );
 		}
 
-		$verbose_pipe = ( Log::instance()->isVerbose() ) ? '> /dev/null' : '';
+		$verbose_pipe = ( ! empty( Log::instance()->getVerbosity() ) ) ? '> /dev/null' : '';
 
 		/**
 		 * Create file back up of wp-content in .wpsnapshots/files.tar.gz
