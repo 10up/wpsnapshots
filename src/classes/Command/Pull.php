@@ -495,7 +495,7 @@ class Pull extends Command {
 					/**
 					 * Update multisite stuff for each blog
 					 */
-					$wpdb->query( $wpdb->prepare( 'UPDATE ' . $GLOBALS['table_prefix'] . "blogs SET path='%s', domain='%s' WHERE blog_id='%d'", esc_sql( parse_url( $new_home_url, PHP_URL_PATH ) ), esc_sql( parse_url( $new_home_url, PHP_URL_HOST ) ), (int) $site['blog_id'] ) );
+					$wpdb->query( $wpdb->prepare( 'UPDATE ' . $GLOBALS['table_prefix'] . "blogs SET path=%s, domain=%s WHERE blog_id=%d", parse_url( $new_home_url, PHP_URL_PATH ), parse_url( $new_home_url, PHP_URL_HOST ), (int) $site['blog_id'] ) );
 
 					/**
 					 * Update all tables except wp_site and wp_blog since we handle that separately
@@ -539,7 +539,7 @@ class Pull extends Command {
 				/**
 				 * Update site domain with main domain
 				 */
-				$wpdb->query( $wpdb->prepare( 'UPDATE ' . $GLOBALS['table_prefix'] . "site SET domain='%s'", esc_sql( $main_domain ) ) );
+				$wpdb->query( $wpdb->prepare( 'UPDATE ' . $GLOBALS['table_prefix'] . 'site SET domain=%s', $main_domain ) ) );
 
 				if ( ! defined( 'BLOG_ID_CURRENT_SITE' ) || ! defined( 'SITE_ID_CURRENT_SITE' ) || ! defined( 'PATH_CURRENT_SITE' ) || ! defined( 'MULTISITE' ) || ! MULTISITE || ! defined( 'DOMAIN_CURRENT_SITE' ) || DOMAIN_CURRENT_SITE !== $main_domain || ! defined( 'SUBDOMAIN_INSTALL' ) || SUBDOMAIN_INSTALL !== $snapshot->meta['subdomain_install'] ) {
 
