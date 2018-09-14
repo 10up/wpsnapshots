@@ -547,7 +547,7 @@ class Pull extends Command {
 					Log::instance()->write(
 						"define('WP_ALLOW_MULTISITE', true);
 define('MULTISITE', true);
-define('SUBDOMAIN_INSTALL', " . ( $snapshot->meta['subdomain_install'] ) ? 'true' : 'false' ) . ");
+define('SUBDOMAIN_INSTALL', " . ( ! empty( $snapshot->meta['subdomain_install'] ) ? 'true' : 'false' ) . ");
 define('DOMAIN_CURRENT_SITE', '" . $main_domain . "');
 define('PATH_CURRENT_SITE', '/');
 define('SITE_ID_CURRENT_SITE', 1);
