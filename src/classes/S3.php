@@ -50,6 +50,7 @@ class S3 {
 				],
 				'signature'   => 'v4',
 				'region'      => $config['region'],
+				'version'     => '2006-03-01',
 			]
 		);
 

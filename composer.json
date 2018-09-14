@@ -11,8 +11,9 @@
   ],
   "require": {
     "symfony/console": "^3.3 || ^4.1",
-    "aws/aws-sdk-php": "2.*",
-    "rmccue/requests": "^1.7"
+    "rmccue/requests": "^1.7",
+    "php": ">=7.0",
+    "aws/aws-sdk-php": "^3.67"
   },
   "scripts": {
     "lint": [

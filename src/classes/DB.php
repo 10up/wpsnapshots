@@ -41,6 +41,7 @@ class DB {
 					'secret' => $config['secret_access_key'],
 				],
 				'region'      => $config['region'],
+				'version'     => '2012-08-10',
 			]
 		);
 
