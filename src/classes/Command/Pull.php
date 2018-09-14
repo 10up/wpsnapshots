@@ -449,12 +449,12 @@ class Pull extends Command {
 
 				$main_domain = '';
 
-				$current_main_domain = ( defined( 'DOMAIN_CURRENT_SITE' ) && ! empty( DOMAIN_CURRENT_SITE ) ) ? DOMAIN_CURRENT_SITE : '';
+				$snapshot_main_domain = ( ! empty( $snapshot->meta['domain_current_site'] ) ) ? $snapshot->meta['domain_current_site'] : '';
 
-				if ( ! empty( $current_main_domain ) ) {
-					$main_domain_question = new Question( 'Domain (your install\'s current site domain is ' . $current_main_domain . '): ', $current_main_domain );
+				if ( ! empty( $snapshot_main_domain ) ) {
+					$main_domain_question = new Question( 'Main domain (the main domain in the snapshot is ' . $snapshot_main_domain . '): ' );
 				} else {
-					$main_domain_question = new Question( 'Domain (localhost.dev for example): ', $current_main_domain );
+					$main_domain_question = new Question( 'Main domain (mysite.test for example): ' );
 				}
 
 				$main_domain_question->setValidator(
@@ -469,41 +469,22 @@ class Pull extends Command {
 					}
 				);
 
-				if ( empty( $snapshot->meta['subdomain_install'] ) ) {
-					$main_domain = $helper->ask( $input, $output, $main_domain_question );
-				}
+				$main_domain = $helper->ask( $input, $output, $main_domain_question );
 
 				foreach ( $snapshot->meta['sites'] as $site ) {
 
-					$subdomain_domain_lang = '';
-					if ( ! empty( $snapshot->meta['subdomain_install'] ) ) {
-						$subdomain_domain_lang = ' Domain for blog is ' . $site['domain'] . '.';
-					}
-
-					Log::instance()->write( 'Replacing URLs for blog ' . $site['blog_id'] . '.' . $subdomain_domain_lang . ' Path for blog is ' . $site['path'] . '.' );
-
-					if ( ! empty( $snapshot->meta['subdomain_install'] ) ) {
-						$domain = $helper->ask( $input, $output, $main_domain_question );
-
-						if ( 0 === $i ) {
-							$main_domain = $domain;
-						}
-					} else {
-						$domain = $main_domain;
-					}
-
-					$suggested_url = ( ( $use_https ) ? 'https://' : 'http://' ) . $domain . $site['path'];
+					Log::instance()->write( 'Replacing URLs for blog ' . $site['blog_id'] . '.' );
 
 					if ( ! empty( $site_mapping[ (int) $site['blog_id'] ] ) ) {
 						$new_home_url = $site_mapping[ (int) $site['blog_id'] ]['home_url'];
 						$new_site_url = $site_mapping[ (int) $site['blog_id'] ]['site_url'];
 					} else {
-						$home_question = new Question( 'Home URL (' . $suggested_url . ' might make sense): ', $suggested_url );
+						$home_question = new Question( 'Home URL (' . $site['home_url'] . ' is the home URL in the snapshot): ' );
 						$home_question->setValidator( $url_validator );
 
 						$new_home_url = $helper->ask( $input, $output, $home_question );
 
-						$site_question = new Question( 'Site URL (' . $suggested_url . ' might make sense): ', $suggested_url );
+						$site_question = new Question( 'Site URL (' . $site['site_url'] . ' is the site URL in the snapshot): ' );
 						$site_question->setValidator( $url_validator );
 
 						$new_site_url = $helper->ask( $input, $output, $site_question );
@@ -514,10 +495,10 @@ class Pull extends Command {
 					/**
 					 * Update multisite stuff for each blog
 					 */
-					$wpdb->query( $wpdb->prepare( 'UPDATE ' . $GLOBALS['table_prefix'] . "blogs SET path='%s', domain='%s' WHERE blog_id='%d'", esc_sql( $site['path'] ), esc_sql( $domain ), (int) $site['blog_id'] ) );
+					$wpdb->query( $wpdb->prepare( 'UPDATE ' . $GLOBALS['table_prefix'] . "blogs SET path='%s', domain='%s' WHERE blog_id='%d'", esc_sql( parse_url( $new_home_url, PHP_URL_PATH ) ), esc_sql( parse_url( $new_home_url, PHP_URL_HOST ) ), (int) $site['blog_id'] ) );
 
 					/**
-					 * Update all tables except wp_site and wp_blog since we handled that above
+					 * Update all tables except wp_site and wp_blog since we handle that separately
 					 */
 					$blacklist_tables = [ 'site', 'blogs' ];
 					$tables_to_update = [];
@@ -566,7 +547,7 @@ class Pull extends Command {
 					Log::instance()->write(
 						"define('WP_ALLOW_MULTISITE', true);
 define('MULTISITE', true);
-define('SUBDOMAIN_INSTALL', false);
+define('SUBDOMAIN_INSTALL', " . ( $snapshot->meta['subdomain_install'] ) ? 'true' : 'false' ) . ");
 define('DOMAIN_CURRENT_SITE', '" . $main_domain . "');
 define('PATH_CURRENT_SITE', '/');
 define('SITE_ID_CURRENT_SITE', 1);
@@ -580,12 +561,12 @@ define('BLOG_ID_CURRENT_SITE', 1);"
 					$new_home_url = $site_mapping[0]['home_url'];
 					$new_site_url = $site_mapping[0]['site_url'];
 				} else {
-					$home_question = new Question( 'Home URL' . ( ( ! empty( $pre_update_home_url ) ) ? ' (' . $pre_update_home_url . ' is recommended)' : '' ) . ': ', $pre_update_home_url );
+					$home_question = new Question( 'Home URL (' . $snapshot->meta['sites'][0]['home_url'] . ' is the home URL in the snapshot): ' );
 					$home_question->setValidator( $url_validator );
 
 					$new_home_url = $helper->ask( $input, $output, $home_question );
 
-					$site_question = new Question( 'Site URL' . ( ( ! empty( $pre_update_site_url ) ) ? ' (' . $pre_update_site_url . ' is recommended)' : '' ) . ': ', $pre_update_site_url );
+					$site_question = new Question( 'Site URL (' . $snapshot->meta['sites'][0]['site_url'] . ' is the site URL in the snapshot): ' );
 					$site_question->setValidator( $url_validator );
 
 					$new_site_url = $helper->ask( $input, $output, $site_question );
@@ -598,6 +579,8 @@ define('BLOG_ID_CURRENT_SITE', 1);"
 				if ( $snapshot->meta['sites'][0]['home_url'] !== $snapshot->meta['sites'][0]['site_url'] ) {
 					new SearchReplace( $snapshot->meta['sites'][0]['site_url'], $new_site_url );
 				}
+
+				Log::instance()->write( 'URLs replaced.' );
 			}
 		}
 
