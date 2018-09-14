@@ -178,12 +178,14 @@ class Snapshot {
 					'path'     => $site->path,
 					'site_url' => get_site_url( $site->blog_id ),
 					'home_url' => get_home_url( $site->blog_id ),
+					'blogname' => get_blog_option( $site->blog_id, 'blogname' ),
 				];
 			}
 		} else {
 			$meta['sites'][] = [
 				'site_url' => get_site_url(),
 				'home_url' => get_home_url(),
+				'blogname' => get_option( 'blogname' ),
 			];
 		}
 
