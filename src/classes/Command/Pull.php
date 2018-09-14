@@ -345,7 +345,7 @@ class Pull extends Command {
 					 * Update this table to use the current config prefix
 					 */
 					$new_table = $GLOBALS['table_prefix'] . str_replace( $snapshot->meta['table_prefix'], '', $table );
-					$wpdb->query( $wpdb->prepare( 'RENAME TABLE `%s` TO `%s`', esc_sql( $table ), esc_sql( $new_table ) ) );
+					$wpdb->query( sprintf( 'RENAME TABLE `%s` TO `%s`', esc_sql( $table ), esc_sql( $new_table ) ) );
 				}
 			}
 		}
