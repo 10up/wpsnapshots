@@ -153,15 +153,20 @@ class Snapshot {
 			$meta['author']['email'] = $config['email'];
 		}
 
-		$meta['multisite']         = false;
-		$meta['subdomain_install'] = false;
-		$meta['sites']             = [];
+		$meta['multisite']           = false;
+		$meta['subdomain_install']   = false;
+		$meta['domain_current_site'] = false;
+		$meta['sites']               = [];
 
 		if ( is_multisite() ) {
 			$meta['multisite'] = true;
 
 			if ( defined( 'SUBDOMAIN_INSTALL' ) && SUBDOMAIN_INSTALL ) {
 				$meta['subdomain_install'] = true;
+			}
+
+			if ( defined( 'DOMAIN_CURRENT_SITE' ) ) {
+				$meta['domain_current_site'] = DOMAIN_CURRENT_SITE;
 			}
 
 			$sites = get_sites( [ 'number' => 500 ] );
