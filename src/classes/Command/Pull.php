@@ -440,6 +440,11 @@ class Pull extends Command {
 				$used_home_urls = [];
 				$used_site_urls = [];
 
+				// Make WP realize we are in multisite now
+				if ( ! defined( 'MULTISITE' ) ) {
+					define( 'MULTISITE', true );
+				}
+
 				if ( empty( $snapshot->meta['subdomain_install'] ) ) {
 					Log::instance()->write( 'Multisite installation (path based install) detected.' );
 				} else {
@@ -521,7 +526,7 @@ class Pull extends Command {
 						}
 					}
 
-					if ( ! empty( $first_home_url ) ) {
+					if ( empty( $first_home_url ) ) {
 						$first_home_url = $new_home_url;
 					}
 
@@ -530,7 +535,7 @@ class Pull extends Command {
 
 					Log::instance()->write( 'Updating blogs table...', 1 );
 
-					$home_path = parse_url( $new_home_url, PHP_URL_PATH );
+					$home_path = trailingslashit( parse_url( $new_home_url, PHP_URL_PATH ) );
 					if ( empty( $home_path ) ) {
 						$home_path = '/';
 					}
@@ -584,17 +589,32 @@ class Pull extends Command {
 				 */
 				$wpdb->query( $wpdb->prepare( 'UPDATE ' . $current_table_prefix . 'site SET domain=%s', $main_domain ) );
 
-				if ( ! defined( 'BLOG_ID_CURRENT_SITE' ) || ! defined( 'SITE_ID_CURRENT_SITE' ) || ! defined( 'PATH_CURRENT_SITE' ) || ! defined( 'MULTISITE' ) || ! MULTISITE || ! defined( 'DOMAIN_CURRENT_SITE' ) || DOMAIN_CURRENT_SITE !== $main_domain || ! defined( 'SUBDOMAIN_INSTALL' ) || SUBDOMAIN_INSTALL !== $snapshot->meta['subdomain_install'] ) {
+				if (
+					! defined( 'BLOG_ID_CURRENT_SITE' )
+					|| ( ! empty( $snapshot->meta['blog_id_current_site'] ) && BLOG_ID_CURRENT_SITE !== (int) $snapshot->meta['blog_id_current_site'] )
+					|| ! defined( 'SITE_ID_CURRENT_SITE' )
+					|| ( ! empty( $snapshot->meta['site_id_current_site'] ) && SITE_ID_CURRENT_SITE !== (int) $snapshot->meta['site_id_current_site'] )
+					|| ! defined( 'PATH_CURRENT_SITE' )
+					|| ( ! empty( $snapshot->meta['path_current_site'] ) && PATH_CURRENT_SITE !== $snapshot->meta['path_current_site'] )
+					|| ! defined( 'MULTISITE' )
+					|| ! MULTISITE
+					|| ! defined( 'DOMAIN_CURRENT_SITE' )
+					|| DOMAIN_CURRENT_SITE !== $main_domain
+					|| ! defined( 'SUBDOMAIN_INSTALL' )
+					|| SUBDOMAIN_INSTALL !== $snapshot->meta['subdomain_install']
+				) {
 
 					Log::instance()->write( 'URLs replaced. Since you are running multisite, the following code should be in your wp-config.php file:', 0, 'warning' );
 					Log::instance()->write(
 						"define('WP_ALLOW_MULTISITE', true);
 define('MULTISITE', true);
-define('SUBDOMAIN_INSTALL', " . ( ! empty( $snapshot->meta['subdomain_install'] ) ? 'true' : 'false' ) . ");
+define('SUBDOMAIN_INSTALL', " . ( ( ! empty( $snapshot->meta['subdomain_install'] ) ) ? 'true' : 'false' ) . ");
 define('DOMAIN_CURRENT_SITE', '" . $main_domain . "');
-define('PATH_CURRENT_SITE', '/');
-define('SITE_ID_CURRENT_SITE', 1);
-define('BLOG_ID_CURRENT_SITE', 1);"
+define('PATH_CURRENT_SITE', '" . ( ( ! empty( $snapshot->meta['path_current_site'] ) ) ? $snapshot->meta['path_current_site'] : '/' ) . "');
+define('SITE_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['site_id_current_site'] ) ) ? $snapshot->meta['site_id_current_site'] : '1' ) . ");
+define('BLOG_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['blog_id_current_site'] ) ) ? $snapshot->meta['blog_id_current_site'] : '1' ) . ');',
+						0,
+						'success'
 					);
 				} else {
 					Log::instance()->write( 'URLs replaced.' );
@@ -657,8 +677,26 @@ define('BLOG_ID_CURRENT_SITE', 1);"
 
 		$user_id = wp_insert_user( $user_args );
 
-		if ( is_multisite() ) {
-			grant_super_admin( $user_id );
+		if ( ! empty( $snapshot->meta['multisite'] ) ) {
+			$site_admins_rows = $wpdb->get_results( 'SELECT * FROM ' . Utils\esc_sql_name( $current_table_prefix . 'sitemeta' ) . ' WHERE meta_key="site_admins"', ARRAY_A );
+
+			if ( ! empty( $site_admins_rows ) ) {
+				foreach ( $site_admins_rows as $site_admin_row ) {
+					$admins = unserialize( $site_admin_row['meta_value'] );
+
+					$admins[] = 'wpsnapshots';
+
+					$wpdb->update(
+						$current_table_prefix . 'sitemeta',
+						[
+							'meta_value' => serialize( $admins ),
+						],
+						[
+							'meta_id' => $site_admin_row['meta_id'],
+						]
+					);
+				}
+			}
 		}
 
 		Log::instance()->write( 'Pull finished.', 0, 'success' );

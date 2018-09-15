@@ -498,6 +498,16 @@ function assoc_args_to_str( $assoc_args ) {
 }
 
 /**
+ * Escape sql name e.g. table name
+ *
+ * @param  string $name Name to escape
+ * @return string
+ */
+function esc_sql_name( $name ) {
+	return preg_replace( '#["\'`]#', '', $name );
+}
+
+/**
  * Format bytes to pretty file size
  *
  * @param  int $size     Number of bytes
