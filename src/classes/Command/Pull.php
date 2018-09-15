@@ -333,10 +333,14 @@ class Pull extends Command {
 
 		global $wpdb;
 
+		$main_blog_id = ( defined( 'BLOG_ID_CURRENT_SITE' ) ) ? BLOG_ID_CURRENT_SITE : null;
+
+		$current_table_prefix = $wpdb->get_blog_prefix( $main_blog_id );
+
 		/**
 		 * First update table prefixes
 		 */
-		if ( ! empty( $snapshot->meta['table_prefix'] ) && ! empty( $GLOBALS['table_prefix'] ) && $snapshot->meta['table_prefix'] !== $GLOBALS['table_prefix'] ) {
+		if ( ! empty( $snapshot->meta['table_prefix'] ) && ! empty( $current_table_prefix ) && $snapshot->meta['table_prefix'] !== $current_table_prefix ) {
 			Log::instance()->write( 'Renaming WordPress tables...' );
 
 			foreach ( $all_tables as $table ) {
@@ -344,7 +348,7 @@ class Pull extends Command {
 					/**
 					 * Update this table to use the current config prefix
 					 */
-					$new_table = $GLOBALS['table_prefix'] . str_replace( $snapshot->meta['table_prefix'], '', $table );
+					$new_table = $current_table_prefix . str_replace( $snapshot->meta['table_prefix'], '', $table );
 					$wpdb->query( sprintf( 'RENAME TABLE `%s` TO `%s`', esc_sql( $table ), esc_sql( $new_table ) ) );
 				}
 			}
@@ -519,7 +523,7 @@ class Pull extends Command {
 					/**
 					 * Update multisite stuff for each blog
 					 */
-					$wpdb->query( $wpdb->prepare( 'UPDATE ' . $GLOBALS['table_prefix'] . 'blogs SET path=%s, domain=%s WHERE blog_id=%d', parse_url( $new_home_url, PHP_URL_PATH ), parse_url( $new_home_url, PHP_URL_HOST ), (int) $site['blog_id'] ) );
+					$wpdb->query( $wpdb->prepare( 'UPDATE ' . $current_table_prefix . 'blogs SET path=%s, domain=%s WHERE blog_id=%d', parse_url( $new_home_url, PHP_URL_PATH ), parse_url( $new_home_url, PHP_URL_HOST ), (int) $site['blog_id'] ) );
 
 					/**
 					 * Update all tables except wp_site and wp_blog since we handle that separately
@@ -529,14 +533,14 @@ class Pull extends Command {
 
 					foreach ( $wp_tables as $table ) {
 						if ( 1 === (int) $site['blog_id'] ) {
-							if ( preg_match( '#^' . $GLOBALS['table_prefix'] . '#', $table ) && ! preg_match( '#^' . $GLOBALS['table_prefix'] . '[0-9]+_#', $table ) ) {
-								if ( ! in_array( str_replace( $GLOBALS['table_prefix'], '', $table ), $blacklist_tables ) ) {
+							if ( preg_match( '#^' . $current_table_prefix . '#', $table ) && ! preg_match( '#^' . $current_table_prefix . '[0-9]+_#', $table ) ) {
+								if ( ! in_array( str_replace( $current_table_prefix, '', $table ), $blacklist_tables ) ) {
 									$tables_to_update[] = $table;
 								}
 							}
 						} else {
-							if ( preg_match( '#^' . $GLOBALS['table_prefix'] . $site['blog_id'] . '_#', $table ) ) {
-								$raw_table = str_replace( $GLOBALS['table_prefix'] . $site['blog_id'] . '_', '', $table );
+							if ( preg_match( '#^' . $current_table_prefix . $site['blog_id'] . '_#', $table ) ) {
+								$raw_table = str_replace( $current_table_prefix . $site['blog_id'] . '_', '', $table );
 
 								if ( ! in_array( $raw_table, $blacklist_tables ) ) {
 									$tables_to_update[] = $table;
@@ -563,7 +567,7 @@ class Pull extends Command {
 				/**
 				 * Update site domain with main domain
 				 */
-				$wpdb->query( $wpdb->prepare( 'UPDATE ' . $GLOBALS['table_prefix'] . 'site SET domain=%s', $main_domain ) );
+				$wpdb->query( $wpdb->prepare( 'UPDATE ' . $current_table_prefix . 'site SET domain=%s', $main_domain ) );
 
 				if ( ! defined( 'BLOG_ID_CURRENT_SITE' ) || ! defined( 'SITE_ID_CURRENT_SITE' ) || ! defined( 'PATH_CURRENT_SITE' ) || ! defined( 'MULTISITE' ) || ! MULTISITE || ! defined( 'DOMAIN_CURRENT_SITE' ) || DOMAIN_CURRENT_SITE !== $main_domain || ! defined( 'SUBDOMAIN_INSTALL' ) || SUBDOMAIN_INSTALL !== $snapshot->meta['subdomain_install'] ) {
 

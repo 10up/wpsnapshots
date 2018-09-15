@@ -204,7 +204,9 @@ class Snapshot {
 			];
 		}
 
-		$meta['table_prefix'] = $GLOBALS['table_prefix'];
+		$main_blog_id = ( defined( 'BLOG_ID_CURRENT_SITE' ) ) ? BLOG_ID_CURRENT_SITE : null;
+
+		$meta['table_prefix'] = $wpdb->get_blog_prefix( $main_blog_id );
 
 		global $wp_version;
 
