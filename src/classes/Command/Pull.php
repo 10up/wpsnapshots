@@ -461,7 +461,13 @@ class Pull extends Command {
 				if ( ! empty( $snapshot_main_domain ) ) {
 					$main_domain_question = new Question( 'Main domain (the main domain in the snapshot is ' . $snapshot_main_domain . '): ' );
 				} else {
-					$main_domain_question = new Question( 'Main domain (mysite.test for example): ' );
+					$example_site = 'mysite.test';
+
+					if ( ! empty( $snapshot->meta['sites'][0]['home_url'] ) ) {
+						$example_site = parse_url( $snapshot->meta['sites'][0]['home_url'], PHP_URL_HOST );
+					}
+
+					$main_domain_question = new Question( 'Main domain (' . $example_site . ' for example): ' );
 				}
 
 				$main_domain_question->setValidator(
@@ -520,10 +526,15 @@ class Pull extends Command {
 
 					Log::instance()->write( 'Updating blogs table...', 1 );
 
+					$home_path = parse_url( $new_home_url, PHP_URL_PATH );
+					if ( empty( $home_path ) ) {
+						$home_path = '/';
+					}
+
 					/**
 					 * Update multisite stuff for each blog
 					 */
-					$wpdb->query( $wpdb->prepare( 'UPDATE ' . $current_table_prefix . 'blogs SET path=%s, domain=%s WHERE blog_id=%d', parse_url( $new_home_url, PHP_URL_PATH ), parse_url( $new_home_url, PHP_URL_HOST ), (int) $site['blog_id'] ) );
+					$wpdb->query( $wpdb->prepare( 'UPDATE ' . $current_table_prefix . 'blogs SET path=%s, domain=%s WHERE blog_id=%d', $home_path, parse_url( $new_home_url, PHP_URL_HOST ), (int) $site['blog_id'] ) );
 
 					/**
 					 * Update all tables except wp_site and wp_blog since we handle that separately
@@ -615,8 +626,8 @@ define('BLOG_ID_CURRENT_SITE', 1);"
 		/**
 		 * Cleaning up decompressed files
 		 */
-		unlink( $snapshot_path . 'wp.tar.gz' );
-		unlink( $snapshot_path . 'data.sql' );
+		@unlink( $snapshot_path . 'wp.tar.gz' );
+		@unlink( $snapshot_path . 'data.sql' );
 
 		Log::instance()->write( 'Pull finished.', 0, 'success' );
 	}
