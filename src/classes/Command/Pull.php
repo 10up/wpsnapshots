@@ -521,6 +521,10 @@ class Pull extends Command {
 						}
 					}
 
+					if ( ! empty( $first_home_url ) ) {
+						$first_home_url = $new_home_url;
+					}
+
 					$used_home_urls[] = $new_home_url;
 					$used_site_urls[] = $new_site_url;
 
@@ -611,6 +615,8 @@ define('BLOG_ID_CURRENT_SITE', 1);"
 					$new_site_url = $helper->ask( $input, $output, $site_question );
 				}
 
+				$first_home_url = $new_home_url;
+
 				Log::instance()->write( 'Running replacement... This may take awhile depending on the size of the database.' );
 
 				new SearchReplace( $snapshot->meta['sites'][0]['home_url'], $new_home_url );
@@ -626,10 +632,38 @@ define('BLOG_ID_CURRENT_SITE', 1);"
 		/**
 		 * Cleaning up decompressed files
 		 */
+		Log::instance()->write( 'Cleaning up temporary files...', 1 );
+
 		@unlink( $snapshot_path . 'wp.tar.gz' );
 		@unlink( $snapshot_path . 'data.sql' );
 
+		/**
+		 * Create wpsnapshots user
+		 */
+		Log::instance()->write( 'Cleaning wpsnapshots user...', 1 );
+
+		$user = get_user_by( 'login', 'wpsnapshots' );
+
+		$user_args = [
+			'user_login' => 'wpsnapshots',
+			'user_pass'  => 'password',
+			'user_email' => 'wpsnapshots@wpsnapshots.test',
+			'role'       => 'administrator',
+		];
+
+		if ( ! empty( $user ) ) {
+			$user_args['ID'] = $user->ID;
+		}
+
+		$user_id = wp_insert_user( $user_args );
+
+		if ( is_multisite() ) {
+			grant_super_admin( $user_id );
+		}
+
 		Log::instance()->write( 'Pull finished.', 0, 'success' );
+		Log::instance()->write( 'Visit in your browser: ' . $first_home_url, 0, 'success' );
+		Log::instance()->write( 'Admin login: username - "wpsnapshots", password - "password"', 0, 'success' );
 	}
 
 }
