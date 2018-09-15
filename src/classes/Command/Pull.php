@@ -306,7 +306,7 @@ class Pull extends Command {
 			Log::instance()->write( 'Could not set MySQL max_allowed_packet. If MySQL import fails, try running WP Snapshots using root DB user.', 0, 'warning' );
 		}
 
-		Log::instance()->write( 'Updating database... This may take awhile depending on the size of the database (' . Utils\format_bytes( filesize( $snapshot_path . 'data.sql' ) ) . ')' );
+		Log::instance()->write( 'Updating database. This may take awhile depending on the size of the database (' . Utils\format_bytes( filesize( $snapshot_path . 'data.sql' ) ) . ')...' );
 		$query = 'SET autocommit = 0; SET unique_checks = 0; SET foreign_key_checks = 0; SOURCE %s; COMMIT;';
 
 		$args = array(
@@ -425,7 +425,7 @@ class Pull extends Command {
 			$url_validator = function( $answer ) {
 				if ( '' === trim( $answer ) || false !== strpos( $answer, ' ' ) || ! preg_match( '#https?:#i', $answer ) ) {
 					throw new \RuntimeException(
-						'URL is not valid. Should be prefixed with http and contain no spaces.'
+						'URL is not valid. Should be prefixed with http(s) and contain no spaces.'
 					);
 				}
 
@@ -433,8 +433,11 @@ class Pull extends Command {
 			};
 
 			if ( ! empty( $snapshot->meta['multisite'] ) ) {
+				$used_home_urls = [];
+				$used_site_urls = [];
+
 				if ( empty( $snapshot->meta['subdomain_install'] ) ) {
-					Log::instance()->write( 'Multisite installation (path based install) detected. Paths will be maintained.' );
+					Log::instance()->write( 'Multisite installation (path based install) detected.' );
 				} else {
 					Log::instance()->write( 'Multisite installation (subdomain based install) detected.' );
 				}
@@ -484,11 +487,32 @@ class Pull extends Command {
 
 						$new_home_url = $helper->ask( $input, $output, $home_question );
 
+						while ( in_array( $new_home_url, $used_home_urls, true ) ) {
+							Log::instance()->write( 'Sorry, that home URL is already taken by another site.', 0, 'error' );
+
+							$home_question = new Question( 'Home URL (' . $site['home_url'] . ' is the home URL in the snapshot): ' );
+							$home_question->setValidator( $url_validator );
+
+							$new_home_url = $helper->ask( $input, $output, $home_question );
+						}
+
 						$site_question = new Question( 'Site URL (' . $site['site_url'] . ' is the site URL in the snapshot): ' );
 						$site_question->setValidator( $url_validator );
 
 						$new_site_url = $helper->ask( $input, $output, $site_question );
+
+						while ( in_array( $new_site_url, $used_site_urls, true ) ) {
+							Log::instance()->write( 'Sorry, that site URL is already taken by another site.', 0, 'error' );
+
+							$site_question = new Question( 'Site URL (' . $site['site_url'] . ' is the site URL in the snapshot): ' );
+							$site_question->setValidator( $url_validator );
+
+							$new_site_url = $helper->ask( $input, $output, $site_question );
+						}
 					}
+
+					$used_home_urls[] = $new_home_url;
+					$used_site_urls[] = $new_site_url;
 
 					Log::instance()->write( 'Updating blogs table...', 1 );
 

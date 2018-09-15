@@ -153,10 +153,13 @@ class Snapshot {
 			$meta['author']['email'] = $config['email'];
 		}
 
-		$meta['multisite']           = false;
-		$meta['subdomain_install']   = false;
-		$meta['domain_current_site'] = false;
-		$meta['sites']               = [];
+		$meta['multisite']            = false;
+		$meta['subdomain_install']    = false;
+		$meta['domain_current_site']  = false;
+		$meta['path_current_site']    = false;
+		$meta['site_id_current_site'] = false;
+		$meta['blog_id_current_site'] = false;
+		$meta['sites']                = [];
 
 		if ( is_multisite() ) {
 			$meta['multisite'] = true;
@@ -167,6 +170,18 @@ class Snapshot {
 
 			if ( defined( 'DOMAIN_CURRENT_SITE' ) ) {
 				$meta['domain_current_site'] = DOMAIN_CURRENT_SITE;
+			}
+
+			if ( defined( 'PATH_CURRENT_SITE' ) ) {
+				$meta['path_current_site'] = PATH_CURRENT_SITE;
+			}
+
+			if ( defined( 'SITE_ID_CURRENT_SITE' ) ) {
+				$meta['site_id_current_site'] = SITE_ID_CURRENT_SITE;
+			}
+
+			if ( defined( 'BLOG_ID_CURRENT_SITE' ) ) {
+				$meta['blog_id_current_site'] = BLOG_ID_CURRENT_SITE;
 			}
 
 			$sites = get_sites( [ 'number' => 500 ] );
