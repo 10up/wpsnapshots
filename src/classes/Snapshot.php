@@ -408,7 +408,7 @@ class Snapshot {
 			return false;
 		}
 
-		Log::instance()->write( 'Downloading snapshot files and database...' );
+		Log::instance()->write( 'Downloading snapshot files and database (' . Utils\format_bytes( $snapshot['size'] ) . ')...' );
 
 		$snapshot_path = Utils\get_snapshot_directory() . $id . '/';
 
@@ -461,7 +461,7 @@ class Snapshot {
 		/**
 		 * Put files to S3
 		 */
-		Log::instance()->write( 'Uploading files...' );
+		Log::instance()->write( 'Uploading files (' . Utils\format_bytes( $this->meta['size'] ) . ')...' );
 
 		$s3_add = Connection::instance()->s3->putSnapshot( $this->id, $this->meta['project'], Utils\get_snapshot_directory() . $this->id . '/data.sql.gz', Utils\get_snapshot_directory() . $this->id . '/files.tar.gz' );
 

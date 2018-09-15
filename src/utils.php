@@ -498,6 +498,20 @@ function assoc_args_to_str( $assoc_args ) {
 }
 
 /**
+ * Format bytes to pretty file size
+ *
+ * @param  int $size     Number of bytes
+ * @param  int $precision Decimal precision
+ * @return string
+ */
+function format_bytes( $size, $precision = 2 ) {
+	$base     = log( $size, 1024 );
+	$suffixes = [ '', 'KB', 'MB', 'GB', 'TB' ];
+
+	return round( pow( 1024, $base - floor( $base ) ), $precision ) . ' ' . $suffixes[ floor( $base ) ];
+}
+
+/**
  * Determine if proc is available
  *
  * @return bool

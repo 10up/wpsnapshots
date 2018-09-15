@@ -306,7 +306,7 @@ class Pull extends Command {
 			Log::instance()->write( 'Could not set MySQL max_allowed_packet. If MySQL import fails, try running WP Snapshots using root DB user.', 0, 'warning' );
 		}
 
-		Log::instance()->write( 'Updating database... This may take awhile depending on the size of the database.' );
+		Log::instance()->write( 'Updating database... This may take awhile depending on the size of the database (' . Utils\format_bytes( filesize( $snapshot_path . 'data.sql' ) ) . ')' );
 		$query = 'SET autocommit = 0; SET unique_checks = 0; SET foreign_key_checks = 0; SOURCE %s; COMMIT;';
 
 		$args = array(
@@ -583,6 +583,12 @@ define('BLOG_ID_CURRENT_SITE', 1);"
 				Log::instance()->write( 'URLs replaced.' );
 			}
 		}
+
+		/**
+		 * Cleaning up decompressed files
+		 */
+		unlink( $snapshot_path . 'wp.tar.gz' );
+		unlink( $snapshot_path . 'data.sql' );
 
 		Log::instance()->write( 'Pull finished.', 0, 'success' );
 	}
