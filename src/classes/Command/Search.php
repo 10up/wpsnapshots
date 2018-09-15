@@ -35,20 +35,6 @@ class Search extends Command {
 	}
 
 	/**
-	 * Pretty format bytes
-	 *
-	 * @param  int  $size Size in bytes
-	 * @param  inte $precision Precision level
-	 * @return string
-	 */
-	protected function formatBytes( $size, $precision = 2 ) {
-		$base     = log( $size, 1000 );
-		$suffixes = [ '', 'KB', 'MB', 'GB', 'TB' ];
-
-		return round( pow( 1000, $base - floor( $base ) ), $precision ) . ' ' . $suffixes[ floor( $base ) ];
-	}
-
-	/**
 	 * Executes the command
 	 *
 	 * @param  InputInterface  $input Command input
@@ -83,7 +69,7 @@ class Search extends Command {
 		}
 
 		$table = new Table( $output );
-		$table->setHeaders( [ 'ID', 'Project', 'Description', 'Author', 'Size', 'Created' ] );
+		$table->setHeaders( [ 'ID', 'Project', 'Description', 'Author', 'Size', 'Multisite', 'Created' ] );
 
 		$rows = [];
 
@@ -97,7 +83,8 @@ class Search extends Command {
 				'project'     => ( ! empty( $instance['project'] ) ) ? $instance['project'] : '',
 				'description' => ( ! empty( $instance['description'] ) ) ? $instance['description'] : '',
 				'author'      => ( ! empty( $instance['author']['name'] ) ) ? $instance['author']['name'] : '',
-				'size'        => ( ! empty( $instance['size'] ) ) ? $this->formatBytes( (int) $instance['size'] ) : '',
+				'size'        => ( ! empty( $instance['size'] ) ) ? Utils\format_bytes( (int) $instance['size'] ) : '',
+				'multisite'   => ( ! empty( $instance['multisite'] ) ) ? 'Yes' : 'No',
 				'created'     => ( ! empty( $instance['time'] ) ) ? date( 'F j, Y, g:i a', $instance['time'] ) : '',
 			];
 		}
