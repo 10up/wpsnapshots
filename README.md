@@ -118,3 +118,18 @@ WP Snapshots relies on AWS for access management. Each snapshot is associated wi
 ## Windows
 
 WP Snapshots has been used successfully inside [Windows Subsystem for Linux](https://msdn.microsoft.com/en-us/commandline/wsl/install-win10).
+
+# Changelog
+
+* 1.2
+  - Merge `feature/create` branch
+  - Add commands for create and download
+  - Snapshot caching
+  - Move config file to `~/.wpsnapshots/config.json`
+  - Save meta.json file inside snapshot directory with snapshot data
+  - Abstract out `Snapshot` class to make programmatic interaction with WP Snapshots easier.
+  - PHPCS standardization and fixes
+  - Properly test MySQL connection before bootstrapping WordPress.
+  - Multisite pull changes: should URLs inside existing snapshots, make sure type full URLs instead of paths
+  - Store all multisite data in snapshot
+  - Store blog name in snapshot

@@ -1,4 +1,9 @@
 <?php
+/**
+ * Configure command
+ *
+ * @package wpsnapshots
+ */
 
 namespace WPSnapshots\Command;
 
@@ -12,6 +17,7 @@ use Symfony\Component\Console\Question\Question;
 use WPSnapshots\Config;
 use WPSnapshots\Utils;
 use WPSnapshots\S3;
+use WPSnapshots\Log;
 
 
 /**
@@ -36,14 +42,16 @@ class Configure extends Command {
 	/**
 	 * Execute command
 	 *
-	 * @param  InputInterface  $input
-	 * @param  OutputInterface $output
+	 * @param  InputInterface  $input Command input
+	 * @param  OutputInterface $output Command output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
+		Log::instance()->setOutput( $output );
+
 		$repository = $input->getArgument( 'repository' );
 
-		$region = $input->getOption( 'region' );
-		$access_key_id = $input->getOption( 'aws_key' );
+		$region            = $input->getOption( 'region' );
+		$access_key_id     = $input->getOption( 'aws_key' );
 		$secret_access_key = $input->getOption( 'aws_secret' );
 
 		if ( empty( $region ) ) {
@@ -53,7 +61,7 @@ class Configure extends Command {
 		$config = Config::instance()->get();
 
 		if ( ! Utils\is_error( $config ) ) {
-			$output->writeln( 'Repository config already exists. Proceeding will overwrite it.' );
+			Log::instance()->write( 'Repository config already exists. Proceeding will overwrite it.' );
 		}
 
 		$config = [
@@ -77,9 +85,9 @@ class Configure extends Command {
 				$secret_access_key = $helper->ask( $input, $output, new Question( 'AWS Secret Access Key: ' ) );
 			}
 
-			$config['access_key_id'] = $access_key_id;
+			$config['access_key_id']     = $access_key_id;
 			$config['secret_access_key'] = $secret_access_key;
-			$config['region'] = $region;
+			$config['region']            = $region;
 
 			$test = S3::test( $config );
 
@@ -101,9 +109,17 @@ class Configure extends Command {
 
 		$config = $this->apply_user_to_config( $config, $input, $output );
 
+		$create_dir = Utils\create_snapshot_directory();
+
+		if ( ! $create_dir ) {
+			Log::instance()->write( 'Cannot create necessary snapshot directory.', 0, 'error' );
+
+			return 1;
+		}
+
 		Config::instance()->write( $config );
 
-		$output->writeln( '<info>WP Snapshots configuration verified and saved.</info>' );
+		Log::instance()->write( 'WP Snapshots configuration verified and saved.', 0, 'success' );
 	}
 
 	/**
@@ -117,8 +133,8 @@ class Configure extends Command {
 	 */
 	protected function apply_user_to_config( $config, InputInterface $input, OutputInterface $output ) {
 		$helper = $this->getHelper( 'question' );
-		$name = $input->getOption( 'user_name' );
-		$email = $input->getOption( 'user_email' );
+		$name   = $input->getOption( 'user_name' );
+		$email  = $input->getOption( 'user_email' );
 
 		if ( empty( $name ) ) {
 			$name_question = new Question( 'Your Name: ' );

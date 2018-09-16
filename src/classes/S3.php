@@ -1,4 +1,9 @@
 <?php
+/**
+ * S3 wrapper functionality
+ *
+ * @package wpsnapshots
+ */
 
 namespace WPSnapshots;
 
@@ -6,28 +11,51 @@ use \Aws\S3\S3Client;
 use \Aws\Exception\AwsException;
 use WPSnapshots\Utils;
 
+/**
+ * Handle calls to Amazon S3
+ */
 class S3 {
+	/**
+	 * S3 client
+	 *
+	 * @var S3Client
+	 */
 	private $client;
+
+	/**
+	 * Repository name
+	 *
+	 * @var string
+	 */
 	private $repository;
+
+	/**
+	 * Current S3 region
+	 *
+	 * @var string
+	 */
 	private $region;
 
 	/**
 	 * Setup S3 client
 	 *
-	 * @param array $config
+	 * @param array $config Config array.
 	 */
 	public function __construct( $config ) {
-		$this->client = S3Client::factory( [
-			'credentials' => [
-				'key'    => $config['access_key_id'],
-				'secret' => $config['secret_access_key'],
-			],
-			'signature' => 'v4',
-			'region' => $config['region']
-		] );
+		$this->client = S3Client::factory(
+			[
+				'credentials' => [
+					'key'    => $config['access_key_id'],
+					'secret' => $config['secret_access_key'],
+				],
+				'signature'   => 'v4',
+				'region'      => $config['region'],
+				'version'     => '2006-03-01',
+			]
+		);
 
 		$this->repository = $config['repository'];
-		$this->region = $config['region'];
+		$this->region     = $config['region'];
 	}
 
 	/**
@@ -41,30 +69,38 @@ class S3 {
 	 */
 	public function putSnapshot( $id, $project, $db_path, $files_path ) {
 		try {
-			$db_result = $this->client->putObject( [
-				'Bucket'     => self::getBucketName( $this->repository ),
-				'Key'        => $project . '/' . $id . '/data.sql.gz',
-				'SourceFile' => realpath( $db_path ),
-			] );
+			$db_result = $this->client->putObject(
+				[
+					'Bucket'     => self::getBucketName( $this->repository ),
+					'Key'        => $project . '/' . $id . '/data.sql.gz',
+					'SourceFile' => realpath( $db_path ),
+				]
+			);
 
-			$files_result = $this->client->putObject( [
-				'Bucket'     => self::getBucketName( $this->repository ),
-				'Key'        => $project . '/' . $id . '/files.tar.gz',
-				'SourceFile' => realpath( $files_path ),
-			] );
+			$files_result = $this->client->putObject(
+				[
+					'Bucket'     => self::getBucketName( $this->repository ),
+					'Key'        => $project . '/' . $id . '/files.tar.gz',
+					'SourceFile' => realpath( $files_path ),
+				]
+			);
 
 			/**
 			 * Wait for files first since that will probably take longer
 			 */
-			$this->client->waitUntil( 'ObjectExists', [
-				'Bucket' => self::getBucketName( $this->repository ),
-				'Key'    => $project . '/' . $id . '/files.tar.gz',
-			] );
+			$this->client->waitUntil(
+				'ObjectExists', [
+					'Bucket' => self::getBucketName( $this->repository ),
+					'Key'    => $project . '/' . $id . '/files.tar.gz',
+				]
+			);
 
-			$this->client->waitUntil( 'ObjectExists', [
-				'Bucket' => self::getBucketName( $this->repository ),
-				'Key'    => $project . '/' . $id . '/data.sql.gz',
-			] );
+			$this->client->waitUntil(
+				'ObjectExists', [
+					'Bucket' => self::getBucketName( $this->repository ),
+					'Key'    => $project . '/' . $id . '/data.sql.gz',
+				]
+			);
 		} catch ( \Exception $e ) {
 			$error = [
 				'message'        => $e->getMessage(),
@@ -90,17 +126,21 @@ class S3 {
 	 */
 	public function downloadSnapshot( $id, $project, $db_path, $files_path ) {
 		try {
-			$db_download = $this->client->getObject( [
-			    'Bucket' => self::getBucketName( $this->repository ),
-			    'Key'    => $project . '/' . $id . '/data.sql.gz',
-			    'SaveAs' => $db_path,
-			] );
+			$db_download = $this->client->getObject(
+				[
+					'Bucket' => self::getBucketName( $this->repository ),
+					'Key'    => $project . '/' . $id . '/data.sql.gz',
+					'SaveAs' => $db_path,
+				]
+			);
 
-			$files_download = $this->client->getObject( [
-			    'Bucket' => self::getBucketName( $this->repository ),
-			    'Key'    => $project . '/' . $id . '/files.tar.gz',
-			    'SaveAs' => $files_path,
-			] );
+			$files_download = $this->client->getObject(
+				[
+					'Bucket' => self::getBucketName( $this->repository ),
+					'Key'    => $project . '/' . $id . '/files.tar.gz',
+					'SaveAs' => $files_path,
+				]
+			);
 		} catch ( \Exception $e ) {
 			$error = [
 				'message'        => $e->getMessage(),
@@ -119,25 +159,27 @@ class S3 {
 	 * Delete a snapshot given an id
 	 *
 	 * @param  string $id Snapshot id
-	 * @param  string $project
+	 * @param  string $project Project name
 	 * @return bool|error
 	 */
 	public function deleteSnapshot( $id, $project ) {
 		try {
-			$result = $this->client->deleteObjects( [
-				'Bucket' => self::getBucketName( $this->repository ),
-				'Objects' => [
-					[
-						'Key' => $project . '/' . $id . '/files.tar.gz',
+			$result = $this->client->deleteObjects(
+				[
+					'Bucket'  => self::getBucketName( $this->repository ),
+					'Objects' => [
+						[
+							'Key' => $project . '/' . $id . '/files.tar.gz',
+						],
+						[
+							'Key' => $project . '/' . $id . '/data.sql',
+						],
+						[
+							'Key' => $project . '/' . $id . '/data.sql.gz',
+						],
 					],
-					[
-						'Key' => $project . '/' . $id . '/data.sql',
-					],
-					[
-						'Key' => $project . '/' . $id . '/data.sql.gz',
-					],
-				],
-			] );
+				]
+			);
 		} catch ( \Exception $e ) {
 			$error = [
 				'message'        => $e->getMessage(),
@@ -152,6 +194,12 @@ class S3 {
 		return true;
 	}
 
+	/**
+	 * Get bucket name
+	 *
+	 * @param  string $repository Repository name
+	 * @return string
+	 */
 	public static function getBucketName( $repository ) {
 		return 'wpsnapshots-' . $repository;
 	}
@@ -159,16 +207,18 @@ class S3 {
 	/**
 	 * Test S3 connection by attempting to list S3 objects.
 	 *
-	 * @param  array $creds
+	 * @param  array $config Config array
 	 * @return bool|Error
 	 */
 	public static function test( $config ) {
-		$client = S3Client::factory( [
-			'credentials' => [
-				'key'    => $config['access_key_id'],
-				'secret' => $config['secret_access_key'],
-			],
-		] );
+		$client = S3Client::factory(
+			[
+				'credentials' => [
+					'key'    => $config['access_key_id'],
+					'secret' => $config['secret_access_key'],
+				],
+			]
+		);
 
 		$bucket_name = self::getBucketName( $config['repository'] );
 
@@ -222,10 +272,12 @@ class S3 {
 		}
 
 		try {
-			$result = $this->client->createBucket( [
-				'Bucket'             => self::getBucketName( $this->repository ),
-				'LocationConstraint' => $this->region,
-			] );
+			$result = $this->client->createBucket(
+				[
+					'Bucket'             => self::getBucketName( $this->repository ),
+					'LocationConstraint' => $this->region,
+				]
+			);
 		} catch ( \Exception $e ) {
 			$error = [
 				'message'        => $e->getMessage(),

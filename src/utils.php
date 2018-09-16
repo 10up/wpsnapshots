@@ -1,4 +1,9 @@
 <?php
+/**
+ * Utility functions
+ *
+ * @package  wpsnapshots
+ */
 
 namespace WPSnapshots\Utils;
 
@@ -6,13 +11,38 @@ use WPSnapshots\Error;
 use Requests;
 
 /**
+ * Test MySQL connection
+ *
+ * @param  string $host     DB host
+ * @param  string $database DB name
+ * @param  string $user     User
+ * @param  string $password Password
+ * @return bool
+ */
+function test_mysql_connection( $host, $database, $user, $password ) {
+	$mysqli = mysqli_init();
+
+	return ( ! @$mysqli->real_connect( $host, $user, $password, $database ) ) ? mysqli_connect_error() : true;
+}
+
+/**
  * Check if object is of type Error
  *
- * @param  Object $obj
+ * @param  Object $obj Object to check
  * @return boolean
  */
 function is_error( $obj ) {
 	return ( $obj instanceof Error );
+}
+
+/**
+ * Add trailing slash to path
+ *
+ * @param  string $path Path
+ * @return string
+ */
+function trailingslash( $path ) {
+	return rtrim( $path, '/' ) . '/';
 }
 
 /**
@@ -23,8 +53,9 @@ function is_error( $obj ) {
  * ~/
  * ./test/
  * ~/test
+ * test
  *
- * @param  string $path
+ * @param  string $path Path to normalize
  * @return string
  */
 function normalize_path( $path ) {
@@ -34,8 +65,18 @@ function normalize_path( $path ) {
 		return $path;
 	}
 
-	if ( '/' !== substr( $path, -1 ) ) {
-		$path .= '/';
+	/**
+	 * Prepend ./ to non absolute paths
+	 */
+	if ( preg_match( '#[^\./\\\~]#i', substr( $path, 0, 1 ) ) ) {
+		$path = './' . $path;
+	}
+
+	/**
+	 * Make non-absolute path absolute
+	 */
+	if ( './' === substr( $path, 0, 2 ) ) {
+		$path = rtrim( getcwd(), '/' ) . '/' . substr( $path, 2 );
 	}
 
 	/**
@@ -49,13 +90,13 @@ function normalize_path( $path ) {
 		$path = $home . $path;
 	}
 
-	return $path;
+	return trailingslash( $path );
 }
 
 /**
  * Escape a path that will be passed to a shell
  *
- * @param  string $path
+ * @param  string $path Path to escape
  * @return string
  */
 function escape_shell_path( $path ) {
@@ -65,7 +106,8 @@ function escape_shell_path( $path ) {
 /**
  * Validator for Symfony Question
  *
- * @param  string $answer
+ * @param  string $answer Answer to check
+ * @throws \RuntimeException Exception to throw if answer isn't valid.
  * @return string
  */
 function not_empty_validator( $answer ) {
@@ -81,7 +123,8 @@ function not_empty_validator( $answer ) {
 /**
  * Validator for slugs
  *
- * @param  string $answer
+ * @param  string $answer Answer to validate
+ * @throws \RuntimeException Exception to throw if answer isn't valid.
  * @return string
  */
 function slug_validator( $answer ) {
@@ -97,15 +140,15 @@ function slug_validator( $answer ) {
 /**
  * Create a wp-config.php with constants based on a template file
  *
- * @param  string $path
- * @param  string $path_to_template
- * @param  array  $constants
+ * @param  string $path Path to WP root.
+ * @param  string $path_to_template Path to config template
+ * @param  array  $constants Array of constants
  */
 function create_config_file( $path, $path_to_template, $constants = [] ) {
 	$template = file_get_contents( $path_to_template );
 
 	$template_code = explode( "\n", $template );
-	$new_file = [];
+	$new_file      = [];
 
 	foreach ( $template_code as $line ) {
 		if ( preg_match( '/^\s*require.+wp-settings\.php/', $line ) ) {
@@ -137,8 +180,8 @@ function create_config_file( $path, $path_to_template, $constants = [] ) {
 /**
  * Get download url for WP
  *
- * @param  string $version
- * @param  string $locale
+ * @param  string $version WP version
+ * @param  string $locale Language locale
  * @return string|bool
  */
 function get_download_url( $version = 'latest', $locale = 'en_US' ) {
@@ -187,21 +230,24 @@ function get_download_url( $version = 'latest', $locale = 'en_US' ) {
 /**
  * Is WordPress in the directory?
  *
- * @param  string $path
+ * @param  string $path Path to WordPress directory
  * @return boolean
  */
 function is_wp_present( $path ) {
-	return ( file_exists( $path . 'wp-settings.php' ) );
+	return ( file_exists( trailingslash( $path ) . 'wp-settings.php' ) );
 }
 
 /**
  * Find wp-config.php
  *
+ * @param string $path Path to search for wp-config.php
  * @return string
  */
 function locate_wp_config( $path ) {
+	$path = trailingslash( $path );
+
 	if ( file_exists( $path . 'wp-config.php' ) ) {
-		$path =  $path . 'wp-config.php';
+		$path = $path . 'wp-config.php';
 	} elseif ( file_exists( $path . '../wp-config.php' ) ) {
 		$path = $path . '../wp-config.php';
 	} else {
@@ -212,25 +258,68 @@ function locate_wp_config( $path ) {
 }
 
 /**
- * Remove .wpsnapshots temp folder. The folder stores temporary backup files
+ * Create snapshots cache. Providing an id creates the subdirectory as well.
  *
- * @return Error|bool
+ * @param  string $id Optional ID. Setting this will create the snapshot directory.
+ * @return bool
  */
-function remove_temp_folder( $path ) {
-	$temp_path = $path . '.wpsnapshots';
+function create_snapshot_directory( $id = null ) {
+	if ( ! file_exists( get_snapshot_directory() ) ) {
+		$dir_result = mkdir( get_snapshot_directory(), 0755 );
 
-	if ( file_exists( $temp_path ) ) {
-		try {
-			foreach ( glob( $temp_path . '/{,.}*', GLOB_BRACE ) as $filename ) {
-			    if ( is_file( $filename ) ) {
-			        unlink( $filename );
-			    }
-			}
-
-			rmdir( $temp_path );
-		} catch ( \Exception $e ) {
-			return new Error( 0, 'Could not remove dir' );
+		if ( ! $dir_result ) {
+			return false;
 		}
+	}
+
+	if ( ! is_writable( get_snapshot_directory() ) ) {
+		return false;
+	}
+
+	if ( ! empty( $id ) ) {
+		if ( ! file_exists( get_snapshot_directory() . $id . '/' ) ) {
+			$dir_result = mkdir( get_snapshot_directory() . $id . '/', 0755 );
+
+			if ( ! $dir_result ) {
+				return false;
+			}
+		}
+
+		if ( ! is_writable( get_snapshot_directory() . $id . '/' ) ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Get path to snapshot cache directory with trailing slash
+ *
+ * @return string
+ */
+function get_snapshot_directory() {
+	return rtrim( $_SERVER['HOME'], '/' ) . '/.wpsnapshots/';
+}
+
+/**
+ * Generate unique snapshot ID
+ *
+ * @return string
+ */
+function generate_snapshot_id() {
+	return md5( time() . '' . rand() );
+}
+
+/**
+ * Check if snapshot is in cache
+ *
+ * @param  string $id Snapshot id
+ * @return boolean
+ */
+function is_snapshot_cached( $id ) {
+	if ( ! file_exists( get_snapshot_directory() . $id . '/data.sql.gz' ) || ! file_exists( get_snapshot_directory() . $id . '/files.tar.gz' ) ) {
+		return false;
 	}
 
 	return true;
@@ -239,10 +328,11 @@ function remove_temp_folder( $path ) {
 /**
  * Run MySQL command via proc given associative command line args
  *
- * @param  string $cmd
- * @param  array  $assoc_args
- * @param  string $append
- * @param  bool   $exit_on_error
+ * @param  string $cmd MySQL command
+ * @param  array  $assoc_args Args to pass to MySQL
+ * @param  string $append String to append to command
+ * @param  bool   $exit_on_error Whether to exit on error or not.
+ * @return string
  */
 function run_mysql_command( $cmd, $assoc_args, $append = '', $exit_on_error = true ) {
 	check_proc_available( 'run_mysql_command' );
@@ -281,6 +371,7 @@ function run_mysql_command( $cmd, $assoc_args, $append = '', $exit_on_error = tr
 /**
  * Returns tables
  *
+ * @param  bool $wp Whether to only return WP tables
  * @return array
  */
 function get_tables( $wp = true ) {
@@ -292,7 +383,7 @@ function get_tables( $wp = true ) {
 
 	foreach ( $results as $table_info ) {
 		$table_info = array_values( $table_info );
-		$table = $table_info[0];
+		$table      = $table_info[0];
 
 		if ( $wp ) {
 			if ( 0 === strpos( $table, $GLOBALS['table_prefix'] ) ) {
@@ -309,21 +400,21 @@ function get_tables( $wp = true ) {
 /**
  * Translate mysql host to cli args
  *
- * @param  string $raw_host
+ * @param  string $raw_host Host string
  * @return array
  */
 function mysql_host_to_cli_args( $raw_host ) {
 	$assoc_args = array();
-	$host_parts = explode( ':',  $raw_host );
+	$host_parts = explode( ':', $raw_host );
 
 	if ( count( $host_parts ) == 2 ) {
 		list( $assoc_args['host'], $extra ) = $host_parts;
-		$extra = trim( $extra );
+		$extra                              = trim( $extra );
 
 		if ( is_numeric( $extra ) ) {
-			$assoc_args['port'] = intval( $extra );
+			$assoc_args['port']     = intval( $extra );
 			$assoc_args['protocol'] = 'tcp';
-		} elseif ( $extra !== '' ) {
+		} elseif ( '' !== $extra ) {
 			$assoc_args['socket'] = $extra;
 		}
 	} else {
@@ -336,7 +427,7 @@ function mysql_host_to_cli_args( $raw_host ) {
 /**
  * Shell escape command as an array
  *
- * @param  array $cmd
+ * @param  array $cmd Shell command
  * @return array
  */
 function esc_cmd( $cmd ) {
@@ -345,7 +436,7 @@ function esc_cmd( $cmd ) {
 	}
 
 	$args = func_get_args();
-	$cmd = array_shift( $args );
+	$cmd  = array_shift( $args );
 
 	return vsprintf( $cmd, array_map( 'escapeshellarg', $args ) );
 }
@@ -353,11 +444,11 @@ function esc_cmd( $cmd ) {
 /**
  * Make sure env path is used on *nix
  *
- * @param  string $command
+ * @param  string $command Command string.
  * @return string
  */
 function force_env_on_nix_systems( $command ) {
-	$env_prefix = '/usr/bin/env ';
+	$env_prefix     = '/usr/bin/env ';
 	$env_prefix_len = strlen( $env_prefix );
 
 	if ( is_windows() ) {
@@ -385,7 +476,7 @@ function is_windows() {
 /**
  * Convert assoc array to string to command
  *
- * @param  array $assoc_args
+ * @param  array $assoc_args Associative args
  * @return string
  */
 function assoc_args_to_str( $assoc_args ) {
@@ -404,6 +495,30 @@ function assoc_args_to_str( $assoc_args ) {
 	}
 
 	return $str;
+}
+
+/**
+ * Escape sql name e.g. table name
+ *
+ * @param  string $name Name to escape
+ * @return string
+ */
+function esc_sql_name( $name ) {
+	return preg_replace( '#["\'`]#', '', $name );
+}
+
+/**
+ * Format bytes to pretty file size
+ *
+ * @param  int $size     Number of bytes
+ * @param  int $precision Decimal precision
+ * @return string
+ */
+function format_bytes( $size, $precision = 2 ) {
+	$base     = log( $size, 1024 );
+	$suffixes = [ '', 'KB', 'MB', 'GB', 'TB' ];
+
+	return round( pow( 1024, $base - floor( $base ) ), $precision ) . ' ' . $suffixes[ floor( $base ) ];
 }
 
 /**

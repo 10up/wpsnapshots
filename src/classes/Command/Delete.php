@@ -1,4 +1,9 @@
 <?php
+/**
+ * Delete command
+ *
+ * @package wpsnapshots
+ */
 
 namespace WPSnapshots\Command;
 
@@ -12,6 +17,7 @@ use Symfony\Component\Console\Question\Question;
 use WPSnapshots\Connection;
 use WPSnapshots\Utils;
 use WPSnapshots\S3;
+use WPSnapshots\Log;
 
 
 /**
@@ -31,73 +37,73 @@ class Delete extends Command {
 	/**
 	 * Execute command
 	 *
-	 * @param  InputInterface  $input
-	 * @param  OutputInterface $output
+	 * @param  InputInterface  $input Command input
+	 * @param  OutputInterface $output Command output
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
+		Log::instance()->setOutput( $output );
+
 		$connection = Connection::instance()->connect();
 
 		if ( Utils\is_error( $connection ) ) {
-			$output->writeln( '<error>Could not connect to repository.</error>' );
-			return;
+			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
+			return 1;
 		}
 
 		$id = $input->getArgument( 'snapshot-id' );
 
-		$verbose = $input->getOption( 'verbose' );
-
 		$snapshot = Connection::instance()->db->getSnapshot( $id );
 
 		if ( Utils\is_error( $snapshot ) ) {
-			$output->writeln( '<error>Could not get snapshot from database.</error>' );
+			Log::instance()->write( 'Could not get snapshot from database.', 0, 'error' );
 
 			if ( is_array( $snapshot->data ) && ! empty( $snapshot->data['aws_error_code'] ) ) {
 				if ( 'AccessDeniedException' === $snapshot->data['aws_error_code'] ) {
-					$output->writeln( '<error>Access denied. You might not have access to this project.</error>' );
+					Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
 				}
 
-				if ( $verbose ) {
-					$output->writeln( '<error>Error Message: ' . $snapshot->data['message'] . '</error>' );
-					$output->writeln( '<error>AWS Request ID: ' . $snapshot->data['aws_request_id'] . '</error>' );
-					$output->writeln( '<error>AWS Error Type: ' . $snapshot->data['aws_error_type'] . '</error>' );
-					$output->writeln( '<error>AWS Error Code: ' . $snapshot->data['aws_error_code'] . '</error>' );
-				}
+				Log::instance()->write( 'Error Message: ' . $snapshot->data['message'], 1, 'error' );
+				Log::instance()->write( 'AWS Request ID: ' . $snapshot->data['aws_request_id'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Type: ' . $snapshot->data['aws_error_type'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Code: ' . $snapshot->data['aws_error_code'], 1, 'error' );
 			}
 
-			return;
+			return 1;
 		}
 
 		$files_result = Connection::instance()->s3->deleteSnapshot( $id, $snapshot['project'] );
 
 		if ( Utils\is_error( $files_result ) ) {
-			if ( Utils\is_error( $files_result ) && $verbose ) {
-				$output->writeln( '<error>S3 delete error:</error>' );
-				$output->writeln( '<error>Error Message: ' . $files_result->data['message'] . '</error>' );
-				$output->writeln( '<error>AWS Request ID: ' . $files_result->data['aws_request_id'] . '</error>' );
-				$output->writeln( '<error>AWS Error Type: ' . $files_result->data['aws_error_type'] . '</error>' );
-				$output->writeln( '<error>AWS Error Code: ' . $files_result->data['aws_error_code'] . '</error>' );
+			Log::instance()->write( 'Could not delete snapshot.', 0, 'error' );
+
+			if ( is_array( $files_result->data ) ) {
+				Log::instance()->write( 'S3 delete error:' );
+				Log::instance()->write( 'Error Message: ' . $files_result->data['message'], 1, 'error' );
+				Log::instance()->write( 'AWS Request ID: ' . $files_result->data['aws_request_id'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Type: ' . $files_result->data['aws_error_type'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Code: ' . $files_result->data['aws_error_code'], 1, 'error' );
 			}
 
-			$output->writeln( '<error>Could not delete snapshot.</error>' );
-			return;
+			return 1;
 		}
 
 		$db_result = Connection::instance()->db->deleteSnapshot( $id );
 
 		if ( Utils\is_error( $db_result ) ) {
-			if ( Utils\is_error( $db_result ) && $verbose ) {
-				$output->writeln( '<error>DynamoDB delete error:</error>' );
-				$output->writeln( '<error>Error Message: ' . $db_result->data['message'] . '</error>' );
-				$output->writeln( '<error>AWS Request ID: ' . $db_result->data['aws_request_id'] . '</error>' );
-				$output->writeln( '<error>AWS Error Type: ' . $db_result->data['aws_error_type'] . '</error>' );
-				$output->writeln( '<error>AWS Error Code: ' . $db_result->data['aws_error_code'] . '</error>' );
+			Log::instance()->write( 'Could not delete snapshot.', 0, 'error' );
+
+			if ( is_array( $db_result->data ) ) {
+				Log::instance()->write( 'DynamoDB delete error:</error>' );
+				Log::instance()->write( 'Error Message: ' . $db_result->data['message'], 1, 'error' );
+				Log::instance()->write( 'AWS Request ID: ' . $db_result->data['aws_request_id'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Type: ' . $db_result->data['aws_error_type'], 1, 'error' );
+				Log::instance()->write( 'AWS Error Code: ' . $db_result->data['aws_error_code'], 1, 'error' );
 			}
 
-			$output->writeln( '<error>Could not delete snapshot.</error>' );
-			return;
+			return 1;
 		}
 
-		$output->writeln( '<info>Snapshot deleted.</info>' );
+		Log::instance()->write( 'Snapshot deleted.', 0, 'success' );
 	}
 
 }

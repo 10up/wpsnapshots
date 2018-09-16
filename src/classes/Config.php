@@ -1,7 +1,17 @@
 <?php
+/**
+ * Handle global configuration files
+ *
+ * @package wpsnapshots
+ */
 
 namespace WPSnapshots;
 
+use WPSnapshots\Utils;
+
+/**
+ * Config class
+ */
 class Config {
 	/**
 	 * Singleton
@@ -11,10 +21,10 @@ class Config {
 	/**
 	 * Write wp snapshots config to ~/.wpsnapshots.json
 	 *
-	 * @param  array $config
+	 * @param array $config Config array.
 	 */
 	public function write( $config ) {
-		file_put_contents( $_SERVER['HOME'] . '/.wpsnapshots.json', json_encode( $config ) );
+		file_put_contents( Utils\get_snapshot_directory() . 'config.json', json_encode( $config, JSON_PRETTY_PRINT ) );
 	}
 
 	/**
@@ -23,11 +33,24 @@ class Config {
 	 * @return array|Error
 	 */
 	public function get() {
-		if ( ! file_exists( $_SERVER['HOME'] . '/.wpsnapshots.json' ) ) {
-			return new Error( 0, 'No json file exists.' );
+		$file_path = Utils\get_snapshot_directory() . 'config.json';
+
+		if ( ! file_exists( $file_path ) ) {
+			/**
+			 * Backwards compat for old config file path
+			 */
+			$file_path = $_SERVER['HOME'] . '/.wpsnapshots.json';
+
+			if ( ! file_exists( $file_path ) ) {
+				return new Error( 0, 'No json file exists.' );
+			} else {
+				rename( $file_path, Utils\get_snapshot_directory() . 'config.json' );
+
+				$file_path = Utils\get_snapshot_directory() . 'config.json';
+			}
 		}
 
-		$snapshots_config_file = json_decode( file_get_contents( $_SERVER['HOME'] . '/.wpsnapshots.json' ), true );
+		$snapshots_config_file = json_decode( file_get_contents( $file_path ), true );
 
 		return $snapshots_config_file;
 	}
@@ -41,7 +64,7 @@ class Config {
 		static $instance;
 
 		if ( empty( $instance ) ) {
-			$instance = new self;
+			$instance = new self();
 		}
 
 		return $instance;
