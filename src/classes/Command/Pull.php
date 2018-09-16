@@ -672,7 +672,8 @@ define('BLOG_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['blog_id_current
 		];
 
 		if ( ! empty( $user ) ) {
-			$user_args['ID'] = $user->ID;
+			$user_args['ID']        = $user->ID;
+			$user_args['user_pass'] = wp_hash_password( 'password' );
 		}
 
 		$user_id = wp_insert_user( $user_args );
@@ -689,7 +690,7 @@ define('BLOG_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['blog_id_current
 					$wpdb->update(
 						$current_table_prefix . 'sitemeta',
 						[
-							'meta_value' => serialize( $admins ),
+							'meta_value' => serialize( array_unique( $admins ) ),
 						],
 						[
 							'meta_id' => $site_admin_row['meta_id'],
