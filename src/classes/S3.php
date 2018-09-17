@@ -217,6 +217,9 @@ class S3 {
 					'key'    => $config['access_key_id'],
 					'secret' => $config['secret_access_key'],
 				],
+				'signature'   => 'v4',
+				'region'      => $config['region'],
+				'version'     => '2006-03-01',
 			]
 		);
 
