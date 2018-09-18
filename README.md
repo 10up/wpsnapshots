@@ -77,6 +77,8 @@ Documentation for each operation is as follows:
 
   This command pulls an existing snapshot from the repository into your current WordPress install replacing your database and `wp-content` directory entirely. If a WordPress install does not exist, it will prompt you to create it. The command will interactively prompt you to map URLs to be search and replaced. If the snapshot is a multisite, you will have to map URLs interactively for each blog in the network. This command will also (optionally) match your current version of WordPress with the snapshots.
 
+  After pulling, you can login as admin with the user `wpsnapshots`, password `password`.
+
 * __wpsnapshots search \<search-text\>__
 
   This command searches the repository for snapshots. `<search-text>` will be compared against project names and authors. Searching for "\*" will return all snapshots.
@@ -133,3 +135,4 @@ WP Snapshots has been used successfully inside [Windows Subsystem for Linux](htt
   - Multisite pull changes: should URLs inside existing snapshots, make sure type full URLs instead of paths
   - Store all multisite data in snapshot
   - Store blog name in snapshot
+  - Create `wpsnapshots` user on pull
