@@ -68,6 +68,7 @@ class Pull extends Command {
 		 * If blog_id isn't used, order will be respected as compared to the snapshot meta.
 		 */
 		$this->addOption( 'site_mapping', null, InputOption::VALUE_REQUIRED, 'JSON or path to site mapping file.' );
+		$this->addOption( 'main_domain', null, InputOption::VALUE_REQUIRED, 'Main domain for multisite snapshots' );
 	}
 
 	/**
@@ -459,7 +460,7 @@ class Pull extends Command {
 				 * path based installed we just use the first domain.
 				 */
 
-				$main_domain = '';
+				$main_domain = $input->getOption( 'main_domain' );
 
 				$snapshot_main_domain = ( ! empty( $snapshot->meta['domain_current_site'] ) ) ? $snapshot->meta['domain_current_site'] : '';
 
@@ -487,7 +488,9 @@ class Pull extends Command {
 					}
 				);
 
-				$main_domain = $helper->ask( $input, $output, $main_domain_question );
+				if ( empty( $main_domain ) ) {
+					$main_domain = $helper->ask( $input, $output, $main_domain_question );
+				}
 
 				foreach ( $snapshot->meta['sites'] as $site ) {
 
