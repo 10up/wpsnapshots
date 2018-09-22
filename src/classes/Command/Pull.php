@@ -40,6 +40,7 @@ class Pull extends Command {
 		$this->addOption( 'confirm', null, InputOption::VALUE_NONE, 'Confirm pull operation.' );
 		$this->addOption( 'confirm_wp_download', null, InputOption::VALUE_NONE, 'Confirm WordPress download.' );
 		$this->addOption( 'confirm_config_create', null, InputOption::VALUE_NONE, 'Confirm wp-config.php create.' );
+		$this->addOption( 'confirm_ms_constant_update', null, InputOption::VALUE_NONE, 'Confirm updating constants in wp-config.php for multisite.' );
 
 		$this->addOption( 'config_db_host', null, InputOption::VALUE_REQUIRED, 'Config database host.' );
 		$this->addOption( 'config_db_name', null, InputOption::VALUE_REQUIRED, 'Config database name.' );
@@ -465,7 +466,7 @@ class Pull extends Command {
 				$snapshot_main_domain = ( ! empty( $snapshot->meta['domain_current_site'] ) ) ? $snapshot->meta['domain_current_site'] : '';
 
 				if ( ! empty( $snapshot_main_domain ) ) {
-					$main_domain_question = new Question( 'Main domain (the main domain in the snapshot is ' . $snapshot_main_domain . '): ' );
+					$main_domain_question = new Question( 'Main domain (defaults to main domain in the snapshot: ' . $snapshot_main_domain . '): ', $snapshot_main_domain );
 				} else {
 					$example_site = 'mysite.test';
 
@@ -500,7 +501,7 @@ class Pull extends Command {
 						$new_home_url = $site_mapping[ (int) $site['blog_id'] ]['home_url'];
 						$new_site_url = $site_mapping[ (int) $site['blog_id'] ]['site_url'];
 					} else {
-						$home_question = new Question( 'Home URL (' . $site['home_url'] . ' is the home URL in the snapshot): ' );
+						$home_question = new Question( 'Home URL (defaults home URL in snapshot: ' . $site['home_url'] . '): ', $site['home_url'] );
 						$home_question->setValidator( $url_validator );
 
 						$new_home_url = $helper->ask( $input, $output, $home_question );
@@ -508,13 +509,13 @@ class Pull extends Command {
 						while ( in_array( $new_home_url, $used_home_urls, true ) ) {
 							Log::instance()->write( 'Sorry, that home URL is already taken by another site.', 0, 'error' );
 
-							$home_question = new Question( 'Home URL (' . $site['home_url'] . ' is the home URL in the snapshot): ' );
+							$home_question = new Question( 'Home URL (defaults to home URL in snapshot: ' . $site['home_url'] . '): ', $site['home_url']  );
 							$home_question->setValidator( $url_validator );
 
 							$new_home_url = $helper->ask( $input, $output, $home_question );
 						}
 
-						$site_question = new Question( 'Site URL (' . $site['site_url'] . ' is the site URL in the snapshot): ' );
+						$site_question = new Question( 'Site URL (defaults to site URL in snapshot: ' . $site['site_url'] . '): ', $site['site_url'] );
 						$site_question->setValidator( $url_validator );
 
 						$new_site_url = $helper->ask( $input, $output, $site_question );
@@ -522,7 +523,7 @@ class Pull extends Command {
 						while ( in_array( $new_site_url, $used_site_urls, true ) ) {
 							Log::instance()->write( 'Sorry, that site URL is already taken by another site.', 0, 'error' );
 
-							$site_question = new Question( 'Site URL (' . $site['site_url'] . ' is the site URL in the snapshot): ' );
+							$site_question = new Question( 'Site URL (defaults to site URL in snapshot: ' . $site['site_url'] . '): ', $site['site_url'] );
 							$site_question->setValidator( $url_validator );
 
 							$new_site_url = $helper->ask( $input, $output, $site_question );
@@ -592,6 +593,8 @@ class Pull extends Command {
 				 */
 				$wpdb->query( $wpdb->prepare( 'UPDATE ' . $current_table_prefix . 'site SET domain=%s', $main_domain ) );
 
+				Log::instance()->write( 'URLs replaced.' );
+
 				if (
 					! defined( 'BLOG_ID_CURRENT_SITE' )
 					|| ( ! empty( $snapshot->meta['blog_id_current_site'] ) && BLOG_ID_CURRENT_SITE !== (int) $snapshot->meta['blog_id_current_site'] )
@@ -606,33 +609,54 @@ class Pull extends Command {
 					|| ! defined( 'SUBDOMAIN_INSTALL' )
 					|| SUBDOMAIN_INSTALL !== $snapshot->meta['subdomain_install']
 				) {
+					$update_ms_constants = $input->getOption( 'confirm_ms_constant_update' );
 
-					Log::instance()->write( 'URLs replaced. Since you are running multisite, the following code should be in your wp-config.php file:', 0, 'warning' );
-					Log::instance()->write(
-						"define('WP_ALLOW_MULTISITE', true);
+					if ( ! $update_ms_constants ) {
+						$update_ms_constants = $helper->ask( $input, $output, new ConfirmationQuestion( 'Constants need to be updated in your wp-config.php file. Want WP Snapshots to do this automatically? (yes|no) ', true ) );
+					}
+
+					if ( ! $update_ms_constants ) {
+
+						Log::instance()->write( 'The following code should be in your wp-config.php file:', 0, 'warning' );
+						Log::instance()->write(
+							"define('WP_ALLOW_MULTISITE', true);
 define('MULTISITE', true);
 define('SUBDOMAIN_INSTALL', " . ( ( ! empty( $snapshot->meta['subdomain_install'] ) ) ? 'true' : 'false' ) . ");
 define('DOMAIN_CURRENT_SITE', '" . $main_domain . "');
 define('PATH_CURRENT_SITE', '" . ( ( ! empty( $snapshot->meta['path_current_site'] ) ) ? $snapshot->meta['path_current_site'] : '/' ) . "');
 define('SITE_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['site_id_current_site'] ) ) ? $snapshot->meta['site_id_current_site'] : '1' ) . ");
 define('BLOG_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['blog_id_current_site'] ) ) ? $snapshot->meta['blog_id_current_site'] : '1' ) . ');',
-						0,
-						'success'
-					);
-				} else {
-					Log::instance()->write( 'URLs replaced.' );
+							0,
+							'success'
+						);
+					} else {
+						Utils\write_constants_to_wp_config(
+							[
+								'WP_ALLOW_MULTISITE'   => true,
+								'MULTISITE'            => true,
+								'SUBDOMAIN_INSTALL'    => ( ! empty( $snapshot->meta['subdomain_install'] ) ) ? true : false,
+								'DOMAIN_CURRENT_SITE'  => $main_domain,
+								'PATH_CURRENT_SITE'    => ( ! empty( $snapshot->meta['path_current_site'] ) ) ? $snapshot->meta['path_current_site'] : '/',
+								'SITE_ID_CURRENT_SITE' => ( ! empty( $snapshot->meta['site_id_current_site'] ) ) ? $snapshot->meta['site_id_current_site'] : 1,
+								'BLOG_ID_CURRENT_SITE' => ( ! empty( $snapshot->meta['blog_id_current_site'] ) ) ? $snapshot->meta['blog_id_current_site'] : 1,
+							],
+							$path . 'wp-config.php'
+						);
+
+						Log::instance()->write( 'Multisite constants added to wp-config.php.' );
+					}
 				}
 			} else {
 				if ( ! empty( $site_mapping ) ) {
 					$new_home_url = $site_mapping[0]['home_url'];
 					$new_site_url = $site_mapping[0]['site_url'];
 				} else {
-					$home_question = new Question( 'Home URL (' . $snapshot->meta['sites'][0]['home_url'] . ' is the home URL in the snapshot): ' );
+					$home_question = new Question( 'Home URL (defaults to home URL in snapshot: ' . $snapshot->meta['sites'][0]['home_url'] . '): ', $snapshot->meta['sites'][0]['home_url'] );
 					$home_question->setValidator( $url_validator );
 
 					$new_home_url = $helper->ask( $input, $output, $home_question );
 
-					$site_question = new Question( 'Site URL (' . $snapshot->meta['sites'][0]['site_url'] . ' is the site URL in the snapshot): ' );
+					$site_question = new Question( 'Site URL (defaults to site URL in snapshot: ' . $snapshot->meta['sites'][0]['site_url'] . '): ', $snapshot->meta['sites'][0]['site_url'] );
 					$site_question->setValidator( $url_validator );
 
 					$new_site_url = $helper->ask( $input, $output, $site_question );
@@ -705,6 +729,11 @@ define('BLOG_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['blog_id_current
 
 		Log::instance()->write( 'Pull finished.', 0, 'success' );
 		Log::instance()->write( 'Visit in your browser: ' . $first_home_url, 0, 'success' );
+
+		if ( 'localhost' !== parse_url( $first_home_url, PHP_URL_HOST ) ) {
+			Log::instance()->write( 'Make sure the following entry is in your hosts file: ' . parse_url( $first_home_url, PHP_URL_HOST ) . ' 127.0.0.1', 0, 'success' );
+		}
+
 		Log::instance()->write( 'Admin login: username - "wpsnapshots", password - "password"', 0, 'success' );
 	}
 

@@ -36,6 +36,93 @@ function is_error( $obj ) {
 }
 
 /**
+ * Get all constants in wp-config.php
+ *
+ * @param  string $wp_config_path Path to wp-config.php
+ * @return array
+ */
+function get_wp_config_constants( $wp_config_path ) {
+	$wp_config_code = explode( "\n", file_get_contents( $wp_config_path ) );
+	$constants      = [];
+
+	foreach ( $wp_config_code as $line ) {
+		if ( preg_match( '#define\(.*?("|\')(.*?)("|\').*?\).*?;#', $line ) ) {
+			$constant_name = preg_replace( '#^.*?define\(.*?("|\')(.*?)("|\').*$#', '$2', $line );
+
+			$constants[ $constant_name ] = trim( preg_replace( '#^.*?define\(.*?("|\').*?("|\').*?,(.*)\).*?;.*$#', '$3', $line ), ' ' );
+
+			if ( preg_match( '#^".*"$#', $constants[ $constant_name ] ) ) {
+				$constants[ $constant_name ] = preg_replace( '#^"(.*)"$#', '$1', $constants[ $constant_name ] );
+			} elseif ( preg_match( "#^'.*'$#", $constants[ $constant_name ] ) ) {
+				$constants[ $constant_name ] = preg_replace( "#^'(.*)'$#", '$1', $constants[ $constant_name ] );
+			}
+
+			// Appropriately cast variables
+			if ( is_numeric( $constants[ $constant_name ] ) ) {
+				if ( false !== strpos( $constants[ $constant_name ], '.' ) ) {
+					$constants[ $constant_name ] = (double) $constants[ $constant_name ];
+				} else {
+					$constants[ $constant_name ] = (int) $constants[ $constant_name ];
+				}
+			} elseif ( 'false' === strtolower( $constants[ $constant_name ] ) ) {
+				$constants[ $constant_name ] = false;
+			} elseif ( 'true' === strtolower( $constants[ $constant_name ] ) ) {
+				$constants[ $constant_name ] = true;
+			}
+		}
+	}
+
+	return $constants;
+}
+
+/**
+ * Write constants to wp-config.php ensuring the same constants don't get written twice.
+ *
+ * @param  array  $constants       Constants array
+ * @param  string $wp_config_path Path to wp-config.php
+ */
+function write_constants_to_wp_config( $constants, $wp_config_path ) {
+	$wp_config_code     = explode( "\n", file_get_contents( $wp_config_path ) );
+	$new_wp_config_code = [];
+
+	foreach ( $wp_config_code as $line ) {
+		// We'll add this back later
+		if ( preg_match( '#^<\?php.*#i', $line ) ) {
+			continue;
+		}
+
+		// Don't readd lines that contain constants we are defining
+		if ( preg_match( '#define\(.*?("|\')(.*?)("|\').*?\).*?;#', $line ) ) {
+			$constant_name = preg_replace( '#^.*?define\(.*?("|\')(.*?)("|\').*$#', '$2', $line );
+
+			if ( ! empty( $constants[ $constant_name ] ) ) {
+				continue;
+			}
+		}
+
+		$new_wp_config_code[] = $line;
+	}
+
+	foreach ( $constants as $constant_name => $constant_value ) {
+		if ( false === $constant_value ) {
+			$constant_value = 'false';
+		} elseif ( true === $constant_value ) {
+			$constant_value = 'true';
+		} elseif ( is_string( $constant_value ) ) {
+			$constant_value = addcslashes( $constant_value, "'" );
+
+			$constant_value = "'$constant_value'";
+		}
+
+		array_unshift( $new_wp_config_code, 'define( "' . $constant_name . '", ' . $constant_value . ' ); // Auto added.' );
+	}
+
+	array_unshift( $new_wp_config_code, '<?php' );
+
+	file_put_contents( $wp_config_path, implode( "\n", $new_wp_config_code ) );
+}
+
+/**
  * Add trailing slash to path
  *
  * @param  string $path Path
