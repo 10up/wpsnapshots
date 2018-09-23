@@ -33,6 +33,7 @@ class Push extends Command {
 	protected function configure() {
 		$this->setName( 'push' );
 		$this->setDescription( 'Push a snapshot to a repository.' );
+		$this->addArgument( 'snapshot_id', InputArgument::OPTIONAL, 'Optional snapshot ID to push. If none is provided, a new snapshot will be created from the local environment.' );
 		$this->addOption( 'exclude-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
 		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 
@@ -59,48 +60,60 @@ class Push extends Command {
 			return 1;
 		}
 
-		$path = $input->getOption( 'path' );
+		$snapshot_id = $input->getArgument( 'snapshot_id' );
 
-		if ( empty( $path ) ) {
-			$path = getcwd();
+		if ( empty( $snapshot_id ) ) {
+			$path = $input->getOption( 'path' );
+
+			if ( empty( $path ) ) {
+				$path = getcwd();
+			}
+
+			$path = Utils\normalize_path( $path );
+
+			$helper = $this->getHelper( 'question' );
+
+			$verbose = $input->getOption( 'verbose' );
+
+			$project_question = new Question( 'Project Slug (letters, numbers, _, and - only): ' );
+			$project_question->setValidator( '\WPSnapshots\Utils\slug_validator' );
+
+			$project = $helper->ask( $input, $output, $project_question );
+
+			$description_question = new Question( 'Snapshot Description (e.g. Local environment): ' );
+			$description_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+
+			$description = $helper->ask( $input, $output, $description_question );
+
+			$snapshot = Snapshot::create(
+				[
+					'path'            => $path,
+					'db_host'         => $input->getOption( 'db_host' ),
+					'db_name'         => $input->getOption( 'db_name' ),
+					'db_user'         => $input->getOption( 'db_user' ),
+					'db_password'     => $input->getOption( 'db_password' ),
+					'project'         => $project,
+					'description'     => $description,
+					'no_scrub'        => $input->getOption( 'no-scrub' ),
+					'exclude_uploads' => $input->getOption( 'exclude-uploads' ),
+				], $output, $verbose
+			);
+		} else {
+			if ( ! Utils\is_snapshot_cached( $snapshot_id ) ) {
+				Log::instance()->write( 'Snapshot not found locally.', 0, 'error' );
+
+				return 1;
+			}
+
+			$snapshot = Snapshot::get( $snapshot_id );
 		}
-
-		$path = Utils\normalize_path( $path );
-
-		$helper = $this->getHelper( 'question' );
-
-		$verbose = $input->getOption( 'verbose' );
-
-		$project_question = new Question( 'Project Slug (letters, numbers, _, and - only): ' );
-		$project_question->setValidator( '\WPSnapshots\Utils\slug_validator' );
-
-		$project = $helper->ask( $input, $output, $project_question );
-
-		$description_question = new Question( 'Snapshot Description (e.g. Local environment): ' );
-		$description_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
-
-		$description = $helper->ask( $input, $output, $description_question );
-
-		$snapshot = Snapshot::create(
-			[
-				'path'            => $path,
-				'db_host'         => $input->getOption( 'db_host' ),
-				'db_name'         => $input->getOption( 'db_name' ),
-				'db_user'         => $input->getOption( 'db_user' ),
-				'db_password'     => $input->getOption( 'db_password' ),
-				'project'         => $project,
-				'description'     => $description,
-				'no_scrub'        => $input->getOption( 'no-scrub' ),
-				'exclude_uploads' => $input->getOption( 'exclude-uploads' ),
-			], $output, $verbose
-		);
 
 		if ( ! is_a( $snapshot, '\WPSnapshots\Snapshot' ) ) {
 			return 1;
 		}
 
 		if ( $snapshot->push() ) {
-			Log::instance()->write( 'Push finished! Snapshot ID is ' . $snapshot->id, 0, 'success' );
+			Log::instance()->write( 'Push finished!' . ( empty( $snapshot_id ) ? ' Snapshot ID is ' . $snapshot->id : '' ), 0, 'success' );
 		}
 	}
 

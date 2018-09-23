@@ -36,7 +36,7 @@ class Pull extends Command {
 	protected function configure() {
 		$this->setName( 'pull' );
 		$this->setDescription( 'Pull a snapshot into a WordPress instance.' );
-		$this->addArgument( 'snapshot-id', InputArgument::REQUIRED, 'Snapshot ID to pull.' );
+		$this->addArgument( 'snapshot_id', InputArgument::REQUIRED, 'Snapshot ID to pull.' );
 		$this->addOption( 'confirm', null, InputOption::VALUE_NONE, 'Confirm pull operation.' );
 		$this->addOption( 'confirm_wp_download', null, InputOption::VALUE_NONE, 'Confirm WordPress download.' );
 		$this->addOption( 'confirm_config_create', null, InputOption::VALUE_NONE, 'Confirm wp-config.php create.' );
@@ -88,7 +88,7 @@ class Pull extends Command {
 			return 1;
 		}
 
-		$id = $input->getArgument( 'snapshot-id' );
+		$id = $input->getArgument( 'snapshot_id' );
 
 		$path = $input->getOption( 'path' );
 
