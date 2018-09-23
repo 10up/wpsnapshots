@@ -539,15 +539,21 @@ class Pull extends Command {
 
 					Log::instance()->write( 'Updating blogs table...', 1 );
 
-					$home_path = trailingslashit( parse_url( $new_home_url, PHP_URL_PATH ) );
-					if ( empty( $home_path ) ) {
-						$home_path = '/';
+					$blog_path = trailingslashit( parse_url( $new_home_url, PHP_URL_PATH ) );
+					if ( empty( $blog_path ) ) {
+						$blog_path = '/';
+					}
+
+					$blog_url = parse_url( $new_home_url, PHP_URL_HOST );
+
+					if ( ! empty( parse_url( $new_home_url, PHP_URL_PORT ) ) ) {
+						$blog_url .= ':' . parse_url( $new_home_url, PHP_URL_PORT );
 					}
 
 					/**
 					 * Update multisite stuff for each blog
 					 */
-					$wpdb->query( $wpdb->prepare( 'UPDATE ' . $current_table_prefix . 'blogs SET path=%s, domain=%s WHERE blog_id=%d', $home_path, parse_url( $new_home_url, PHP_URL_HOST ), (int) $site['blog_id'] ) );
+					$wpdb->query( $wpdb->prepare( 'UPDATE ' . $current_table_prefix . 'blogs SET path=%s, domain=%s WHERE blog_id=%d', $blog_path, $blog_url, (int) $site['blog_id'] ) );
 
 					/**
 					 * Update all tables except wp_site and wp_blog since we handle that separately
