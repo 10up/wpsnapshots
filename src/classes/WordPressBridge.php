@@ -28,7 +28,7 @@ class WordPressBridge {
 	 * @return boolean
 	 */
 	public function load( $path, $extra_config_constants = [] ) {
-		$wp_config_code = explode( "\n", file_get_contents( Utils\locate_wp_config( $path ) ) );
+		$wp_config_code = preg_split( '/\R/', file_get_contents( Utils\locate_wp_config( $path ) ) );
 
 		$found_wp_settings = false;
 		$lines_to_run      = [];
