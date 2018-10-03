@@ -34,7 +34,6 @@ class Push extends Command {
 		$this->setName( 'push' );
 		$this->setDescription( 'Push a snapshot to a repository.' );
 		$this->addArgument( 'snapshot_id', InputArgument::OPTIONAL, 'Optional snapshot ID to push. If none is provided, a new snapshot will be created from the local environment.' );
-		$this->addOption( 'exclude-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
 		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 
 		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
@@ -42,6 +41,8 @@ class Push extends Command {
 		$this->addOption( 'db_name', null, InputOption::VALUE_REQUIRED, 'Database name.' );
 		$this->addOption( 'db_user', null, InputOption::VALUE_REQUIRED, 'Database user.' );
 		$this->addOption( 'db_password', null, InputOption::VALUE_REQUIRED, 'Database password.' );
+		$this->addOption( 'exclude', false, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Exclude a file or directory from the snapshot.' );
+		$this->addOption( 'exclude-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
 	}
 
 	/**
@@ -85,17 +86,23 @@ class Push extends Command {
 
 			$description = $helper->ask( $input, $output, $description_question );
 
+			$exclude = $input->getOption( 'exclude' );
+
+			if ( ! empty( $input->getOption( 'exclude-uploads' ) ) ) {
+				$exclude[] = './uploads';
+			}
+
 			$snapshot = Snapshot::create(
 				[
-					'path'            => $path,
-					'db_host'         => $input->getOption( 'db_host' ),
-					'db_name'         => $input->getOption( 'db_name' ),
-					'db_user'         => $input->getOption( 'db_user' ),
-					'db_password'     => $input->getOption( 'db_password' ),
-					'project'         => $project,
-					'description'     => $description,
-					'no_scrub'        => $input->getOption( 'no-scrub' ),
-					'exclude_uploads' => $input->getOption( 'exclude-uploads' ),
+					'path'        => $path,
+					'db_host'     => $input->getOption( 'db_host' ),
+					'db_name'     => $input->getOption( 'db_name' ),
+					'db_user'     => $input->getOption( 'db_user' ),
+					'db_password' => $input->getOption( 'db_password' ),
+					'project'     => $project,
+					'description' => $description,
+					'no_scrub'    => $input->getOption( 'no-scrub' ),
+					'exclude'     => $exclude,
 				], $output, $verbose
 			);
 		} else {

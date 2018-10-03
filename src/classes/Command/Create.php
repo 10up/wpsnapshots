@@ -33,6 +33,7 @@ class Create extends Command {
 	protected function configure() {
 		$this->setName( 'create' );
 		$this->setDescription( 'Create a snapshot locally.' );
+		$this->addOption( 'exclude', false, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Exclude a file or directory from the snapshot.' );
 		$this->addOption( 'exclude-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
 		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 
@@ -79,17 +80,23 @@ class Create extends Command {
 
 		$description = $helper->ask( $input, $output, $description_question );
 
+		$exclude = $input->getOption( 'exclude' );
+
+		if ( ! empty( $input->getOption( 'exclude-uploads' ) ) ) {
+			$exclude[] = './uploads';
+		}
+
 		$snapshot = Snapshot::create(
 			[
-				'db_host'         => $input->getOption( 'db_host' ),
-				'db_name'         => $input->getOption( 'db_name' ),
-				'db_user'         => $input->getOption( 'db_user' ),
-				'db_password'     => $input->getOption( 'db_password' ),
-				'project'         => $project,
-				'path'            => $path,
-				'description'     => $description,
-				'no_scrub'        => $input->getOption( 'no-scrub' ),
-				'exclude_uploads' => $input->getOption( 'exclude-uploads' ),
+				'db_host'     => $input->getOption( 'db_host' ),
+				'db_name'     => $input->getOption( 'db_name' ),
+				'db_user'     => $input->getOption( 'db_user' ),
+				'db_password' => $input->getOption( 'db_password' ),
+				'project'     => $project,
+				'path'        => $path,
+				'description' => $description,
+				'no_scrub'    => $input->getOption( 'no-scrub' ),
+				'exclude'     => $exclude,
 			], $output, $input->getOption( 'verbose' )
 		);
 

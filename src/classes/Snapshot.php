@@ -346,13 +346,27 @@ class Snapshot {
 
 		$excludes = '';
 
-		if ( $args['exclude_uploads'] ) {
-			$excludes .= ' --exclude="./uploads"';
+		if ( ! empty( $args['exclude'] ) ) {
+			foreach ( $args['exclude'] as $exclude ) {
+				$exclude = trim( $exclude );
+
+				if ( ! preg_match( '#^\./.*#', $exclude ) ) {
+					$exclude = './' . $exclude;
+				}
+
+				Log::instance()->write( 'Excluding ' . $exclude, 1 );
+
+				$excludes .= ' --exclude="' . $exclude . '"';
+			}
 		}
 
 		Log::instance()->write( 'Compressing files...', 1 );
 
-		exec( 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zcf ' . Utils\escape_shell_path( $snapshot_path ) . 'files.tar.gz . ' . $verbose_pipe );
+		$command = 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zcf ' . Utils\escape_shell_path( $snapshot_path ) . 'files.tar.gz . ' . $verbose_pipe;
+
+		Log::instance()->write( $command, 2 );
+
+		exec( $command );
 
 		Log::instance()->write( 'Compressing database backup...', 1 );
 
