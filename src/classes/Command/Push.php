@@ -42,7 +42,7 @@ class Push extends Command {
 		$this->addOption( 'db_user', null, InputOption::VALUE_REQUIRED, 'Database user.' );
 		$this->addOption( 'db_password', null, InputOption::VALUE_REQUIRED, 'Database password.' );
 		$this->addOption( 'exclude', false, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Exclude a file or directory from the snapshot.' );
-		$this->addOption( 'exclude-uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
+		$this->addOption( 'exclude_uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
 	}
 
 	/**
