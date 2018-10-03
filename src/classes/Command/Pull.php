@@ -40,6 +40,7 @@ class Pull extends Command {
 		$this->addOption( 'confirm', null, InputOption::VALUE_NONE, 'Confirm pull operation.' );
 		$this->addOption( 'confirm_wp_download', null, InputOption::VALUE_NONE, 'Confirm WordPress download.' );
 		$this->addOption( 'confirm_config_create', null, InputOption::VALUE_NONE, 'Confirm wp-config.php create.' );
+		$this->addOption( 'confirm_wp_version_change', null, InputOption::VALUE_NONE, 'Confirm changing WP version to match snapshot.' );
 		$this->addOption( 'confirm_ms_constant_update', null, InputOption::VALUE_NONE, 'Confirm updating constants in wp-config.php for multisite.' );
 
 		$this->addOption( 'config_db_host', null, InputOption::VALUE_REQUIRED, 'Config database host.' );
@@ -359,7 +360,11 @@ class Pull extends Command {
 		global $wp_version;
 
 		if ( ! empty( $snapshot->meta['wp_version'] ) && $snapshot->meta['wp_version'] !== $wp_version ) {
-			$change_wp_version = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot is running WordPress version ' . $snapshot->meta['wp_version'] . ', and you are running ' . $wp_version . '. Do you want to change your WordPress version to ' . $snapshot->meta['wp_version'] . '? (yes|no) ', true ) );
+			$confirm_wp_version_change = $input->getOption( 'confirm_wp_version_change' );
+
+			if ( empty( $confirm_wp_version_change ) ) {
+				$change_wp_version = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot is running WordPress version ' . $snapshot->meta['wp_version'] . ', and you are running ' . $wp_version . '. Do you want to change your WordPress version to ' . $snapshot->meta['wp_version'] . '? (yes|no) ', true ) );
+			}
 
 			if ( ! empty( $change_wp_version ) ) {
 				// Delete old WordPress
