@@ -26,9 +26,9 @@ class SearchReplace {
 	 *
 	 * @param string $old  String to find
 	 * @param string $new  Replacement string
-	 * @param array  $tables Allow for specifying tables
+	 * @param array  $tables Tables to replace
 	 */
-	public function __construct( $old, $new, $tables = false ) {
+	public function __construct( $old, $new, $tables ) {
 		global $wpdb;
 
 		$this->max_recursion = intval( ini_get( 'xdebug.max_nesting_level' ) );
@@ -42,10 +42,6 @@ class SearchReplace {
 
 		// @todo: need to remove this hardcode
 		$php_only = false;
-
-		if ( false === $tables ) {
-			$tables = Utils\get_tables();
-		}
 
 		foreach ( $tables as $table ) {
 			list( $primary_keys, $columns, $all_columns ) = $this->get_columns( $table );

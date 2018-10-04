@@ -50,6 +50,8 @@ class Pull extends Command {
 
 		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
 
+		$this->addOption( 'skip_table_search_replace', [], InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Skip search and replacing specific tables. Leave out table prefix.' );
+
 		$this->addOption( 'db_host', null, InputOption::VALUE_REQUIRED, 'Database host.' );
 		$this->addOption( 'db_name', null, InputOption::VALUE_REQUIRED, 'Database name.' );
 		$this->addOption( 'db_user', null, InputOption::VALUE_REQUIRED, 'Database user.' );
@@ -443,9 +445,21 @@ class Pull extends Command {
 				return $answer;
 			};
 
+			$skip_table_search_replace = $input->getOption( 'skip_table_search_replace' );
+
+			if ( empty( $skip_table_search_replace ) ) {
+				$skip_table_search_replace = [
+					'terms',
+					'term_relationships',
+					'term_taxonomy',
+				];
+			}
+
 			if ( ! empty( $snapshot->meta['multisite'] ) ) {
 				$used_home_urls = [];
 				$used_site_urls = [];
+
+				$skip_table_search_replace = array_merge( [ 'site', 'blogs' ], $skip_table_search_replace );
 
 				// Make WP realize we are in multisite now
 				if ( ! defined( 'MULTISITE' ) ) {
@@ -514,7 +528,7 @@ class Pull extends Command {
 						while ( in_array( $new_home_url, $used_home_urls, true ) ) {
 							Log::instance()->write( 'Sorry, that home URL is already taken by another site.', 0, 'error' );
 
-							$home_question = new Question( 'Home URL (defaults to home URL in snapshot: ' . $site['home_url'] . '): ', $site['home_url']  );
+							$home_question = new Question( 'Home URL (defaults to home URL in snapshot: ' . $site['home_url'] . '): ', $site['home_url'] );
 							$home_question->setValidator( $url_validator );
 
 							$new_home_url = $helper->ask( $input, $output, $home_question );
@@ -563,13 +577,12 @@ class Pull extends Command {
 					/**
 					 * Update all tables except wp_site and wp_blog since we handle that separately
 					 */
-					$blacklist_tables = [ 'site', 'blogs' ];
 					$tables_to_update = [];
 
 					foreach ( $wp_tables as $table ) {
 						if ( 1 === (int) $site['blog_id'] ) {
 							if ( preg_match( '#^' . $current_table_prefix . '#', $table ) && ! preg_match( '#^' . $current_table_prefix . '[0-9]+_#', $table ) ) {
-								if ( ! in_array( str_replace( $current_table_prefix, '', $table ), $blacklist_tables ) ) {
+								if ( ! in_array( str_replace( $current_table_prefix, '', $table ), $skip_table_search_replace ) ) {
 									$tables_to_update[] = $table;
 								}
 							}
@@ -577,7 +590,7 @@ class Pull extends Command {
 							if ( preg_match( '#^' . $current_table_prefix . $site['blog_id'] . '_#', $table ) ) {
 								$raw_table = str_replace( $current_table_prefix . $site['blog_id'] . '_', '', $table );
 
-								if ( ! in_array( $raw_table, $blacklist_tables ) ) {
+								if ( ! in_array( $raw_table, $skip_table_search_replace ) ) {
 									$tables_to_update[] = $table;
 								}
 							}
@@ -586,6 +599,7 @@ class Pull extends Command {
 
 					if ( ! empty( $tables_to_update ) ) {
 						Log::instance()->write( 'Running replacement... This may take awhile depending on the size of the database.' );
+						Log::instance()->write( 'Search and replacing tables: ' . implode( ', ', $tables_to_update ), 1 );
 
 						new SearchReplace( $site['home_url'], $new_home_url, $tables_to_update );
 
@@ -677,10 +691,22 @@ define('BLOG_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['blog_id_current
 
 				Log::instance()->write( 'Running replacement... This may take awhile depending on the size of the database.' );
 
-				new SearchReplace( $snapshot->meta['sites'][0]['home_url'], $new_home_url );
+				$tables_to_update = [];
+
+				foreach ( $wp_tables as $table ) {
+					$raw_table = str_replace( $current_table_prefix, '', $table );
+
+					if ( ! in_array( $raw_table, $skip_table_search_replace ) ) {
+						$tables_to_update[] = $table;
+					}
+				}
+
+				Log::instance()->write( 'Search and replacing tables: ' . implode( ', ', $tables_to_update ), 1 );
+
+				new SearchReplace( $snapshot->meta['sites'][0]['home_url'], $new_home_url, $tables_to_update );
 
 				if ( $snapshot->meta['sites'][0]['home_url'] !== $snapshot->meta['sites'][0]['site_url'] ) {
-					new SearchReplace( $snapshot->meta['sites'][0]['site_url'], $new_site_url );
+					new SearchReplace( $snapshot->meta['sites'][0]['site_url'], $new_site_url, $tables_to_update );
 				}
 
 				Log::instance()->write( 'URLs replaced.' );
