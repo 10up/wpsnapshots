@@ -129,6 +129,15 @@ class Log {
 	}
 
 	/**
+	 * Gets a reference to the output.
+	 *
+	 * @return OutputInterface
+	 */
+	public function getOutput() {
+		return $this->output;
+	}
+
+	/**
 	 * Return singleton instance of class
 	 *
 	 * @return object
