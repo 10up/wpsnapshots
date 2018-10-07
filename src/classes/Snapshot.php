@@ -336,7 +336,7 @@ class Snapshot {
 			unlink( $snapshot_path . 'data-users.sql' );
 		}
 
-		$verbose_pipe = ( ! empty( Log::instance()->getVerbosity() ) ) ? '> /dev/null' : '';
+		$verbose_pipe = ( empty( Log::instance()->getVerbosity() ) ) ? '> /dev/null' : '';
 
 		/**
 		 * Create file back up of wp-content in .wpsnapshots/files.tar.gz
@@ -362,7 +362,9 @@ class Snapshot {
 
 		Log::instance()->write( 'Compressing files...', 1 );
 
-		$command = 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zcf ' . Utils\escape_shell_path( $snapshot_path ) . 'files.tar.gz . ' . $verbose_pipe;
+		$v_flag = ( ! empty( Log::instance()->getVerbosity() ) ) ? 'v' : '';
+
+		$command = 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zc' . $v_flag . 'f ' . Utils\escape_shell_path( $snapshot_path ) . 'files.tar.gz . ' . $verbose_pipe;
 
 		Log::instance()->write( $command, 2 );
 
