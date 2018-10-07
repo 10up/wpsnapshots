@@ -88,7 +88,7 @@ class Push extends Command {
 
 			$exclude = $input->getOption( 'exclude' );
 
-			if ( ! empty( $input->getOption( 'exclude-uploads' ) ) ) {
+			if ( ! empty( $input->getOption( 'exclude_uploads' ) ) ) {
 				$exclude[] = './uploads';
 			}
 
