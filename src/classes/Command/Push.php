@@ -34,7 +34,7 @@ class Push extends Command {
 		$this->setName( 'push' );
 		$this->setDescription( 'Push a snapshot to a repository.' );
 		$this->addArgument( 'snapshot_id', InputArgument::OPTIONAL, 'Optional snapshot ID to push. If none is provided, a new snapshot will be created from the local environment.' );
-		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
+		$this->addOption( 'no_scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 
 		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
 		$this->addOption( 'db_host', null, InputOption::VALUE_REQUIRED, 'Database host.' );
@@ -88,7 +88,7 @@ class Push extends Command {
 
 			$exclude = $input->getOption( 'exclude' );
 
-			if ( ! empty( $input->getOption( 'exclude-uploads' ) ) ) {
+			if ( ! empty( $input->getOption( 'exclude_uploads' ) ) ) {
 				$exclude[] = './uploads';
 			}
 
@@ -101,7 +101,7 @@ class Push extends Command {
 					'db_password' => $input->getOption( 'db_password' ),
 					'project'     => $project,
 					'description' => $description,
-					'no_scrub'    => $input->getOption( 'no-scrub' ),
+					'no_scrub'    => $input->getOption( 'no_scrub' ),
 					'exclude'     => $exclude,
 				], $output, $verbose
 			);

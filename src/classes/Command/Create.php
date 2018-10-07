@@ -35,7 +35,7 @@ class Create extends Command {
 		$this->setDescription( 'Create a snapshot locally.' );
 		$this->addOption( 'exclude', false, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Exclude a file or directory from the snapshot.' );
 		$this->addOption( 'exclude_uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
-		$this->addOption( 'no-scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
+		$this->addOption( 'no_scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 
 		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
 		$this->addOption( 'db_host', null, InputOption::VALUE_REQUIRED, 'Database host.' );
@@ -82,7 +82,7 @@ class Create extends Command {
 
 		$exclude = $input->getOption( 'exclude' );
 
-		if ( ! empty( $input->getOption( 'exclude-uploads' ) ) ) {
+		if ( ! empty( $input->getOption( 'exclude_uploads' ) ) ) {
 			$exclude[] = './uploads';
 		}
 
@@ -95,7 +95,7 @@ class Create extends Command {
 				'project'     => $project,
 				'path'        => $path,
 				'description' => $description,
-				'no_scrub'    => $input->getOption( 'no-scrub' ),
+				'no_scrub'    => $input->getOption( 'no_scrub' ),
 				'exclude'     => $exclude,
 			], $output, $input->getOption( 'verbose' )
 		);
