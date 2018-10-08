@@ -191,15 +191,15 @@ class Snapshot {
 					'blog_id'  => $site->blog_id,
 					'domain'   => $site->domain,
 					'path'     => $site->path,
-					'site_url' => get_site_url( $site->blog_id ),
-					'home_url' => get_home_url( $site->blog_id ),
+					'site_url' => get_blog_option( $site->blog_id, 'siteurl' ),
+					'home_url' => get_blog_option( $site->blog_id, 'home' ),
 					'blogname' => get_blog_option( $site->blog_id, 'blogname' ),
 				];
 			}
 		} else {
 			$meta['sites'][] = [
-				'site_url' => get_site_url(),
-				'home_url' => get_home_url(),
+				'site_url' => get_option( 'siteurl' ),
+				'home_url' => get_option( 'home' ),
 				'blogname' => get_option( 'blogname' ),
 			];
 		}
