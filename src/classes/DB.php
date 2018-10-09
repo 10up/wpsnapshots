@@ -9,6 +9,7 @@ namespace WPSnapshots;
 
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\DynamoDb\Marshaler;
+use Aws\Iam\IamClient;
 
 /**
  * Class for handling Amazon dynamodb calls
@@ -38,10 +39,10 @@ class DB {
 
 		$this->client = DynamoDbClient::factory(
 			[
-				'credentials' => [
+				/*'credentials' => [
 					'key'    => $config['access_key_id'],
 					'secret' => $config['secret_access_key'],
-				],
+				],*/
 				'region'      => $config['region'],
 				'version'     => '2012-08-10',
 			]
@@ -101,6 +102,52 @@ class DB {
 		}
 
 		return $instances;
+	}
+
+	public function makeSnapshotPublic() {
+		$client = new IamClient([
+		'profile' => 'default',
+		'region' => 'us-west-2',
+		'version' => '2010-05-08',
+		]);
+
+		$myManagedPolicy = '{
+		    "Version": "2012-10-17",
+		    "Statement": [
+		        {
+		            "Sid": "ReadOnlyAccessToSnapshots",
+		            "Effect": "Allow",
+		            "Action": [
+		                "dynamodb:GetItem",
+		                "dynamodb:BatchGetItem",
+		                "dynamodb:Query"
+		            ],
+		            "Resource": [
+		                "arn:aws:dynamodb:' . $this->config['region'] . ':*:table/wpsnapshots-' . $this->config['repository'] . '"
+		            ],
+		            "Condition": {
+		                "ForAllValues:StringEquals": {
+		                    "dynamodb:LeadingKeys": [
+		                        "snapshotid"
+		                    ]
+		                }
+		            }
+		        }
+		    ]
+		}';
+
+		/*try {
+		$result = $client->createPolicy(array(
+		// PolicyName is required
+		'PolicyName' => 'myDynamoDBPolicy',
+		// PolicyDocument is required
+		'PolicyDocument' => $myManagedPolicy
+		));
+		var_dump($result);
+		} catch (AwsException $e) {
+		// output error message if fails
+		error_log($e->getMessage());
+		}*/
 	}
 
 	/**

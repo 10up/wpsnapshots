@@ -61,7 +61,9 @@ class Configure extends Command {
 		$config = Config::instance()->get();
 
 		if ( ! Utils\is_error( $config ) ) {
-			Log::instance()->write( 'Repository config already exists. Proceeding will overwrite it.' );
+			if ( ! empty( $config[ $repository ] ) ) {
+				Log::instance()->write( 'Repository config already exists. Proceeding will overwrite it.' );
+			}
 		} else {
 			$config = [
 				'repositories' => [],
