@@ -210,7 +210,7 @@ class S3 {
 					'secret' => $config['secret_access_key'],
 				],
 				'signature'   => 'v4',
-				'region'      => $this->config['region'],
+				'region'      => $config['region'],
 				'version'     => '2006-03-01',
 			]
 		);

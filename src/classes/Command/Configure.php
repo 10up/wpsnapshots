@@ -62,6 +62,10 @@ class Configure extends Command {
 
 		if ( ! Utils\is_error( $config ) ) {
 			Log::instance()->write( 'Repository config already exists. Proceeding will overwrite it.' );
+		} else {
+			$config = [
+				'repositories' => [],
+			];
 		}
 
 		$repo_config = [
@@ -134,7 +138,7 @@ class Configure extends Command {
 			return 1;
 		}
 
-		$config[ $repository ] = $repo_config;
+		$config['repositories'][ $repository ] = $repo_config;
 
 		Config::instance()->write( $config );
 

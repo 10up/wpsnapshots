@@ -49,13 +49,13 @@ class Connection {
 	public function connect( $repository = null ) {
 		$config = Config::instance()->get( $repository );
 
+		if ( Utils\is_error( $config ) ) {
+			return $config;
+		}
+
 		if ( empty( $repository ) ) {
 			$config = array_values( $config['repositories'] );
 			$config = $config[0];
-		}
-
-		if ( Utils\is_error( $config ) ) {
-			return $config;
 		}
 
 		$this->config = $config;
