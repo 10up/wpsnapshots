@@ -22,11 +22,11 @@ class DB {
 	public $client;
 
 	/**
-	 * Name of repository
+	 * Connection config
 	 *
-	 * @var string
+	 * @var array
 	 */
-	public $repository;
+	public $config = [];
 
 	/**
 	 * Init dynamodb client
@@ -34,6 +34,8 @@ class DB {
 	 * @param array $config Array of config
 	 */
 	public function __construct( $config ) {
+		$this->config = $config;
+
 		$this->client = DynamoDbClient::factory(
 			[
 				'credentials' => [
@@ -44,8 +46,6 @@ class DB {
 				'version'     => '2012-08-10',
 			]
 		);
-
-		$this->repository = $config['repository'];
 	}
 
 	/**
@@ -59,7 +59,7 @@ class DB {
 		$marshaler = new Marshaler();
 
 		$args = [
-			'TableName' => 'wpsnapshots-' . $this->repository,
+			'TableName' => 'wpsnapshots-' . $this->config['repository'],
 		];
 
 		if ( '*' !== $query ) {
@@ -132,7 +132,7 @@ class DB {
 		try {
 			$result = $this->client->putItem(
 				[
-					'TableName' => 'wpsnapshots-' . $this->repository,
+					'TableName' => 'wpsnapshots-' . $this->config['repository'],
 					'Item'      => $marshaler->marshalJson( $snapshot_json ),
 				]
 			);
@@ -160,7 +160,7 @@ class DB {
 		try {
 			$result = $this->client->deleteItem(
 				[
-					'TableName' => 'wpsnapshots-' . $this->repository,
+					'TableName' => 'wpsnapshots-' . $this->config['repository'],
 					'Key'       => [
 						'id' => [
 							'S' => $id,
@@ -193,7 +193,7 @@ class DB {
 			$result = $this->client->getItem(
 				[
 					'ConsistentRead' => true,
-					'TableName'      => 'wpsnapshots-' . $this->repository,
+					'TableName'      => 'wpsnapshots-' . $this->config['repository'],
 					'Key'            => [
 						'id' => [
 							'S' => $id,
@@ -234,7 +234,7 @@ class DB {
 		try {
 			$this->client->createTable(
 				[
-					'TableName'             => 'wpsnapshots-' . $this->repository,
+					'TableName'             => 'wpsnapshots-' . $this->config['repository'],
 					'AttributeDefinitions'  => [
 						[
 							'AttributeName' => 'id',
@@ -256,7 +256,7 @@ class DB {
 
 			$this->client->waitUntil(
 				'TableExists', [
-					'TableName' => 'wpsnapshots-' . $this->repository,
+					'TableName' => 'wpsnapshots-' . $this->config['repository'],
 				]
 			);
 		} catch ( \Exception $e ) {

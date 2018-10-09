@@ -28,11 +28,12 @@ class Config {
 	}
 
 	/**
-	 * Get current wp snapshots config if it exists
+	 * Get current wp snapshots config if it exists. Optionally only get one repository config
 	 *
+	 * @param  string $repository Optional repository to return. Otherwise returns all repositories.
 	 * @return array|Error
 	 */
-	public function get() {
+	public function get( $repository = null ) {
 		$file_path = Utils\get_snapshot_directory() . 'config.json';
 
 		if ( ! file_exists( $file_path ) ) {
@@ -50,9 +51,34 @@ class Config {
 			}
 		}
 
-		$snapshots_config_file = json_decode( file_get_contents( $file_path ), true );
+		$config = json_decode( file_get_contents( $file_path ), true );
 
-		return $snapshots_config_file;
+		// Backwards compat - move to "repositories" as base key
+		if ( ! empty( $config ) && ! empty( $config['repository'] ) ) {
+			$new_config = [
+				'repositories' => [
+					$config['repository'] => $config,
+				],
+			];
+
+			$config = $new_config;
+
+			$this->write( $config );
+		}
+
+		if ( empty( $config['repositories'] ) ) {
+			return new Error( 1, 'Configuration empty.' );
+		}
+
+		if ( ! empty( $repository ) ) {
+			if ( ! empty( $config['repositories'][ $repository ] ) ) {
+				$config = $config['repositories'][ $repository ];
+			} else {
+				return new Error( 2, 'Repository not configured.' );
+			}
+		}
+
+		return $config;
 	}
 
 	/**
