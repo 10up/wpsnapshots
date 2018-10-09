@@ -39,10 +39,10 @@ class DB {
 
 		$this->client = DynamoDbClient::factory(
 			[
-				/*'credentials' => [
+				'credentials' => [
 					'key'    => $config['access_key_id'],
 					'secret' => $config['secret_access_key'],
-				],*/
+				],
 				'region'      => $config['region'],
 				'version'     => '2012-08-10',
 			]
