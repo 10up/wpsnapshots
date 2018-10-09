@@ -270,7 +270,7 @@ class S3 {
 			$result = $this->client->createBucket(
 				[
 					'Bucket'             => self::getBucketName( $this->config['repository'] ),
-					'LocationConstraint' => $this->config['repion'],
+					'LocationConstraint' => $this->config['region'],
 				]
 			);
 		} catch ( \Exception $e ) {
