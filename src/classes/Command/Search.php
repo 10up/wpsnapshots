@@ -31,7 +31,8 @@ class Search extends Command {
 	protected function configure() {
 		$this->setName( 'search' );
 		$this->setDescription( 'Search for snapshots within a repository.' );
-		$this->addArgument( 'search-text', InputArgument::REQUIRED, 'Text to search against snapshots.' );
+		$this->addArgument( 'search_text', InputArgument::REQUIRED, 'Text to search against snapshots.' );
+		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
 	}
 
 	/**
@@ -43,14 +44,14 @@ class Search extends Command {
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
 
-		$connection = Connection::instance()->connect();
+		$connection = Connection::instance()->connect( $input->getOption( 'repository' ) );
 
 		if ( Utils\is_error( $connection ) ) {
 			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
 			return 1;
 		}
 
-		$instances = Connection::instance()->db->search( $input->getArgument( 'search-text' ) );
+		$instances = Connection::instance()->db->search( $input->getArgument( 'search_text' ) );
 
 		if ( Utils\is_error( $instances ) ) {
 			Log::instance()->write( 'An error occured while searching.', 0, 'success' );

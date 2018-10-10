@@ -19,14 +19,21 @@ class Connection {
 	 *
 	 * @var \Aws\S3\S3Client
 	 */
-	public $s3 = null;
+	public $s3;
 
 	/**
 	 * Instance of S3 client
 	 *
 	 * @var \Aws\DynamoDb\DynamoDbClient
 	 */
-	public $db = null;
+	public $db;
+
+	/**
+	 * Repository config
+	 *
+	 * @var array
+	 */
+	public $config;
 
 	/**
 	 * Singleton
@@ -36,14 +43,24 @@ class Connection {
 	/**
 	 * Connect to S3/DynamoDB
 	 *
+	 * @param  string $repository Optional repository to use. Defaults to first repo in config.
 	 * @return bool|Error
 	 */
-	public function connect() {
-		$config = Config::instance()->get();
+	public function connect( $repository = null ) {
+		$config = Config::instance()->get( $repository );
 
 		if ( Utils\is_error( $config ) ) {
 			return $config;
 		}
+
+		if ( empty( $repository ) ) {
+			$config = array_values( $config['repositories'] );
+			$config = $config[0];
+		}
+
+		Log::instance()->write( 'Connected to repository: ' . $config['repository'] );
+
+		$this->config = $config;
 
 		$this->s3 = new S3( $config );
 
