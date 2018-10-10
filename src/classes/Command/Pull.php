@@ -112,7 +112,7 @@ class Pull extends Command {
 
 		$verbose = $input->getOption( 'verbose' );
 
-		$verbose_pipe = ( $verbose ) ? '> /dev/null' : '';
+		$verbose_pipe = ( ! $verbose ) ? '> /dev/null' : '';
 
 		$helper = $this->getHelper( 'question' );
 

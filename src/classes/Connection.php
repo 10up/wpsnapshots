@@ -58,6 +58,8 @@ class Connection {
 			$config = $config[0];
 		}
 
+		Log::instance()->write( 'Connected to repository: ' . $config['repository'] );
+
 		$this->config = $config;
 
 		$this->s3 = new S3( $config );
