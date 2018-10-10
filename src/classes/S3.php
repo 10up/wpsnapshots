@@ -158,21 +158,25 @@ class S3 {
 		try {
 			$result = $this->client->deleteObjects(
 				[
-					'Bucket'  => self::getBucketName( $this->config['repository'] ),
-					'Objects' => [
-						[
-							'Key' => $project . '/' . $id . '/files.tar.gz',
-						],
-						[
-							'Key' => $project . '/' . $id . '/data.sql',
-						],
-						[
-							'Key' => $project . '/' . $id . '/data.sql.gz',
+					'Bucket' => self::getBucketName( $this->config['repository'] ),
+					'Delete' => [
+						'Objects' => [
+							[
+								'Key' => $project . '/' . $id . '/files.tar.gz',
+							],
+							[
+								'Key' => $project . '/' . $id . '/data.sql',
+							],
+							[
+								'Key' => $project . '/' . $id . '/data.sql.gz',
+							],
 						],
 					],
 				]
 			);
 		} catch ( \Exception $e ) {
+			echo $e->getMessage();
+			exit;
 			$error = [
 				'message'        => $e->getMessage(),
 				'aws_request_id' => $e->getAwsRequestId(),
