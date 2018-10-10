@@ -392,10 +392,11 @@ function get_snapshot_directory() {
 /**
  * Generate unique snapshot ID
  *
+ * @param  string $project_slug Slug for project
  * @return string
  */
-function generate_snapshot_id() {
-	return md5( time() . '' . rand() );
+function generate_snapshot_id( $project_slug ) {
+	return $project_slug . '-' . substr( md5( time() . '' . rand() ), 0, 20 );
 }
 
 /**

@@ -22,21 +22,21 @@ class Snapshot {
 	 *
 	 * @var string
 	 */
-	public $id;
+	private $id;
 
 	/**
 	 * Snapshot meta data
 	 *
 	 * @var array
 	 */
-	public $meta = [];
+	private $meta = [];
 
 	/**
 	 * Does snapshot exist on remote or not
 	 *
 	 * @var boolean
 	 */
-	public $remote = false;
+	private $remote = false;
 
 	/**
 	 * Snapshot constructor. Snapshot must already exist locally in $path.
@@ -54,6 +54,33 @@ class Snapshot {
 		if ( ! file_exists( Utils\get_snapshot_directory() . $id . '/data.sql.gz' ) || ! file_exists( Utils\get_snapshot_directory() . $id . '/files.tar.gz' ) ) {
 			throw new Exception( 'Snapshot data or files do not exist locally.' );
 		}
+	}
+
+	/**
+	 * Get Snapshot ID
+	 *
+	 * @return string
+	 */
+	public function getId() {
+		return $this->id;
+	}
+
+	/**
+	 * Get Snapshot meta
+	 *
+	 * @return string
+	 */
+	public function getMeta() {
+		return $this->meta;
+	}
+
+	/**
+	 * Get Snapshot remote existence
+	 *
+	 * @return string
+	 */
+	public function getRemote() {
+		return $this->remote;
 	}
 
 	/**
@@ -91,7 +118,7 @@ class Snapshot {
 		/**
 		 * Define snapshot ID
 		 */
-		$id = Utils\generate_snapshot_id();
+		$id = Utils\generate_snapshot_id( $args['project'] );
 
 		$create_dir = Utils\create_snapshot_directory( $id );
 

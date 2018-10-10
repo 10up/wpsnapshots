@@ -15,7 +15,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
-use WPSnapshots\Connection;
+use WPSnapshots\RepositoryManager;
 use WPSnapshots\WordPressBridge;
 use WPSnapshots\Config;
 use WPSnapshots\Utils;
@@ -46,10 +46,9 @@ class Download extends Command {
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
 
-		$connection = Connection::instance()->connect( $input->getOption( 'repository' ) );
+		$repo_connected = RepositoryManager::instance()->connect( $input->getOption( 'repository' ) );
 
-		if ( Utils\is_error( $connection ) ) {
-			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
+		if ( ! $repo_connected ) {
 			return 1;
 		}
 

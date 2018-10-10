@@ -61,7 +61,6 @@ class Connection {
 		$this->config = $config;
 
 		$this->s3 = new S3( $config );
-
 		$this->db = new DB( $config );
 
 		return true;

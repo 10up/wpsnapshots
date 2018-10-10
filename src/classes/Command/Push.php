@@ -58,9 +58,11 @@ class Push extends Command {
 		$connection = Connection::instance()->connect( $input->getOption( 'repository' ) );
 
 		if ( Utils\is_error( $connection ) ) {
-			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
+			Log::instance()->write( 'Could not connect to repository ' . Connection::instance()->config['repository'] . '.', 0, 'error' );
 			return 1;
 		}
+
+		Log::instance()->write( 'Connected to repository ' . Connection::instance()->config['repository'] . '.', 0, 'error' );
 
 		$snapshot_id = $input->getArgument( 'snapshot_id' );
 
