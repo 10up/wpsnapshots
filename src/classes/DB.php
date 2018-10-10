@@ -104,52 +104,6 @@ class DB {
 		return $instances;
 	}
 
-	public function makeSnapshotPublic() {
-		$client = new IamClient([
-		'profile' => 'default',
-		'region' => 'us-west-2',
-		'version' => '2010-05-08',
-		]);
-
-		$myManagedPolicy = '{
-		    "Version": "2012-10-17",
-		    "Statement": [
-		        {
-		            "Sid": "ReadOnlyAccessToSnapshots",
-		            "Effect": "Allow",
-		            "Action": [
-		                "dynamodb:GetItem",
-		                "dynamodb:BatchGetItem",
-		                "dynamodb:Query"
-		            ],
-		            "Resource": [
-		                "arn:aws:dynamodb:' . $this->config['region'] . ':*:table/wpsnapshots-' . $this->config['repository'] . '"
-		            ],
-		            "Condition": {
-		                "ForAllValues:StringEquals": {
-		                    "dynamodb:LeadingKeys": [
-		                        "snapshotid"
-		                    ]
-		                }
-		            }
-		        }
-		    ]
-		}';
-
-		/*try {
-		$result = $client->createPolicy(array(
-		// PolicyName is required
-		'PolicyName' => 'myDynamoDBPolicy',
-		// PolicyDocument is required
-		'PolicyDocument' => $myManagedPolicy
-		));
-		var_dump($result);
-		} catch (AwsException $e) {
-		// output error message if fails
-		error_log($e->getMessage());
-		}*/
-	}
-
 	/**
 	 * Insert a snapshot into the DB
 	 *
