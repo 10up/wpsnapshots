@@ -42,7 +42,6 @@ class Create extends Command {
 		$this->addOption( 'db_name', null, InputOption::VALUE_REQUIRED, 'Database name.' );
 		$this->addOption( 'db_user', null, InputOption::VALUE_REQUIRED, 'Database user.' );
 		$this->addOption( 'db_password', null, InputOption::VALUE_REQUIRED, 'Database password.' );
-		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
 	}
 
 	/**
@@ -53,13 +52,6 @@ class Create extends Command {
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
-
-		$connection = Connection::instance()->connect( $input->getOption( 'repository' ) );
-
-		if ( Utils\is_error( $connection ) ) {
-			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
-			return 1;
-		}
 
 		$path = $input->getOption( 'path' );
 
