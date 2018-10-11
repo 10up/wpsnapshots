@@ -145,6 +145,11 @@ class Snapshot {
 
 		$config = Config::instance()->get();
 
+		if ( Utils\is_error( $config ) ) {
+			Log::instance()->write( 'Could not get configuration.', 0, 'error' );
+			return false;
+		}
+
 		if ( ! empty( $config['name'] ) ) {
 			$meta['author']['name'] = $config['name'];
 		}
@@ -283,18 +288,17 @@ class Snapshot {
 
 			Log::instance()->write( 'Getting users...', 1 );
 
-			$user_rows = $wpdb->get_results( "SELECT user_pass, user_email, user_nicename FROM $wpdb->users", ARRAY_A );
+			$user_rows = $wpdb->get_results( "SELECT user_pass, user_email FROM $wpdb->users", ARRAY_A );
 
 			foreach ( $user_rows as $user_row ) {
 				$all_hashed_passwords[] = $user_row['user_pass'];
-				$all_emails[]           = [
-					'email' => $user_row['user_email'],
-					'name'  => $user_row['user_nicename'],
-				];
+				if ( $user_row['user_email'] ) {
+					$all_emails[] = $user_row['user_email'];
+				}
 			}
 
 			$sterile_password = wp_hash_password( 'password' );
-			$sterile_email    = '%s@example.com';
+			$sterile_email    = 'user%d@example.com';
 
 			Log::instance()->write( 'Opening users export...', 1 );
 
@@ -319,10 +323,10 @@ class Snapshot {
 					$chunk = str_replace( "'$password'", "'$sterile_password'", $chunk );
 				}
 
-				foreach ( $all_emails as $email ) {
+				foreach ( $all_emails as $index => $email ) {
 					$chunk = str_replace(
-						"'{$email['email']}'",
-						sprintf( "'$sterile_email'", $email['name'] ),
+						"'$email'",
+						sprintf( "'$sterile_email'", $index ),
 						$chunk
 					);
 				}
