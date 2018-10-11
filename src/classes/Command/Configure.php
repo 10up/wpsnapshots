@@ -61,10 +61,16 @@ class Configure extends Command {
 		$config = Config::instance()->get();
 
 		if ( ! Utils\is_error( $config ) ) {
-			Log::instance()->write( 'Repository config already exists. Proceeding will overwrite it.' );
+			if ( ! empty( $config[ $repository ] ) ) {
+				Log::instance()->write( 'Repository config already exists. Proceeding will overwrite it.' );
+			}
+		} else {
+			$config = [
+				'repositories' => [],
+			];
 		}
 
-		$config = [
+		$repo_config = [
 			'repository' => $repository,
 		];
 
@@ -85,19 +91,19 @@ class Configure extends Command {
 				$secret_access_key = $helper->ask( $input, $output, new Question( 'AWS Secret Access Key: ' ) );
 			}
 
-			$config['access_key_id']     = $access_key_id;
-			$config['secret_access_key'] = $secret_access_key;
-			$config['region']            = $region;
+			$repo_config['access_key_id']     = $access_key_id;
+			$repo_config['secret_access_key'] = $secret_access_key;
+			$repo_config['region']            = $region;
 
-			$test = S3::test( $config );
+			$test = S3::test( $repo_config );
 
 			if ( ! Utils\is_error( $test ) ) {
 				break;
 			} else {
 				if ( 'InvalidAccessKeyId' === $test->data['aws_error_code'] ) {
-					$output->writeln( '<comment>Repository connection did not work. Try again?</comment>' );
+					Log::instance()->write( 'Repository connection did not work. Try again?', 0, 'warning' );
 				} elseif ( 'NoSuchBucket' === $test->data['aws_error_code'] ) {
-					$output->writeln( '<comment>We successfully connected to AWS. However, no repository has been created. Run `wpsnapshots create-repository` after configuration is complete.</comment>' );
+					Log::instance()->write( 'We successfully connected to AWS. However, no repository has been created. Run `wpsnapshots create-repository` after configuration is complete.', 0, 'warning' );
 					break;
 				} else {
 					break;
@@ -107,7 +113,24 @@ class Configure extends Command {
 			$i++;
 		}
 
-		$config = $this->apply_user_to_config( $config, $input, $output );
+		$name  = $input->getOption( 'user_name' );
+		$email = $input->getOption( 'user_email' );
+
+		if ( empty( $name ) ) {
+			$name_question = new Question( 'Your Name: ' );
+			$name_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+			$name = $helper->ask( $input, $output, $name_question );
+		}
+
+		$repo_config['name'] = $name;
+
+		if ( empty( $email ) ) {
+			$email = $helper->ask( $input, $output, new Question( 'Your Email: ' ) );
+		}
+
+		if ( ! empty( $email ) ) {
+			$repo_config['email'] = $email;
+		}
 
 		$create_dir = Utils\create_snapshot_directory();
 
@@ -117,41 +140,10 @@ class Configure extends Command {
 			return 1;
 		}
 
+		$config['repositories'][ $repository ] = $repo_config;
+
 		Config::instance()->write( $config );
 
 		Log::instance()->write( 'WP Snapshots configuration verified and saved.', 0, 'success' );
-	}
-
-	/**
-	 * Apply User to Config
-	 *
-	 * @param array           $config Configuration option array.
-	 * @param InputInterface  $input  Input object.
-	 * @param OutputInterface $output Output object.
-	 *
-	 *  @return array                  Configuration option array with user detail applied.
-	 */
-	protected function apply_user_to_config( $config, InputInterface $input, OutputInterface $output ) {
-		$helper = $this->getHelper( 'question' );
-		$name   = $input->getOption( 'user_name' );
-		$email  = $input->getOption( 'user_email' );
-
-		if ( empty( $name ) ) {
-			$name_question = new Question( 'Your Name: ' );
-			$name_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
-			$name = $helper->ask( $input, $output, $name_question );
-		}
-
-		$config['name'] = $name;
-
-		if ( empty( $email ) ) {
-			$email = $helper->ask( $input, $output, new Question( 'Your Email: ' ) );
-		}
-
-		if ( ! empty( $email ) ) {
-			$config['email'] = $email;
-		}
-
-		return $config;
 	}
 }

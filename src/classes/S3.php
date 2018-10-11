@@ -24,18 +24,11 @@ class S3 {
 	private $client;
 
 	/**
-	 * Repository name
+	 * Config for connetion
 	 *
 	 * @var string
 	 */
-	private $repository;
-
-	/**
-	 * Current S3 region
-	 *
-	 * @var string
-	 */
-	private $region;
+	private $config = [];
 
 	/**
 	 * Progress bar reference.
@@ -50,6 +43,8 @@ class S3 {
 	 * @param array $config Config array.
 	 */
 	public function __construct( $config ) {
+		$this->config = $config;
+
 		$this->client = S3Client::factory(
 			[
 				'credentials' => [
@@ -62,8 +57,6 @@ class S3 {
 			]
 		);
 
-		$this->repository = $config['repository'];
-		$this->region     = $config['region'];
 
 		ProgressBar::setPlaceholderFormatterDefinition(
 			'cur_bytes',
@@ -96,7 +89,7 @@ class S3 {
 		try {
 			$db_result = $this->client->putObject(
 				[
-					'Bucket'     => self::getBucketName( $this->repository ),
+					'Bucket'     => self::getBucketName( $this->config['repository'] ),
 					'Key'        => $project . '/' . $id . '/data.sql.gz',
 					'SourceFile' => realpath( $db_path ),
 				]
@@ -104,7 +97,7 @@ class S3 {
 
 			$files_result = $this->client->putObject(
 				[
-					'Bucket'     => self::getBucketName( $this->repository ),
+					'Bucket'     => self::getBucketName( $this->config['repository'] ),
 					'Key'        => $project . '/' . $id . '/files.tar.gz',
 					'SourceFile' => realpath( $files_path ),
 				]
@@ -115,14 +108,14 @@ class S3 {
 			 */
 			$this->client->waitUntil(
 				'ObjectExists', [
-					'Bucket' => self::getBucketName( $this->repository ),
+					'Bucket' => self::getBucketName( $this->config['repository'] ),
 					'Key'    => $project . '/' . $id . '/files.tar.gz',
 				]
 			);
 
 			$this->client->waitUntil(
 				'ObjectExists', [
-					'Bucket' => self::getBucketName( $this->repository ),
+					'Bucket' => self::getBucketName( $this->config['repository'] ),
 					'Key'    => $project . '/' . $id . '/data.sql.gz',
 				]
 			);
@@ -154,7 +147,7 @@ class S3 {
 			Log::instance()->write( 'Downloading database...' );
 			$db_download = $this->client->getObject(
 				[
-					'Bucket' => self::getBucketName( $this->repository ),
+					'Bucket' => self::getBucketName( $this->config['repository'] ),
 					'Key'    => $project . '/' . $id . '/data.sql.gz',
 					'SaveAs' => $db_path,
 					'@http'  => [
@@ -167,7 +160,7 @@ class S3 {
 			Log::instance()->write( 'Downloading files...' );
 			$files_download = $this->client->getObject(
 				[
-					'Bucket' => self::getBucketName( $this->repository ),
+					'Bucket' => self::getBucketName( $this->config['repository'] ),
 					'Key'    => $project . '/' . $id . '/files.tar.gz',
 					'SaveAs' => $files_path,
 					'@http'  => [
@@ -201,21 +194,25 @@ class S3 {
 		try {
 			$result = $this->client->deleteObjects(
 				[
-					'Bucket'  => self::getBucketName( $this->repository ),
-					'Objects' => [
-						[
-							'Key' => $project . '/' . $id . '/files.tar.gz',
-						],
-						[
-							'Key' => $project . '/' . $id . '/data.sql',
-						],
-						[
-							'Key' => $project . '/' . $id . '/data.sql.gz',
+					'Bucket' => self::getBucketName( $this->config['repository'] ),
+					'Delete' => [
+						'Objects' => [
+							[
+								'Key' => $project . '/' . $id . '/files.tar.gz',
+							],
+							[
+								'Key' => $project . '/' . $id . '/data.sql',
+							],
+							[
+								'Key' => $project . '/' . $id . '/data.sql.gz',
+							],
 						],
 					],
 				]
 			);
 		} catch ( \Exception $e ) {
+			echo $e->getMessage();
+			exit;
 			$error = [
 				'message'        => $e->getMessage(),
 				'aws_request_id' => $e->getAwsRequestId(),
@@ -297,7 +294,7 @@ class S3 {
 			return new Error( 0, $error );
 		}
 
-		$bucket_name = self::getBucketName( $this->repository );
+		$bucket_name = self::getBucketName( $this->config['repository'] );
 
 		foreach ( $result['Buckets'] as $bucket ) {
 			if ( $bucket_name === $bucket['Name'] ) {
@@ -312,8 +309,8 @@ class S3 {
 		try {
 			$result = $this->client->createBucket(
 				[
-					'Bucket'             => self::getBucketName( $this->repository ),
-					'LocationConstraint' => $this->region,
+					'Bucket'             => self::getBucketName( $this->config['repository'] ),
+					'LocationConstraint' => $this->config['region'],
 				]
 			);
 		} catch ( \Exception $e ) {

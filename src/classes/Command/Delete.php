@@ -31,7 +31,8 @@ class Delete extends Command {
 	protected function configure() {
 		$this->setName( 'delete' );
 		$this->setDescription( 'Delete a snapshot from the repository.' );
-		$this->addArgument( 'snapshot-id', InputArgument::REQUIRED, 'Snapshot ID to delete.' );
+		$this->addArgument( 'snapshot_id', InputArgument::REQUIRED, 'Snapshot ID to delete.' );
+		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
 	}
 
 	/**
@@ -43,14 +44,14 @@ class Delete extends Command {
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
 
-		$connection = Connection::instance()->connect();
+		$connection = Connection::instance()->connect( $input->getOption( 'repository' ) );
 
 		if ( Utils\is_error( $connection ) ) {
 			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
 			return 1;
 		}
 
-		$id = $input->getArgument( 'snapshot-id' );
+		$id = $input->getArgument( 'snapshot_id' );
 
 		$snapshot = Connection::instance()->db->getSnapshot( $id );
 
