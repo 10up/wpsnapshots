@@ -279,16 +279,22 @@ class Snapshot {
 			Log::instance()->write( 'Scrubbing user database...' );
 
 			$all_hashed_passwords = [];
+			$all_emails           = [];
 
 			Log::instance()->write( 'Getting users...', 1 );
 
-			$passwords = $wpdb->get_results( "SELECT user_pass FROM $wpdb->users", ARRAY_A );
+			$user_rows = $wpdb->get_results( "SELECT user_pass, user_email, user_nicename FROM $wpdb->users", ARRAY_A );
 
-			foreach ( $passwords as $password_row ) {
-				$all_hashed_passwords[] = $password_row['user_pass'];
+			foreach ( $user_rows as $user_row ) {
+				$all_hashed_passwords[] = $user_row['user_pass'];
+				$all_emails[]           = [
+					'email' => $user_row['user_email'],
+					'name'  => $user_row['user_nicename'],
+				];
 			}
 
 			$sterile_password = wp_hash_password( 'password' );
+			$sterile_email    = '%s@example.com';
 
 			Log::instance()->write( 'Opening users export...', 1 );
 
@@ -311,6 +317,14 @@ class Snapshot {
 
 				foreach ( $all_hashed_passwords as $password ) {
 					$chunk = str_replace( "'$password'", "'$sterile_password'", $chunk );
+				}
+
+				foreach ( $all_emails as $email ) {
+					$chunk = str_replace(
+						"'{$email['email']}'",
+						sprintf( "'$sterile_email'", $email['name'] ),
+						$chunk
+					);
 				}
 
 				$buffer .= $chunk;
