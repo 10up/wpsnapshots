@@ -151,6 +151,7 @@ class DB {
 			'subdomain_install' => $snapshot['subdomain_install'],
 			'size'              => $snapshot['size'],
 			'wp_version'        => $snapshot['wp_version'],
+			'repository'        => $snapshot['repository'],
 		];
 
 		$snapshot_json = json_encode( $snapshot_item );
@@ -293,7 +294,7 @@ class DB {
 			Log::instance()->write( 'AWS Error Type: ' . $e->getAwsErrorType(), 1, 'error' );
 			Log::instance()->write( 'AWS Error Code: ' . $e->getAwsErrorCode(), 1, 'error' );
 
-			return false;
+			return $e->getAwsErrorCode();
 		}
 
 		return true;

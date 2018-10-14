@@ -235,7 +235,7 @@ class S3 {
 	 * Test S3 connection by attempting to list S3 objects.
 	 *
 	 * @param  array $config Config array
-	 * @return bool|Error
+	 * @return bool|integer
 	 */
 	public static function test( $config ) {
 		$client = S3Client::factory(
@@ -260,16 +260,16 @@ class S3 {
 			Log::instance()->write( 'AWS Error Type: ' . $e->getAwsErrorType(), 1, 'error' );
 			Log::instance()->write( 'AWS Error Code: ' . $e->getAwsErrorCode(), 1, 'error' );
 
-			return false;
+			return $e->getAwsErrorCode();
 		}
 
 		return true;
 	}
 
 	/**
-	 * Create WPSnapshots S3 bucket
+	 * Create WP Snapshots S3 bucket
 	 *
-	 * @return bool|Error
+	 * @return bool|string
 	 */
 	public function createBucket() {
 		$bucket_exists = false;
@@ -282,7 +282,7 @@ class S3 {
 			Log::instance()->write( 'AWS Error Type: ' . $e->getAwsErrorType(), 1, 'error' );
 			Log::instance()->write( 'AWS Error Code: ' . $e->getAwsErrorCode(), 1, 'error' );
 
-			return false;
+			return $e->getAwsErrorCode();
 		}
 
 		$bucket_name = self::getBucketName( $this->repository );
@@ -294,7 +294,7 @@ class S3 {
 		}
 
 		if ( $bucket_exists ) {
-			return new Error( 1, 'Bucket already exists' );
+			return 'BucketExists';
 		}
 
 		try {
@@ -310,7 +310,7 @@ class S3 {
 			Log::instance()->write( 'AWS Error Type: ' . $e->getAwsErrorType(), 1, 'error' );
 			Log::instance()->write( 'AWS Error Code: ' . $e->getAwsErrorCode(), 1, 'error' );
 
-			return false;
+			return $e->getAwsErrorCode();
 		}
 
 		return true;
