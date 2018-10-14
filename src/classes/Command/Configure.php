@@ -122,14 +122,14 @@ class Configure extends Command {
 			$name = $helper->ask( $input, $output, $name_question );
 		}
 
-		$repo_config['name'] = $name;
+		$config['name'] = $name;
 
 		if ( empty( $email ) ) {
 			$email = $helper->ask( $input, $output, new Question( 'Your Email: ' ) );
 		}
 
 		if ( ! empty( $email ) ) {
-			$repo_config['email'] = $email;
+			$config['email'] = $email;
 		}
 
 		$create_dir = Utils\create_snapshot_directory();

@@ -23,27 +23,54 @@ class DB {
 	public $client;
 
 	/**
-	 * Connection config
+	 * Repository name
 	 *
-	 * @var array
+	 * @var string
 	 */
-	public $config = [];
+	private $repository;
 
 	/**
-	 * Init dynamodb client
+	 * AWS access key id
 	 *
-	 * @param array $config Array of config
+	 * @var string
 	 */
-	public function __construct( $config ) {
-		$this->config = $config;
+	private $access_key_id;
+
+	/**
+	 * AWS secret access key
+	 *
+	 * @var string
+	 */
+	private $secret_access_key;
+
+	/**
+	 * AWS region
+	 *
+	 * @var  string
+	 */
+	private $region;
+
+	/**
+	 * Construct DB client
+	 *
+	 * @param  string $repository Name of repo
+	 * @param  string $access_key_id AWS access key
+	 * @param  string $secret_access_key AWS secret access key
+	 * @param  string $region AWS region
+	 */
+	public function __construct( $repository, $access_key_id, $secret_access_key, $region ) {
+		$this->repository        = $repository;
+		$this->access_key_id     = $access_key_id;
+		$this->secret_access_key = $secret_access_key;
+		$this->region            = $region;
 
 		$this->client = DynamoDbClient::factory(
 			[
 				'credentials' => [
-					'key'    => $config['access_key_id'],
-					'secret' => $config['secret_access_key'],
+					'key'    => $access_key_id,
+					'secret' => $secret_access_key,
 				],
-				'region'      => $config['region'],
+				'region'      => $region,
 				'version'     => '2012-08-10',
 			]
 		);
@@ -60,7 +87,7 @@ class DB {
 		$marshaler = new Marshaler();
 
 		$args = [
-			'TableName' => 'wpsnapshots-' . $this->config['repository'],
+			'TableName' => 'wpsnapshots-' . $this->repository,
 		];
 
 		if ( '*' !== $query ) {
@@ -85,14 +112,12 @@ class DB {
 		try {
 			$search_scan = $this->client->getIterator( 'Scan', $args );
 		} catch ( \Exception $e ) {
-			$error = [
-				'message'        => $e->getMessage(),
-				'aws_request_id' => $e->getAwsRequestId(),
-				'aws_error_type' => $e->getAwsErrorType(),
-				'aws_error_code' => $e->getAwsErrorCode(),
-			];
+			Log::instance()->write( 'Error Message: ' . $e->getMessage(), 1, 'error' );
+			Log::instance()->write( 'AWS Request ID: ' . $e->getAwsRequestId(), 1, 'error' );
+			Log::instance()->write( 'AWS Error Type: ' . $e->getAwsErrorType(), 1, 'error' );
+			Log::instance()->write( 'AWS Error Code: ' . $e->getAwsErrorCode(), 1, 'error' );
 
-			return new Error( 0, $error );
+			return false;
 		}
 
 		$instances = [];
@@ -109,7 +134,7 @@ class DB {
 	 *
 	 * @param  string $id Snapshot ID
 	 * @param  array  $snapshot Description of snapshot
-	 * @return Error|array
+	 * @return array|bool
 	 */
 	public function insertSnapshot( $id, $snapshot ) {
 		$marshaler = new Marshaler();
@@ -133,19 +158,21 @@ class DB {
 		try {
 			$result = $this->client->putItem(
 				[
-					'TableName' => 'wpsnapshots-' . $this->config['repository'],
+					'TableName' => 'wpsnapshots-' . $this->repository,
 					'Item'      => $marshaler->marshalJson( $snapshot_json ),
 				]
 			);
 		} catch ( \Exception $e ) {
-			$error = [
-				'message'        => $e->getMessage(),
-				'aws_request_id' => $e->getAwsRequestId(),
-				'aws_error_type' => $e->getAwsErrorType(),
-				'aws_error_code' => $e->getAwsErrorCode(),
-			];
+			if ( 'AccessDeniedException' === $e->getAwsErrorCode() ) {
+				Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
+			}
 
-			return new Error( 0, $error );
+			Log::instance()->write( 'Error Message: ' . $e->getMessage(), 1, 'error' );
+			Log::instance()->write( 'AWS Request ID: ' . $e->getAwsRequestId(), 1, 'error' );
+			Log::instance()->write( 'AWS Error Type: ' . $e->getAwsErrorType(), 1, 'error' );
+			Log::instance()->write( 'AWS Error Code: ' . $e->getAwsErrorCode(), 1, 'error' );
+
+			return false;
 		}
 
 		return $snapshot_item;
@@ -161,7 +188,7 @@ class DB {
 		try {
 			$result = $this->client->deleteItem(
 				[
-					'TableName' => 'wpsnapshots-' . $this->config['repository'],
+					'TableName' => 'wpsnapshots-' . $this->repository,
 					'Key'       => [
 						'id' => [
 							'S' => $id,
@@ -170,14 +197,12 @@ class DB {
 				]
 			);
 		} catch ( \Exception $e ) {
-			$error = [
-				'message'        => $e->getMessage(),
-				'aws_request_id' => $e->getAwsRequestId(),
-				'aws_error_type' => $e->getAwsErrorType(),
-				'aws_error_code' => $e->getAwsErrorCode(),
-			];
+			Log::instance()->write( 'Error Message: ' . $e->getMessage(), 1, 'error' );
+			Log::instance()->write( 'AWS Request ID: ' . $e->getAwsRequestId(), 1, 'error' );
+			Log::instance()->write( 'AWS Error Type: ' . $e->getAwsErrorType(), 1, 'error' );
+			Log::instance()->write( 'AWS Error Code: ' . $e->getAwsErrorCode(), 1, 'error' );
 
-			return new Error( 0, $error );
+			return false;
 		}
 
 		return true;
@@ -187,14 +212,14 @@ class DB {
 	 * Get a snapshot given an id
 	 *
 	 * @param  string $id Snapshot ID
-	 * @return bool|Error
+	 * @return bool
 	 */
 	public function getSnapshot( $id ) {
 		try {
 			$result = $this->client->getItem(
 				[
 					'ConsistentRead' => true,
-					'TableName'      => 'wpsnapshots-' . $this->config['repository'],
+					'TableName'      => 'wpsnapshots-' . $this->repository,
 					'Key'            => [
 						'id' => [
 							'S' => $id,
@@ -203,22 +228,24 @@ class DB {
 				]
 			);
 		} catch ( \Exception $e ) {
-			$error = [
-				'message'        => $e->getMessage(),
-				'aws_request_id' => $e->getAwsRequestId(),
-				'aws_error_type' => $e->getAwsErrorType(),
-				'aws_error_code' => $e->getAwsErrorCode(),
-			];
+			if ( 'AccessDeniedException' === $e->getAwsErrorCode() ) {
+				Log::instance()->write( 'Access denied. You might not have access to this snapshot.', 0, 'error' );
+			}
 
-			return new Error( 0, $error );
+			Log::instance()->write( 'Error Message: ' . $e->getMessage(), 1, 'error' );
+			Log::instance()->write( 'AWS Request ID: ' . $e->getAwsRequestId(), 1, 'error' );
+			Log::instance()->write( 'AWS Error Type: ' . $e->getAwsErrorType(), 1, 'error' );
+			Log::instance()->write( 'AWS Error Code: ' . $e->getAwsErrorCode(), 1, 'error' );
+
+			return false;
 		}
 
 		if ( empty( $result['Item'] ) ) {
-			return new Error( 2, 'Item not found' );
+			return false;
 		}
 
 		if ( ! empty( $result['Item']['error'] ) ) {
-			return new Error( 1 );
+			return false;
 		}
 
 		$marshaler = new Marshaler();
@@ -229,13 +256,13 @@ class DB {
 	/**
 	 * Create default DB tables. Only need to do this once ever for repo setup.
 	 *
-	 * @return bool|Error
+	 * @return bool
 	 */
 	public function createTables() {
 		try {
 			$this->client->createTable(
 				[
-					'TableName'             => 'wpsnapshots-' . $this->config['repository'],
+					'TableName'             => 'wpsnapshots-' . $this->repository,
 					'AttributeDefinitions'  => [
 						[
 							'AttributeName' => 'id',
@@ -257,18 +284,16 @@ class DB {
 
 			$this->client->waitUntil(
 				'TableExists', [
-					'TableName' => 'wpsnapshots-' . $this->config['repository'],
+					'TableName' => 'wpsnapshots-' . $this->repository,
 				]
 			);
 		} catch ( \Exception $e ) {
-			$error = [
-				'message'        => $e->getMessage(),
-				'aws_request_id' => $e->getAwsRequestId(),
-				'aws_error_type' => $e->getAwsErrorType(),
-				'aws_error_code' => $e->getAwsErrorCode(),
-			];
+			Log::instance()->write( 'Error Message: ' . $e->getMessage(), 1, 'error' );
+			Log::instance()->write( 'AWS Request ID: ' . $e->getAwsRequestId(), 1, 'error' );
+			Log::instance()->write( 'AWS Error Type: ' . $e->getAwsErrorType(), 1, 'error' );
+			Log::instance()->write( 'AWS Error Code: ' . $e->getAwsErrorCode(), 1, 'error' );
 
-			return new Error( 0, $error );
+			return false;
 		}
 
 		return true;

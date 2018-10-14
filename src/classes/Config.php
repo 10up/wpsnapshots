@@ -1,39 +1,51 @@
 <?php
 /**
- * Handle global configuration files
+ * Handle config
  *
  * @package wpsnapshots
  */
 
 namespace WPSnapshots;
 
+use \ArrayAccess;
 use WPSnapshots\Utils;
 
 /**
- * Config class
+ * Handle suite config files
  */
-class Config {
-	/**
-	 * Singleton
-	 */
-	private function construct() { }
+class Config implements ArrayAccess {
 
 	/**
-	 * Write wp snapshots config to ~/.wpsnapshots.json
+	 * Store config
 	 *
-	 * @param array $config Config array.
+	 * @var array
 	 */
-	public function write( $config ) {
-		file_put_contents( Utils\get_snapshot_directory() . 'config.json', json_encode( $config, JSON_PRETTY_PRINT ) );
+	protected $config;
+
+	/**
+	 * Initiate class
+	 *
+	 * @param  array $config Configuration array
+	 */
+	public function __construct( $config = [] ) {
+		$this->config = array_merge(
+			[
+				'name'         => '',
+				'email'        => '',
+				'repositories' => [],
+			],
+			$config
+		);
 	}
 
 	/**
-	 * Get current wp snapshots config if it exists. Optionally only get one repository config
+	 * Create config from file
 	 *
-	 * @param  string $repository Optional repository to return. Otherwise returns all repositories.
-	 * @return array|Error
+	 * @return Config|bool
 	 */
-	public function get( $repository = null ) {
+	public static function get() {
+		Log::instance()->write( 'Reading configuration from file.', 1 );
+
 		$file_path = Utils\get_snapshot_directory() . 'config.json';
 
 		if ( ! file_exists( $file_path ) ) {
@@ -43,7 +55,12 @@ class Config {
 			$file_path = $_SERVER['HOME'] . '/.wpsnapshots.json';
 
 			if ( ! file_exists( $file_path ) ) {
-				return new Error( 0, 'No json file exists.' );
+				Log::instance()->write( 'No config found.', 1 );
+
+				$config = new self();
+				$config->write();
+
+				return $config;
 			} else {
 				rename( $file_path, Utils\get_snapshot_directory() . 'config.json' );
 
@@ -53,46 +70,75 @@ class Config {
 
 		$config = json_decode( file_get_contents( $file_path ), true );
 
-		// Backwards compat - move to "repositories" as base key
-		if ( ! empty( $config ) && ! empty( $config['repository'] ) ) {
-			$new_config = [
-				'repositories' => [
-					$config['repository'] => $config,
-				],
-			];
-
-			$config = $new_config;
-
-			$this->write( $config );
-		}
-
-		if ( empty( $config['repositories'] ) ) {
-			return new Error( 1, 'Configuration empty.' );
-		}
-
-		if ( ! empty( $repository ) ) {
-			if ( ! empty( $config['repositories'][ $repository ] ) ) {
-				$config = $config['repositories'][ $repository ];
-			} else {
-				return new Error( 2, 'Repository not configured.' );
-			}
-		}
-
-		return $config;
+		return new self( $config );
 	}
 
 	/**
-	 * Return singleton instance of class
-	 *
-	 * @return object
+	 * Write config to current config file
 	 */
-	public static function instance() {
-		static $instance;
+	public function write() {
+		Log::instance()->write( 'Writing config.', 1 );
 
-		if ( empty( $instance ) ) {
-			$instance = new self();
+		$create_dir = Utils\create_snapshot_directory();
+
+		if ( ! $create_dir ) {
+			Log::instance()->write( 'Cannot create necessary snapshot directory.', 0, 'error' );
+
+			return false;
 		}
 
-		return $instance;
+		file_put_contents( Utils\get_snapshot_directory() . 'config.json', json_encode( $this->config, JSON_PRETTY_PRINT ) );
+	}
+
+	/**
+	 * Set key in class
+	 *
+	 * @param  int|string $offset Array key
+	 * @param  mixed      $value  Array value
+	 */
+	public function offsetSet( $offset, $value ) {
+		if ( is_null( $offset ) ) {
+			$this->config[] = $value;
+		} else {
+			$this->config[ $offset ] = $value;
+		}
+	}
+
+	/**
+	 * Check if key exists
+	 *
+	 * @param  int|string $offset Array key
+	 * @return bool
+	 */
+	public function offsetExists( $offset ) {
+		return isset( $this->config[ $offset ] );
+	}
+
+	/**
+	 * Delete array value by key
+	 *
+	 * @param  int|string $offset Array key
+	 */
+	public function offsetUnset( $offset ) {
+		unset( $this->config[ $offset ] );
+	}
+
+	/**
+	 * Get config array
+	 *
+	 * @return array
+	 */
+	public function toArray() {
+		return $this->config;
+	}
+
+	/**
+	 * Get array value by key
+	 *
+	 * @param  int|string $offset Array key
+	 * @return mixed
+	 */
+	public function offsetGet( $offset ) {
+		return isset( $this->config[ $offset ] ) ? $this->config[ $offset ] : null;
 	}
 }

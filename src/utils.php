@@ -7,7 +7,6 @@
 
 namespace WPSnapshots\Utils;
 
-use WPSnapshots\Error;
 use Requests;
 
 /**
@@ -23,16 +22,6 @@ function test_mysql_connection( $host, $database, $user, $password ) {
 	$mysqli = mysqli_init();
 
 	return ( ! @$mysqli->real_connect( $host, $user, $password, $database ) ) ? mysqli_connect_error() : true;
-}
-
-/**
- * Check if object is of type Error
- *
- * @param  Object $obj Object to check
- * @return boolean
- */
-function is_error( $obj ) {
-	return ( $obj instanceof Error );
 }
 
 /**
