@@ -78,6 +78,15 @@ class Snapshot {
 			$meta = [];
 		}
 
+		/**
+		 * Backwards compant - need to fill in repo before we started saving repo in meta.
+		 */
+		if ( empty( $meta['repository'] ) ) {
+			Log::instance()->write( 'Legacy snapshot found without repository. Assuming default repository.', 1, 'warning' );
+
+			$meta['repository'] = RepositoryManager::instance()->getDefault();
+		}
+
 		return new self( $id, $meta['repository'], $meta );
 	}
 
@@ -446,6 +455,13 @@ class Snapshot {
 		if ( empty( $snapshot ) || empty( $snapshot['project'] ) ) {
 			Log::instance()->write( 'Missing critical snapshot data.', 0, 'error' );
 			return false;
+		}
+
+		/**
+		 * Backwards compant. Add repository to meta before we started saving it.
+		 */
+		if ( empty( $snapshot['repository'] ) ) {
+			$snapshot['repository'] = $repository_name;
 		}
 
 		Log::instance()->write( 'Downloading snapshot files and database (' . Utils\format_bytes( $snapshot['size'] ) . ')...' );
