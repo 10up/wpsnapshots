@@ -370,12 +370,15 @@ function create_snapshot_directory( $id = null ) {
 }
 
 /**
- * Get path to snapshot cache directory with trailing slash
+ * Get path to snapshot cache directory with trailing slash. If env variable WPSNAPSHOTS_DIR is
+ * set, then use that.
  *
  * @return string
  */
 function get_snapshot_directory() {
-	return rtrim( $_SERVER['HOME'], '/' ) . '/.wpsnapshots/';
+	$env_dir = getenv( 'WPSNAPSHOTS_DIR' );
+
+	return ( ! empty( $env_dir ) ) ? rtrim( $env_dir, '/' ) . '/' : rtrim( $_SERVER['HOME'], '/' ) . '/.wpsnapshots/';
 }
 
 /**
