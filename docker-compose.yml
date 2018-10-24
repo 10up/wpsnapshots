@@ -1,0 +1,13 @@
+version: '3'
+services:
+  phpfpm:
+    image: 10up/phpfpm
+    working_dir: /var/www/html/wordpress
+    volumes:
+      - "~/.wpsnapshots:/root/.wpsnapshots"
+      - "./:/var/www/html"
+
+networks:
+  default:
+    external:
+      name: dev
