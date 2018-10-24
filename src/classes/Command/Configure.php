@@ -58,16 +58,10 @@ class Configure extends Command {
 			$region = 'us-west-1';
 		}
 
-		$config = Config::instance()->get();
+		$config = Config::get();
 
-		if ( ! Utils\is_error( $config ) ) {
-			if ( ! empty( $config[ $repository ] ) ) {
-				Log::instance()->write( 'Repository config already exists. Proceeding will overwrite it.' );
-			}
-		} else {
-			$config = [
-				'repositories' => [],
-			];
+		if ( ! empty( $config['repositories'][ $repository ] ) ) {
+			Log::instance()->write( 'Repository config already exists. Proceeding will overwrite it.' );
 		}
 
 		$repo_config = [
@@ -97,12 +91,12 @@ class Configure extends Command {
 
 			$test = S3::test( $repo_config );
 
-			if ( ! Utils\is_error( $test ) ) {
+			if ( true !== $test ) {
 				break;
 			} else {
-				if ( 'InvalidAccessKeyId' === $test->data['aws_error_code'] ) {
+				if ( 'InvalidAccessKeyId' === $test ) {
 					Log::instance()->write( 'Repository connection did not work. Try again?', 0, 'warning' );
-				} elseif ( 'NoSuchBucket' === $test->data['aws_error_code'] ) {
+				} elseif ( 'NoSuchBucket' === $test ) {
 					Log::instance()->write( 'We successfully connected to AWS. However, no repository has been created. Run `wpsnapshots create-repository` after configuration is complete.', 0, 'warning' );
 					break;
 				} else {
@@ -122,14 +116,14 @@ class Configure extends Command {
 			$name = $helper->ask( $input, $output, $name_question );
 		}
 
-		$repo_config['name'] = $name;
+		$config['name'] = $name;
 
 		if ( empty( $email ) ) {
 			$email = $helper->ask( $input, $output, new Question( 'Your Email: ' ) );
 		}
 
 		if ( ! empty( $email ) ) {
-			$repo_config['email'] = $email;
+			$config['email'] = $email;
 		}
 
 		$create_dir = Utils\create_snapshot_directory();
@@ -140,9 +134,13 @@ class Configure extends Command {
 			return 1;
 		}
 
-		$config['repositories'][ $repository ] = $repo_config;
+		$repositories = $config['repositories'];
 
-		Config::instance()->write( $config );
+		$repositories[ $repository ] = $repo_config;
+
+		$config['repositories'] = $repositories;
+
+		$config->write();
 
 		Log::instance()->write( 'WP Snapshots configuration verified and saved.', 0, 'success' );
 	}

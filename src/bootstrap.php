@@ -9,9 +9,11 @@ namespace WPSnapshots;
 
 use \Symfony\Component\Console\Application;
 
+define( 'WPSNAPSHOTS_VERSION', '1.5.1' );
+
 require_once __DIR__ . '/utils.php';
 
-$app = new Application( 'WP Snapshots - A project sharing tool for WordPress.', '1.4' );
+$app = new Application( 'WP Snapshots - A project sharing tool for WordPress.', WPSNAPSHOTS_VERSION );
 
 /**
  * Attempt to set this as WP Snapahots can consume a lot of memory.
