@@ -399,7 +399,7 @@ class Snapshot {
 		 */
 		$meta_handle = @fopen( $snapshot_path . 'meta.json', 'x' ); // Create file and fail if it exists.
 
-		if ( ! $users_handle || ! $data_handle ) {
+		if ( ! $meta_handle ) {
 			Log::instance()->write( 'Could not create .wpsnapshots/SNAPSHOT_ID/meta.json.', 0, 'error' );
 
 			return false;
