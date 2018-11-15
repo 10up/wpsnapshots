@@ -51,7 +51,7 @@ WP Snapshots currently relies on AWS to store files and data. As such, you need 
 If WP Snapshots has not been setup for your team/company, you'll need to create the WP Snapshots repository:
 
 ```
-wpsnapshots create-repository \<repository\>
+wpsnapshots create-repository <repository>
 ```
 
 If a repository has already been created, this command will do nothing.
