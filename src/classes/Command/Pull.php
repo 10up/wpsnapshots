@@ -365,6 +365,8 @@ class Pull extends Command {
 		if ( ! empty( $snapshot->meta['wp_version'] ) && $snapshot->meta['wp_version'] !== $wp_version ) {
 			$confirm_wp_version_change = $input->getOption( 'confirm_wp_version_change' );
 
+			$change_wp_version = true;
+
 			if ( empty( $confirm_wp_version_change ) ) {
 				$change_wp_version = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot is running WordPress version ' . $snapshot->meta['wp_version'] . ', and you are running ' . $wp_version . '. Do you want to change your WordPress version to ' . $snapshot->meta['wp_version'] . '? (yes|no) ', true ) );
 			}
