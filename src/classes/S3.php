@@ -147,7 +147,7 @@ class S3 {
 				]
 			);
 		} catch ( \Exception $e ) {
-			if ( 'AccessDenied' === $s3_add->data['aws_error_code'] ) {
+			if ( ! empty( $files_result ) && 'AccessDenied' === $files_result->data['aws_error_code'] ) {
 				Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
 			}
 
