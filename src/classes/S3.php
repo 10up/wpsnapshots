@@ -7,7 +7,6 @@
 
 namespace WPSnapshots;
 
-use Symfony\Component\Console\Helper\ProgressBar;
 use \Aws\S3\S3Client;
 use \Aws\Exception\AwsException;
 use WPSnapshots\Utils;
@@ -29,13 +28,6 @@ class S3 {
 	 * @var string
 	 */
 	private $repository;
-
-	/**
-	 * Progress bar reference.
-	 *
-	 * @var \cli\progress\Bar
-	 */
-	private $progress_bar;
 
 	/**
 	 * AWS access key id
@@ -83,24 +75,6 @@ class S3 {
 				'version'     => '2006-03-01',
 			]
 		);
-
-
-		ProgressBar::setPlaceholderFormatterDefinition(
-			'cur_bytes',
-			function ( $progressBar, $output ) {
-				return Utils\format_bytes( $progressBar->getProgress() );
-			}
-		);
-		ProgressBar::setPlaceholderFormatterDefinition(
-			'max_bytes',
-			function ( $progressBar, $output ) {
-				return Utils\format_bytes( $progressBar->getMaxSteps() );
-			}
-		);
-		ProgressBar::setFormatDefinition(
-			's3',
-			'%cur_bytes%/%max_bytes% [%bar%] %percent:3s%%'
-		);
 	}
 
 	/**
@@ -114,7 +88,9 @@ class S3 {
 	 */
 	public function putSnapshot( $id, $project, $db_path, $files_path ) {
 		try {
-			$db_result = $this->client->putObject(
+			$db_result = ProgressBarManager::instance()->wrapAWSOperation(
+				$this->client,
+				'putObject',
 				[
 					'Bucket'     => self::getBucketName( $this->repository ),
 					'Key'        => $project . '/' . $id . '/data.sql.gz',
@@ -122,7 +98,9 @@ class S3 {
 				]
 			);
 
-			$files_result = $this->client->putObject(
+			$files_result = ProgressBarManager::instance()->wrapAWSOperation(
+				$this->client,
+				'putObject',
 				[
 					'Bucket'     => self::getBucketName( $this->repository ),
 					'Key'        => $project . '/' . $id . '/files.tar.gz',
@@ -134,14 +112,16 @@ class S3 {
 			 * Wait for files first since that will probably take longer
 			 */
 			$this->client->waitUntil(
-				'ObjectExists', [
+				'ObjectExists',
+				[
 					'Bucket' => self::getBucketName( $this->repository ),
 					'Key'    => $project . '/' . $id . '/files.tar.gz',
 				]
 			);
 
 			$this->client->waitUntil(
-				'ObjectExists', [
+				'ObjectExists',
+				[
 					'Bucket' => self::getBucketName( $this->repository ),
 					'Key'    => $project . '/' . $id . '/data.sql.gz',
 				]
@@ -174,30 +154,26 @@ class S3 {
 	public function downloadSnapshot( $id, $project, $db_path, $files_path ) {
 		try {
 			Log::instance()->write( 'Downloading database...' );
-			$db_download = $this->client->getObject(
+			$db_download = ProgressBarManager::instance()->wrapAWSOperation(
+				$this->client,
+				'getObject',
 				[
 					'Bucket' => self::getBucketName( $this->repository ),
 					'Key'    => $project . '/' . $id . '/data.sql.gz',
 					'SaveAs' => $db_path,
-					'@http'  => [
-						'progress' => [ $this, 'progress' ],
-					],
 				]
 			);
-			$this->reset_progress();
 
 			Log::instance()->write( 'Downloading files...' );
-			$files_download = $this->client->getObject(
+			$files_download = ProgressBarManager::instance()->wrapAWSOperation(
+				$this->client,
+				'getObject',
 				[
 					'Bucket' => self::getBucketName( $this->repository ),
 					'Key'    => $project . '/' . $id . '/files.tar.gz',
 					'SaveAs' => $files_path,
-					'@http'  => [
-						'progress' => [ $this, 'progress' ],
-					],
 				]
 			);
-			$this->reset_progress();
 		} catch ( \Exception $e ) {
 			if ( 'AccessDenied' === $e->getAwsErrorCode() ) {
 				Log::instance()->write( 'Access denied. You might not have access to this snapshot.', 0, 'error' );
@@ -223,7 +199,9 @@ class S3 {
 	 */
 	public function deleteSnapshot( $id, $project ) {
 		try {
-			$result = $this->client->deleteObjects(
+			$result = ProgressBarManager::instance()->wrapAWSOperation(
+				$this->client,
+				'deleteObjects',
 				[
 					'Bucket' => self::getBucketName( $this->repository ),
 					'Delete' => [
@@ -350,54 +328,5 @@ class S3 {
 		}
 
 		return true;
-	}
-
-	/**
-	 * Progress callback.
-	 *
-	 * @see https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_configuration.html#progress
-	 *
-	 * @param int $expected_download_bytes Total expected bytes to be downloaded.
-	 * @param int $downloaded_bytes        Downloaded bytes so far.
-	 * @param int $expected_upload_bytes   Total expected bytes to be uploaded.
-	 * @param int $uploaded_bytes          Uploaded bytes so far.
-	 * @return void
-	 */
-	public function progress(
-		$expected_download_bytes,
-		$downloaded_bytes,
-		$expected_upload_bytes,
-		$uploaded_bytes
-	) {
-		if ( ! $this->progress_bar ) {
-			$this->progress_bar = new ProgressBar( Log::instance()->getOutput() );
-			$this->progress_bar->setFormat( 's3' );
-		}
-		if ( ! $this->progress_bar->getMaxSteps() ) {
-			if ( $expected_download_bytes ) {
-				$this->progress_bar->setMaxSteps( $expected_download_bytes );
-			} elseif ( $expected_upload_bytes ) {
-				$this->progress_bar->setMaxSteps( $expected_upload_bytes );
-			}
-		}
-
-		if ( $downloaded_bytes ) {
-			$this->progress_bar->setProgress( $downloaded_bytes );
-		} elseif ( $uploaded_bytes ) {
-			$this->progress_bar->setProgress( $uploaded_bytes );
-		}
-	}
-
-	/**
-	 * Resets the progress bar state.
-	 */
-	protected function reset_progress() {
-		if ( ! $this->progress_bar ) {
-			return;
-		}
-
-		$this->progress_bar->finish();
-		$this->progress_bar = null;
-		Log::instance()->write( '' );
 	}
 }
