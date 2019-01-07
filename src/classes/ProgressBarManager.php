@@ -10,7 +10,7 @@ namespace WPSnapshots;
 use Symfony\Component\Console\Helper\ProgressBar as Progress;
 use Symfony\Component\Console\Output\OutputInterface;
 
-use Aws\S3\S3Client;
+use Aws\AwsClient;
 use Aws\Result;
 
 /**
@@ -194,7 +194,7 @@ class ProgressBarManager {
 			},
 		];
 
-		$result = call_user_method( $method, $client, $args );
+		$result = call_user_func( [ $client, $method ], $args );
 		$this->clearByRef( $progress );
 		return $result;
 	}

@@ -199,9 +199,7 @@ class S3 {
 	 */
 	public function deleteSnapshot( $id, $project ) {
 		try {
-			$result = ProgressBarManager::instance()->wrapAWSOperation(
-				$this->client,
-				'deleteObjects',
+			$result = $this->client->deleteObjects(
 				[
 					'Bucket' => self::getBucketName( $this->repository ),
 					'Delete' => [

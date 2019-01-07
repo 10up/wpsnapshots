@@ -8,7 +8,7 @@
 namespace WPSnapshots;
 
 use Symfony\Component\Console\Helper\ProgressBar as Progress;
-use Symfony\Component\Console\Output;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Display a progress bar.
@@ -39,15 +39,15 @@ class ProgressBar {
 	/**
 	 * Constructor.
 	 *
-	 * @param int    $id     The progress bar ID.
-	 * @param Output $output The output reference.
-	 * @param string $format Format to display.
-	 * @param int    $steps  Optional. Max steps to set.
+	 * @param int             $id     The progress bar ID.
+	 * @param OutputInterface $output The output reference.
+	 * @param string          $format Format to display.
+	 * @param int             $steps  Optional. Max steps to set.
 	 * @return ProgressBar
 	 */
 	public function __construct(
 		int $id,
-		Output $output,
+		OutputInterface $output,
 		string $format,
 		int $steps = 0
 	) {
