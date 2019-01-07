@@ -399,11 +399,15 @@ class Snapshot {
 
 		Log::instance()->write( $command, 2 );
 
+		$progress = ProgressBarManager::instance()->create();
 		exec( $command );
+		$progress->finish();
 
 		Log::instance()->write( 'Compressing database backup...', 1 );
 
+		$progress = ProgressBarManager::instance()->create();
 		exec( 'gzip -9 ' . Utils\escape_shell_path( $snapshot_path ) . 'data.sql ' . $verbose_pipe );
+		$progress->finish();
 
 		$meta['size'] = filesize( $snapshot_path . 'data.sql.gz' ) + filesize( $snapshot_path . 'files.tar.gz' );
 

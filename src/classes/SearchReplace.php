@@ -40,6 +40,9 @@ class SearchReplace {
 			'user_pass',
 		];
 
+		$progress = ProgressBarManager::instance()->create();
+		$progress->setSteps( count( $tables ) );
+
 		// @todo: need to remove this hardcode
 		$php_only = false;
 
@@ -77,6 +80,8 @@ class SearchReplace {
 				} else {
 					$updated = $this->sql_handle_col( $col, $table );
 				}
+
+				$progress->tick();
 
 				$this->updated += $updated;
 			}

@@ -80,7 +80,7 @@ class ProgressBarManager {
 	 * @return ProgressBar
 	 */
 	public function create(
-		string $format,
+		string $format = 'normal',
 		int $steps = 0
 	) : ProgressBar {
 		$id = self::$next_id;
