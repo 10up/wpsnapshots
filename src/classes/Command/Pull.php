@@ -15,7 +15,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
-use WPSnapshots\Connection;
+use WPSnapshots\RepositoryManager;
 use WPSnapshots\WordPressBridge;
 use WPSnapshots\Config;
 use WPSnapshots\Utils;
@@ -85,10 +85,10 @@ class Pull extends Command {
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
 
-		$connection = Connection::instance()->connect( $input->getOption( 'repository' ) );
+		$repository = RepositoryManager::instance()->setup( $input->getOption( 'repository' ) );
 
-		if ( Utils\is_error( $connection ) ) {
-			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
+		if ( ! $repository ) {
+			Log::instance()->write( 'Could not setup repository.', 0, 'error' );
 			return 1;
 		}
 
@@ -104,7 +104,7 @@ class Pull extends Command {
 
 		$snapshot_path = Utils\get_snapshot_directory() . $id . '/';
 
-		$snapshot = Snapshot::download( $id, $output );
+		$snapshot = Snapshot::download( $id, $repository->getName() );
 
 		if ( ! is_a( $snapshot, '\WPSnapshots\Snapshot' ) ) {
 			return 1;
@@ -364,6 +364,8 @@ class Pull extends Command {
 
 		if ( ! empty( $snapshot->meta['wp_version'] ) && $snapshot->meta['wp_version'] !== $wp_version ) {
 			$confirm_wp_version_change = $input->getOption( 'confirm_wp_version_change' );
+
+			$change_wp_version = true;
 
 			if ( empty( $confirm_wp_version_change ) ) {
 				$change_wp_version = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot is running WordPress version ' . $snapshot->meta['wp_version'] . ', and you are running ' . $wp_version . '. Do you want to change your WordPress version to ' . $snapshot->meta['wp_version'] . '? (yes|no) ', true ) );

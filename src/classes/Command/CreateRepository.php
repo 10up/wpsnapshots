@@ -14,8 +14,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
-use WPSnapshots\Connection;
-use WPSnapshots\Utils;
+use WPSnapshots\RepositoryManager;
 use WPSnapshots\Log;
 
 /**
@@ -43,56 +42,38 @@ class CreateRepository extends Command {
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
 
-		$repository = $input->getArgument( 'repository' );
+		$repository = RepositoryManager::instance()->setup( $input->getArgument( 'repository' ) );
 
-		$connection = Connection::instance()->connect( $repository );
-
-		if ( Utils\is_error( $connection ) ) {
+		if ( ! $repository ) {
 			Log::instance()->write( 'Repository not configured. Before creating the repository, you must configure. Run `wpsnapshots configure ' . $repository . '`', 0, 'error' );
-
 			return 1;
 		}
 
-		$create_s3 = Connection::instance()->s3->createBucket();
+		$create_s3 = $repository->getS3()->createBucket();
 
 		$s3_setup = true;
 
-		if ( Utils\is_error( $create_s3 ) ) {
-
-			if ( 0 === $create_s3->code ) {
-				Log::instance()->write( 'Access denied. Could not read AWS buckets. S3 may already be setup.', 0, 'warning' );
-			} elseif ( 1 === $create_s3->code ) {
+		if ( true !== $create_s3 ) {
+			if ( 'BucketExists' === $create_s3 || 'BucketAlreadyOwnedByYou' === $create_s3 || 'BucketAlreadyExists' === $create_s3 ) {
 				Log::instance()->write( 'S3 already setup.', 0, 'warning' );
 			} else {
-				if ( 'BucketAlreadyOwnedByYou' === $create_s3->data['aws_error_code'] || 'BucketAlreadyExists' === $create_s3->data['aws_error_code'] ) {
-					Log::instance()->write( 'S3 already setup.', 0, 'warning' );
-				} else {
-					Log::instance()->write( 'Could not create S3 bucket.', 0, 'error' );
-					$s3_setup = false;
+				Log::instance()->write( 'Could not create S3 bucket.', 0, 'error' );
 
-					Log::instance()->write( 'Error Message: ' . $create_s3->data['message'], 1, 'error' );
-					Log::instance()->write( 'AWS Request ID: ' . $create_s3->data['aws_request_id'], 1, 'error' );
-					Log::instance()->write( 'AWS Error Type: ' . $create_s3->data['aws_error_type'], 1, 'error' );
-					Log::instance()->write( 'AWS Error Code: ' . $create_s3->data['aws_error_code'], 1, 'error' );
-				}
+				$s3_setup = false;
 			}
 		}
 
-		$create_db = Connection::instance()->db->createTables();
+		$create_db = $repository->getDB()->createTables();
 
 		$db_setup = true;
 
-		if ( Utils\is_error( $create_db ) ) {
-			if ( 'ResourceInUseException' === $create_db->data['aws_error_code'] ) {
+		if ( true !== $create_db ) {
+			if ( 'ResourceInUseException' === $create_db ) {
 				Log::instance()->write( 'DynamoDB table already setup.', 0, 'warning' );
 			} else {
 				Log::instance()->write( 'Could not create DynamoDB table.', 0, 'error' );
-				$db_setup = false;
 
-				Log::instance()->write( 'Error Message: ' . $create_db->data['message'], 1, 'error' );
-				Log::instance()->write( 'AWS Request ID: ' . $create_db->data['aws_request_id'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Type: ' . $create_db->data['aws_error_type'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Code: ' . $create_db->data['aws_error_code'], 1, 'error' );
+				$db_setup = false;
 			}
 		}
 

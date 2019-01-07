@@ -15,7 +15,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
-use WPSnapshots\Connection;
+use WPSnapshots\RepositoryManager;
 use WPSnapshots\WordPressBridge;
 use WPSnapshots\Config;
 use WPSnapshots\Utils;
@@ -55,16 +55,16 @@ class Push extends Command {
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
 
-		$connection = Connection::instance()->connect( $input->getOption( 'repository' ) );
-
-		if ( Utils\is_error( $connection ) ) {
-			Log::instance()->write( 'Could not connect to repository.', 0, 'error' );
-			return 1;
-		}
-
 		$snapshot_id = $input->getArgument( 'snapshot_id' );
 
 		if ( empty( $snapshot_id ) ) {
+			$repository = RepositoryManager::instance()->setup( $input->getOption( 'repository' ) );
+
+			if ( ! $repository ) {
+				Log::instance()->write( 'Could not setup repository.', 0, 'error' );
+				return 1;
+			}
+
 			$path = $input->getOption( 'path' );
 
 			if ( empty( $path ) ) {
@@ -104,6 +104,7 @@ class Push extends Command {
 					'description' => $description,
 					'no_scrub'    => $input->getOption( 'no_scrub' ),
 					'exclude'     => $exclude,
+					'repository'  => $repository->getName(),
 				], $output, $verbose
 			);
 		} else {

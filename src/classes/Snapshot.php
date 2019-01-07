@@ -11,7 +11,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use \Exception;
 use WPSnapshots\Utils;
 use WPSnapshots\Log;
-use WPSnapshots\Connection;
 
 /**
  * Create, download, save, push, and pull snapshots
@@ -23,6 +22,13 @@ class Snapshot {
 	 * @var string
 	 */
 	public $id;
+
+	/**
+	 * Repository name
+	 *
+	 * @var  string
+	 */
+	public $repository_name;
 
 	/**
 	 * Snapshot meta data
@@ -42,14 +48,16 @@ class Snapshot {
 	 * Snapshot constructor. Snapshot must already exist locally in $path.
 	 *
 	 * @param string $id Snapshot id
+	 * @param string $repository_name Name of rpo
 	 * @param array  $meta Snapshot meta data
 	 * @param bool   $remote Does snapshot exist remotely or not
 	 * @throws Exception Throw exception if files don't exist.
 	 */
-	public function __construct( $id, $meta, $remote = false ) {
-		$this->id     = $id;
-		$this->meta   = $meta;
-		$this->remote = $remote;
+	public function __construct( $id, $repository_name, $meta, $remote = false ) {
+		$this->id              = $id;
+		$this->repository_name = $repository_name;
+		$this->meta            = $meta;
+		$this->remote          = $remote;
 
 		if ( ! file_exists( Utils\get_snapshot_directory() . $id . '/data.sql.gz' ) || ! file_exists( Utils\get_snapshot_directory() . $id . '/files.tar.gz' ) ) {
 			throw new Exception( 'Snapshot data or files do not exist locally.' );
@@ -70,7 +78,16 @@ class Snapshot {
 			$meta = [];
 		}
 
-		return new self( $id, $meta );
+		/**
+		 * Backwards compant - need to fill in repo before we started saving repo in meta.
+		 */
+		if ( empty( $meta['repository'] ) ) {
+			Log::instance()->write( 'Legacy snapshot found without repository. Assuming default repository.', 1, 'warning' );
+
+			$meta['repository'] = RepositoryManager::instance()->getDefault();
+		}
+
+		return new self( $id, $meta['repository'], $meta );
 	}
 
 	/**
@@ -139,18 +156,19 @@ class Snapshot {
 
 		$meta = [
 			'author'      => [],
+			'repository'  => $args['repository'],
 			'description' => $args['description'],
 			'project'     => $args['project'],
 		];
 
-		$config = Config::instance()->get();
+		$author_info = RepositoryManager::instance()->getAuthorInfo();
 
-		if ( ! empty( $config['name'] ) ) {
-			$meta['author']['name'] = $config['name'];
+		if ( ! empty( $author_info['name'] ) ) {
+			$meta['author']['name'] = $author_info['name'];
 		}
 
-		if ( ! empty( $config['email'] ) ) {
-			$meta['author']['email'] = $config['email'];
+		if ( ! empty( $author_info['email'] ) ) {
+			$meta['author']['email'] = $author_info['email'];
 		}
 
 		$meta['multisite']            = false;
@@ -279,16 +297,21 @@ class Snapshot {
 			Log::instance()->write( 'Scrubbing user database...' );
 
 			$all_hashed_passwords = [];
+			$all_emails           = [];
 
 			Log::instance()->write( 'Getting users...', 1 );
 
-			$passwords = $wpdb->get_results( "SELECT user_pass FROM $wpdb->users", ARRAY_A );
+			$user_rows = $wpdb->get_results( "SELECT user_pass, user_email FROM $wpdb->users", ARRAY_A );
 
-			foreach ( $passwords as $password_row ) {
-				$all_hashed_passwords[] = $password_row['user_pass'];
+			foreach ( $user_rows as $user_row ) {
+				$all_hashed_passwords[] = $user_row['user_pass'];
+				if ( $user_row['user_email'] ) {
+					$all_emails[] = $user_row['user_email'];
+				}
 			}
 
 			$sterile_password = wp_hash_password( 'password' );
+			$sterile_email    = 'user%d@example.com';
 
 			Log::instance()->write( 'Opening users export...', 1 );
 
@@ -311,6 +334,14 @@ class Snapshot {
 
 				foreach ( $all_hashed_passwords as $password ) {
 					$chunk = str_replace( "'$password'", "'$sterile_password'", $chunk );
+				}
+
+				foreach ( $all_emails as $index => $email ) {
+					$chunk = str_replace(
+						"'$email'",
+						sprintf( "'$sterile_email'", $index ),
+						$chunk
+					);
 				}
 
 				$buffer .= $chunk;
@@ -381,7 +412,7 @@ class Snapshot {
 		 */
 		$meta_handle = @fopen( $snapshot_path . 'meta.json', 'x' ); // Create file and fail if it exists.
 
-		if ( ! $users_handle || ! $data_handle ) {
+		if ( ! $meta_handle ) {
 			Log::instance()->write( 'Could not create .wpsnapshots/SNAPSHOT_ID/meta.json.', 0, 'error' );
 
 			return false;
@@ -389,7 +420,7 @@ class Snapshot {
 
 		fwrite( $meta_handle, json_encode( $meta, JSON_PRETTY_PRINT ) );
 
-		$snapshot = new self( $id, $meta );
+		$snapshot = new self( $id, $args['repository'], $meta );
 
 		return $snapshot;
 	}
@@ -397,10 +428,11 @@ class Snapshot {
 	/**
 	 * Download snapshot.
 	 *
-	 * @param string $id Snapshot id
+	 * @param   string $id Snapshot id
+	 * @param   string $repository_name Name of repo
 	 * @return  bool|Snapshot
 	 */
-	public static function download( $id ) {
+	public static function download( $id, $repository_name ) {
 		if ( Utils\is_snapshot_cached( $id ) ) {
 			Log::instance()->write( 'Snapshot found in cache.' );
 
@@ -415,23 +447,20 @@ class Snapshot {
 			return false;
 		}
 
+		$repository = RepositoryManager::instance()->setup( $repository_name );
+
+		if ( ! $repository ) {
+			Log::instance()->write( 'Could not setup repository.', 0, 'error' );
+
+			return false;
+		}
+
 		Log::instance()->write( 'Getting snapshot information...' );
 
-		$snapshot = Connection::instance()->db->getSnapshot( $id );
+		$snapshot = $repository->getDB()->getSnapshot( $id );
 
-		if ( Utils\is_error( $snapshot ) ) {
+		if ( ! $snapshot ) {
 			Log::instance()->write( 'Could not get snapshot from database.', 0, 'error' );
-
-			if ( is_array( $snapshot->data ) ) {
-				if ( 'AccessDeniedException' === $snapshot->data['aws_error_code'] ) {
-					Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
-				}
-
-				Log::instance()->write( 'Error Message: ' . $snapshot->data['message'], 1, 'error' );
-				Log::instance()->write( 'AWS Request ID: ' . $snapshot->data['aws_request_id'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Type: ' . $snapshot->data['aws_error_type'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Code: ' . $snapshot->data['aws_error_code'], 1, 'error' );
-			}
 
 			return false;
 		}
@@ -441,25 +470,21 @@ class Snapshot {
 			return false;
 		}
 
+		/**
+		 * Backwards compant. Add repository to meta before we started saving it.
+		 */
+		if ( empty( $snapshot['repository'] ) ) {
+			$snapshot['repository'] = $repository_name;
+		}
+
 		Log::instance()->write( 'Downloading snapshot files and database (' . Utils\format_bytes( $snapshot['size'] ) . ')...' );
 
 		$snapshot_path = Utils\get_snapshot_directory() . $id . '/';
 
-		$download = Connection::instance()->s3->downloadSnapshot( $id, $snapshot['project'], $snapshot_path . 'data.sql.gz', $snapshot_path . 'files.tar.gz' );
+		$download = $repository->getS3()->downloadSnapshot( $id, $snapshot['project'], $snapshot_path . 'data.sql.gz', $snapshot_path . 'files.tar.gz' );
 
-		if ( Utils\is_error( $download ) ) {
+		if ( ! $download ) {
 			Log::instance()->write( 'Failed to download snapshot.', 0, 'error' );
-
-			if ( is_array( $download->data ) ) {
-				if ( 'AccessDenied' === $download->data['aws_error_code'] ) {
-					Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
-				}
-
-				Log::instance()->write( 'Error Message: ' . $download->data['message'], 1, 'error' );
-				Log::instance()->write( 'AWS Request ID: ' . $download->data['aws_request_id'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Type: ' . $download->data['aws_error_type'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Code: ' . $download->data['aws_error_code'], 1, 'error' );
-			}
 
 			return false;
 		}
@@ -477,7 +502,7 @@ class Snapshot {
 
 		fwrite( $meta_handle, json_encode( $snapshot, JSON_PRETTY_PRINT ) );
 
-		return new self( $id, $snapshot, true );
+		return new self( $id, $repository_name, $snapshot, true );
 	}
 
 	/**
@@ -491,26 +516,23 @@ class Snapshot {
 			return false;
 		}
 
+		$repository = RepositoryManager::instance()->setup( $this->repository_name );
+
+		if ( ! $repository ) {
+			Log::instance()->write( 'Could not setup repository.', 0, 'error' );
+
+			return false;
+		}
+
 		/**
 		 * Put files to S3
 		 */
 		Log::instance()->write( 'Uploading files (' . Utils\format_bytes( $this->meta['size'] ) . ')...' );
 
-		$s3_add = Connection::instance()->s3->putSnapshot( $this->id, $this->meta['project'], Utils\get_snapshot_directory() . $this->id . '/data.sql.gz', Utils\get_snapshot_directory() . $this->id . '/files.tar.gz' );
+		$s3_add = $repository->getS3()->putSnapshot( $this->id, $this->meta['project'], Utils\get_snapshot_directory() . $this->id . '/data.sql.gz', Utils\get_snapshot_directory() . $this->id . '/files.tar.gz' );
 
-		if ( Utils\is_error( $s3_add ) ) {
+		if ( ! $s3_add ) {
 			Log::instance()->write( 'Could not upload files to S3.', 0, 'error' );
-
-			if ( is_array( $s3_add->data ) ) {
-				if ( 'AccessDenied' === $s3_add->data['aws_error_code'] ) {
-					Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
-				}
-
-				Log::instance()->write( 'Error Message: ' . $s3_add->data['message'], 1, 'error' );
-				Log::instance()->write( 'AWS Request ID: ' . $s3_add->data['aws_request_id'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Type: ' . $s3_add->data['aws_error_type'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Code: ' . $s3_add->data['aws_error_code'], 1, 'error' );
-			}
 
 			return false;
 		}
@@ -520,21 +542,10 @@ class Snapshot {
 		 */
 		Log::instance()->write( 'Adding snapshot to database...' );
 
-		$inserted_snapshot = Connection::instance()->db->insertSnapshot( $this->id, $this->meta );
+		$inserted_snapshot = $repository->getDB()->insertSnapshot( $this->id, $this->meta );
 
-		if ( Utils\is_error( $inserted_snapshot ) ) {
+		if ( ! $inserted_snapshot ) {
 			Log::instance()->write( 'Could not add snapshot to database.', 0, 'error' );
-
-			if ( is_array( $inserted_snapshot->data ) ) {
-				if ( 'AccessDeniedException' === $inserted_snapshot->data['aws_error_code'] ) {
-					Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
-				}
-
-				Log::instance()->write( 'Error Message: ' . $inserted_snapshot->data['message'], 1, 'error' );
-				Log::instance()->write( 'AWS Request ID: ' . $inserted_snapshot->data['aws_request_id'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Type: ' . $inserted_snapshot->data['aws_error_type'], 1, 'error' );
-				Log::instance()->write( 'AWS Error Code: ' . $inserted_snapshot->data['aws_error_code'], 1, 'error' );
-			}
 
 			return false;
 		}

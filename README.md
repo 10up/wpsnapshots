@@ -12,14 +12,11 @@ Snapshot files (`wp-content/`) and WordPress database tables are stored in Amazo
 
 WP Snapshots is easiest to use as a global Composer package. It's highly recommended you run WP Snapshots from WITHIN your dev environment (inside VM or container). Assuming you have Composer/MySQL installed and SSH keys setup within GitHub/10up organiziation, do the following:
 
-1. Add the 10up/wpsnapshots repository as a global Composer repository:
+Install WP Snapshots as a global Composer package via Packagist:
   ```
-  composer global config repositories.wpsnapshots vcs https://github.com/10up/wpsnapshots
+  composer global require 10up/wpsnapshots
   ```
-2. Install WP Snapshots as a global Composer package:
-  ```
-  composer global require 10up/wpsnapshots:dev-master -n
-  ```
+
 If global Composer scripts are not in your path, add them:
 
 ```
@@ -54,7 +51,7 @@ WP Snapshots currently relies on AWS to store files and data. As such, you need 
 If WP Snapshots has not been setup for your team/company, you'll need to create the WP Snapshots repository:
 
 ```
-wpsnapshots create-repository
+wpsnapshots create-repository <repository>
 ```
 
 If a repository has already been created, this command will do nothing.
@@ -65,13 +62,13 @@ WP Snapshots revolves around pushing, pulling, and searching for snapshots. WP S
 
 Documentation for each operation is as follows:
 
-* __wpsnapshots push [--exclude_uploads] [--no_scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose]__
+* __wpsnapshots push [\<snapshot-id\>] [--exclude_uploads] [--exclude] [--no_scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose]__
 
   This command pushes a snapshot of a WordPress install to the repository. The command will return a snapshot ID once it's finished that you could pass to a team member.
 
-  By default all passwords are converted to `password`. The `--no_scrub` option will disable scrubbing.
+  By default all passwords are converted to `password` and emails to `user@example.com`. The `--no_scrub` option will disable scrubbing.
 
-  Pushing a snapshot will not replace older snapshots with the same name. There's been discussion on this. It seems easier and safer not to delete old snapshots (otherwise we have to deal with permissions). This could certainly change in the future after we see how the project is used.
+  Pushing a snapshot will not replace older snapshots with the same name. There's been discussion on this. It seems easier and safer not to delete old snapshots (otherwise we have to deal with permissions).
 
 * __wpsnapshots pull \<snapshot-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose]__
 
@@ -121,18 +118,3 @@ WP Snapshots relies on AWS for access management. Each snapshot is associated wi
 
 WP Snapshots has been used successfully inside [Windows Subsystem for Linux](https://msdn.microsoft.com/en-us/commandline/wsl/install-win10).
 
-# Changelog
-
-* 1.2
-  - Merge `feature/create` branch
-  - Add commands for create and download
-  - Snapshot caching
-  - Move config file to `~/.wpsnapshots/config.json`
-  - Save meta.json file inside snapshot directory with snapshot data
-  - Abstract out `Snapshot` class to make programmatic interaction with WP Snapshots easier.
-  - PHPCS standardization and fixes
-  - Properly test MySQL connection before bootstrapping WordPress.
-  - Multisite pull changes: should URLs inside existing snapshots, make sure type full URLs instead of paths
-  - Store all multisite data in snapshot
-  - Store blog name in snapshot
-  - Create `wpsnapshots` user on pull

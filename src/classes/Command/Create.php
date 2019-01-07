@@ -15,9 +15,8 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
-use WPSnapshots\Connection;
+use WPSnapshots\RepositoryManager;
 use WPSnapshots\WordPressBridge;
-use WPSnapshots\Config;
 use WPSnapshots\Utils;
 use WPSnapshots\Snapshot;
 use WPSnapshots\Log;
@@ -35,6 +34,7 @@ class Create extends Command {
 		$this->setDescription( 'Create a snapshot locally.' );
 		$this->addOption( 'exclude', false, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Exclude a file or directory from the snapshot.' );
 		$this->addOption( 'exclude_uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
+		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
 		$this->addOption( 'no_scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 
 		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
@@ -52,6 +52,13 @@ class Create extends Command {
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
+
+		$repository = RepositoryManager::instance()->setup( $input->getOption( 'repository' ) );
+
+		if ( ! $repository ) {
+			Log::instance()->write( 'Could not setup repository.', 0, 'error' );
+			return 1;
+		}
 
 		$path = $input->getOption( 'path' );
 
@@ -90,6 +97,7 @@ class Create extends Command {
 				'description' => $description,
 				'no_scrub'    => $input->getOption( 'no_scrub' ),
 				'exclude'     => $exclude,
+				'repository'  => $repository->getName(),
 			], $output, $input->getOption( 'verbose' )
 		);
 
