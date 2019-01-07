@@ -17,6 +17,7 @@ use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Helper\Table;
 use WPSnapshots\Utils;
 use WPSnapshots\RepositoryManager;
+use WPSnapshots\ProgressBarManager;
 use WPSnapshots\Log;
 
 /**
@@ -42,6 +43,7 @@ class Search extends Command {
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
+		ProgressBarManager::instance()->setOutput( $output );
 
 		$repository = RepositoryManager::instance()->setup( $input->getOption( 'repository' ) );
 

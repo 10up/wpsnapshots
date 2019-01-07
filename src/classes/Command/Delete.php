@@ -15,6 +15,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
 use WPSnapshots\RepositoryManager;
+use WPSnapshots\ProgressBarManager;
 use WPSnapshots\Utils;
 use WPSnapshots\Log;
 
@@ -42,6 +43,7 @@ class Delete extends Command {
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
+		ProgressBarManager::instance()->setOutput( $output );
 
 		$repository = RepositoryManager::instance()->setup( $input->getOption( 'repository' ) );
 

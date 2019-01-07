@@ -16,6 +16,7 @@ use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use WPSnapshots\RepositoryManager;
+use WPSnapshots\ProgressBarManager;
 use WPSnapshots\Utils;
 use WPSnapshots\Snapshot;
 use WPSnapshots\Log;
@@ -43,6 +44,7 @@ class Download extends Command {
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
+		ProgressBarManager::instance()->setOutput( $output );
 
 		$repository = RepositoryManager::instance()->setup( $input->getOption( 'repository' ) );
 

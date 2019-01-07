@@ -41,6 +41,7 @@ class CreateRepository extends Command {
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
+		ProgressBarManager::instance()->setOutput( $output );
 
 		$repository = RepositoryManager::instance()->setup( $input->getArgument( 'repository' ) );
 

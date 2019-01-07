@@ -8,7 +8,7 @@
 namespace WPSnapshots;
 
 use Symfony\Component\Console\Helper\ProgressBar as Progress;
-use Symfony\Component\Console\Output;
+use Symfony\Component\Console\Output\OutputInterface;
 
 use Aws\S3\S3Client;
 use Aws\Result;
@@ -28,7 +28,7 @@ class ProgressBarManager {
 	/**
 	 * Output reference.
 	 *
-	 * @var Output
+	 * @var OutputInterface
 	 */
 	private $output;
 
@@ -66,9 +66,9 @@ class ProgressBarManager {
 	/**
 	 * Sets the output reference.
 	 *
-	 * @param Output $output Output reference.
+	 * @param OutputInterface $output Output reference.
 	 */
-	public function setOutput( Output $output ) {
+	public function setOutput( OutputInterface $output ) {
 		$this->output = $output;
 	}
 
@@ -149,7 +149,7 @@ class ProgressBarManager {
 		static $instance;
 
 		if ( empty( $instance ) ) {
-			$instance = new self( $output );
+			$instance = new self();
 		}
 
 		return $instance;
