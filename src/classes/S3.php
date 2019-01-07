@@ -88,7 +88,9 @@ class S3 {
 	 */
 	public function putSnapshot( $id, $project, $db_path, $files_path ) {
 		try {
-			$db_result = $this->client->putObject(
+			$db_result = ProgressBarManager::instance()->wrapAWSOperation(
+				$this->client,
+				'putObject',
 				[
 					'Bucket'     => self::getBucketName( $this->repository ),
 					'Key'        => $project . '/' . $id . '/data.sql.gz',
@@ -96,7 +98,9 @@ class S3 {
 				]
 			);
 
-			$files_result = $this->client->putObject(
+			$files_result = ProgressBarManager::instance()->wrapAWSOperation(
+				$this->client,
+				'putObject',
 				[
 					'Bucket'     => self::getBucketName( $this->repository ),
 					'Key'        => $project . '/' . $id . '/files.tar.gz',
@@ -108,14 +112,16 @@ class S3 {
 			 * Wait for files first since that will probably take longer
 			 */
 			$this->client->waitUntil(
-				'ObjectExists', [
+				'ObjectExists',
+				[
 					'Bucket' => self::getBucketName( $this->repository ),
 					'Key'    => $project . '/' . $id . '/files.tar.gz',
 				]
 			);
 
 			$this->client->waitUntil(
-				'ObjectExists', [
+				'ObjectExists',
+				[
 					'Bucket' => self::getBucketName( $this->repository ),
 					'Key'    => $project . '/' . $id . '/data.sql.gz',
 				]
@@ -147,7 +153,10 @@ class S3 {
 	 */
 	public function downloadSnapshot( $id, $project, $db_path, $files_path ) {
 		try {
-			$db_download = $this->client->getObject(
+			Log::instance()->write( 'Downloading database...' );
+			$db_download = ProgressBarManager::instance()->wrapAWSOperation(
+				$this->client,
+				'getObject',
 				[
 					'Bucket' => self::getBucketName( $this->repository ),
 					'Key'    => $project . '/' . $id . '/data.sql.gz',
@@ -155,7 +164,10 @@ class S3 {
 				]
 			);
 
-			$files_download = $this->client->getObject(
+			Log::instance()->write( 'Downloading files...' );
+			$files_download = ProgressBarManager::instance()->wrapAWSOperation(
+				$this->client,
+				'getObject',
 				[
 					'Bucket' => self::getBucketName( $this->repository ),
 					'Key'    => $project . '/' . $id . '/files.tar.gz',
@@ -187,7 +199,9 @@ class S3 {
 	 */
 	public function deleteSnapshot( $id, $project ) {
 		try {
-			$result = $this->client->deleteObjects(
+			$result = ProgressBarManager::instance()->wrapAWSOperation(
+				$this->client,
+				'deleteObjects',
 				[
 					'Bucket' => self::getBucketName( $this->repository ),
 					'Delete' => [

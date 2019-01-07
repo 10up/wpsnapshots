@@ -16,6 +16,7 @@ use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use WPSnapshots\RepositoryManager;
+use WPSnapshots\ProgressBarManager;
 use WPSnapshots\WordPressBridge;
 use WPSnapshots\Config;
 use WPSnapshots\Utils;
@@ -54,6 +55,7 @@ class Push extends Command {
 	 */
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
+		ProgressBarManager::instance()->setOutput( $output );
 
 		$snapshot_id = $input->getArgument( 'snapshot_id' );
 
