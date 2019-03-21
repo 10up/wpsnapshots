@@ -88,16 +88,20 @@ class RepositoryManager {
 		$this->config = Config::get();
 
 		// Add local repository
+		$repositories = [];
+
 		if ( empty( $this->config ) || empty( $this->repositories ) ) {
-			$this->config['repositories'] = [];
+			$repositories = $this->config['repositories'];
 		}
 
-		$this->config['repositories']['local'] = [
+		$repositories['local'] = [
 			'repository'        => 'local',
 			'access_key_id'     => '',
 			'secret_access_key' => '',
 			'region'            => '',
 		];
+
+		$this->config['repositories'] = $repositories;
 	}
 
 	/**
