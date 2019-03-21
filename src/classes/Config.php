@@ -70,6 +70,10 @@ class Config implements ArrayAccess {
 
 		$config = json_decode( file_get_contents( $file_path ), true );
 
+		if ( empty( $config ) ) {
+			$config = [];
+		}
+
 		return new self( $config );
 	}
 
