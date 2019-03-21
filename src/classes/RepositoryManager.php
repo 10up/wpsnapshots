@@ -76,9 +76,19 @@ class RepositoryManager {
 			return false;
 		}
 
-		$config = array_values( $this->config['repositories'] );
+		$repos = $this->config['repositories'];
 
-		return $config[0]['repository'];
+		if ( 1 === count( $repos ) && ! empty( $repos['local'] ) ) {
+			return 'local';
+		}
+
+		if ( ! empty( $repos['local'] ) ) {
+			unset( $repos['local'] );
+		}
+
+		$repos = array_values( $repos );
+
+		return $repos[0]['repository'];
 	}
 
 	/**
