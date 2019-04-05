@@ -171,7 +171,9 @@ class Pull extends Command {
 				}
 			}
 
-			$config_constants = [];
+			$config_constants = [
+				'FS_METHOD' => 'direct',
+			];
 
 			if ( ! empty( $input->getOption( 'config_db_host' ) ) ) {
 				$config_constants['DB_HOST'] = $input->getOption( 'config_db_host' );
