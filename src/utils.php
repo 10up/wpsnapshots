@@ -341,7 +341,7 @@ function locate_wp_config( $path ) {
  */
 function create_snapshot_directory( $id = null ) {
 	if ( ! file_exists( get_snapshot_directory() ) ) {
-		$dir_result = mkdir( get_snapshot_directory(), 0755 );
+		$dir_result = @mkdir( get_snapshot_directory(), 0755 );
 
 		if ( ! $dir_result ) {
 			return false;
@@ -354,7 +354,7 @@ function create_snapshot_directory( $id = null ) {
 
 	if ( ! empty( $id ) ) {
 		if ( ! file_exists( get_snapshot_directory() . $id . '/' ) ) {
-			$dir_result = mkdir( get_snapshot_directory() . $id . '/', 0755 );
+			$dir_result = @mkdir( get_snapshot_directory() . $id . '/', 0755 );
 
 			if ( ! $dir_result ) {
 				return false;
