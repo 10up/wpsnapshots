@@ -154,6 +154,152 @@ class Snapshot {
 
 		global $wpdb;
 
+		if ( ! empty( $args['small'] ) ) {
+			if ( is_multisite() ) {
+				$sites = get_sites();
+			} else {
+				Log::instance()->write( 'Trimming snapshot data and files...' );
+			}
+
+			while ( true ) {
+				$prefix = $wpdb->prefix;
+
+				if ( is_multisite() ) {
+					if ( empty( $sites ) ) {
+						break;
+					}
+
+					$site = array_shift( $sites );
+
+					Log::instance()->write( 'Trimming snapshot data and files blog ' . $site->blog_id . '...' );
+
+					switch_to_blog( $site->blog_id );
+
+					$prefix = $wpdb->get_blog_prefix( $site->blog_id );
+				}
+
+				// Trim posts
+				$post_ids = [];
+
+				$post_types_args = [
+					'public'   => false,
+					'_builtin' => true,
+				];
+
+				$post_types = $wpdb->get_results( "SELECT DISTINCT post_type FROM {$prefix}posts", ARRAY_A );
+
+				if ( ! empty( $post_types ) ) {
+
+					Log::instance()->write( 'Trimming posts...', 1 );
+
+					foreach ( $post_types as $post_type ) {
+						$post_type = $post_type['post_type'];
+
+						$posts = $wpdb->get_results( $wpdb->prepare( "SELECT ID FROM {$prefix}posts WHERE post_type='%s' ORDER BY ID DESC LIMIT 300", $post_type ), ARRAY_A );
+
+						foreach ( $posts as $post ) {
+							$post_ids[] = (int) $post['ID'];
+						}
+					}
+
+					if ( ! empty( $post_ids ) ) {
+						// Delete other posts
+						$wpdb->query( "DELETE FROM {$prefix}posts WHERE ID NOT IN (" . implode( ',', $post_ids ) . ')' );
+
+						// Delete orphan comments
+						$wpdb->query( "DELETE FROM {$prefix}comments WHERE comment_post_ID NOT IN (" . implode( ',', $post_ids ) . ')' );
+
+						// Delete orphan meta
+						$wpdb->query( "DELETE FROM {$prefix}postmeta WHERE post_id NOT IN (" . implode( ',', $post_ids ) . ')' );
+					}
+				}
+
+				$post_metas = $wpdb->get_results( "SELECT * FROM {$prefix}postmeta ORDER BY meta_id DESC LIMIT 2000", ARRAY_A );
+
+				if ( ! empty( $post_metas ) ) {
+					$post_meta_ids = [];
+
+					foreach ( $post_metas as $post_meta ) {
+						$post_meta_ids[] = (int) $post_meta['meta_id'];
+					}
+
+					$wpdb->query( "DELETE FROM {$prefix}postmeta WHERE meta_id NOT IN (" . implode( ',', $post_meta_ids ) . ')' );
+				}
+
+				Log::instance()->write( 'Trimming comments...', 1 );
+
+				$comments = $wpdb->get_results( "SELECT comment_ID FROM {$prefix}comments ORDER BY comment_ID DESC LIMIT 500", ARRAY_A );
+
+				// Delete comments
+				if ( ! empty( $comments ) ) {
+					$comment_ids = [];
+
+					foreach ( $comments as $comment ) {
+						$comment_ids[] = (int) $comment['ID'];
+					}
+
+					$wpdb->query( "DELETE FROM {$prefix}comments WHERE comment_ID NOT IN (" . implode( ',', $comment_ids ) . ')' );
+
+					$wpdb->query( "DELETE FROM {$prefix}commentmeta WHERE comment_id NOT IN (" . implode( ',', $comment_ids ) . ')' );
+				}
+
+				// Terms
+				Log::instance()->write( 'Trimming terms...', 1 );
+
+				$wpdb->query( "DELETE FROM {$prefix}term_relationships WHERE object_id NOT IN (" . implode( ',', $post_ids ) . ')' );
+
+				$term_relationships = $wpdb->get_results( "SELECT * FROM {$prefix}term_relationships ORDER BY term_taxonomy_id DESC LIMIT 750", ARRAY_A );
+
+				if ( ! empty( $term_relationships ) ) {
+					$term_taxonomy_ids = [];
+
+					foreach ( $term_relationships as $term_relationship ) {
+						$term_taxonomy_ids[] = (int) $term_relationship['term_taxonomy_id'];
+					}
+
+					// Delete excess term relationships
+					$wpdb->query( "DELETE FROM {$prefix}term_relationships WHERE term_taxonomy_id NOT IN (" . implode( ',', $term_taxonomy_ids ) . ')' );
+				}
+
+				$terms = $wpdb->get_results( "SELECT tt.term_id as term_id FROM {$prefix}term_relationships as tr, {$prefix}term_taxonomy as tt WHERE tr.term_taxonomy_id = tt.term_taxonomy_id ORDER BY tt.term_taxonomy_id DESC LIMIT 1000", ARRAY_A );
+
+				if ( ! empty( $terms ) ) {
+					$term_ids = [];
+
+					foreach ( $terms as $term ) {
+						$term_ids[] = (int) $term['term_id'];
+					}
+
+					// Delete excess terms
+					$wpdb->query( "DELETE FROM {$prefix}terms WHERE term_id NOT IN (" . implode( ',', $term_ids ) . ')' );
+
+					// Delete excess term taxonomies
+					$wpdb->query( "DELETE FROM {$prefix}term_taxonomy WHERE term_id NOT IN (" . implode( ',', $term_ids ) . ')' );
+
+					// Delete excess term meta
+					$wpdb->query( "DELETE FROM {$prefix}termmeta WHERE term_id NOT IN (" . implode( ',', $term_ids ) . ')' );
+				}
+
+				$term_metas = $wpdb->get_results( "SELECT * FROM {$prefix}termmeta ORDER BY meta_id DESC LIMIT 750", ARRAY_A );
+
+				if ( ! empty( $term_metas ) ) {
+					$term_meta_ids = [];
+
+					foreach ( $term_metas as $term_meta ) {
+						$term_meta_ids[] = (int) $term_meta['meta_id'];
+					}
+
+					$wpdb->query( "DELETE FROM {$prefix}termmeta WHERE meta_id NOT IN (" . implode( ',', $term_meta_ids ) . ')' );
+				}
+
+				if ( is_multisite() ) {
+					restore_current_blog();
+				} else {
+					break;
+				}
+			}
+		}
+
 		$meta = [
 			'author'      => [],
 			'repository'  => $args['repository'],
