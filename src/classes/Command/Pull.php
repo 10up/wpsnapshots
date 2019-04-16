@@ -175,6 +175,13 @@ class Pull extends Command {
 				'FS_METHOD' => 'direct',
 			];
 
+			if ( ! empty( $snapshot->meta['subdomain_install'] ) ) {
+				$config_constants['ADMIN_COOKIE_PATH'] = '/';
+				$config_constants['COOKIE_DOMAIN']     = '';
+				$config_constants['COOKIEPATH']        = '';
+				$config_constants['SITECOOKIEPATH']    = '';
+			}
+
 			if ( ! empty( $input->getOption( 'config_db_host' ) ) ) {
 				$config_constants['DB_HOST'] = $input->getOption( 'config_db_host' );
 			} else {
