@@ -62,13 +62,15 @@ WP Snapshots revolves around pushing, pulling, and searching for snapshots. WP S
 
 Documentation for each operation is as follows:
 
-* __wpsnapshots push [\<snapshot-id\>] [--exclude_uploads] [--exclude] [--no_scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose]__
+* __wpsnapshots push [\<snapshot-id\>] [--exclude_uploads] [--exclude] [--no_scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose] [--small]__
 
   This command pushes a snapshot of a WordPress install to the repository. The command will return a snapshot ID once it's finished that you could pass to a team member.
 
   By default all passwords are converted to `password` and emails to `user@example.com`. The `--no_scrub` option will disable scrubbing.
 
   Pushing a snapshot will not replace older snapshots with the same name. There's been discussion on this. It seems easier and safer not to delete old snapshots (otherwise we have to deal with permissions).
+
+  `--small` will take 250 posts from each post type along with the associated terms and post meta and delete the rest of the data. This will modify your local database so be careful.
 
 * __wpsnapshots pull \<snapshot-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose]__
 

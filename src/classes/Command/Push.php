@@ -36,6 +36,7 @@ class Push extends Command {
 		$this->addArgument( 'snapshot_id', InputArgument::OPTIONAL, 'Optional snapshot ID to push. If none is provided, a new snapshot will be created from the local environment.' );
 		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
 		$this->addOption( 'no_scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
+		$this->addOption( 'small', false, InputOption::VALUE_NONE, 'Trim data and files to create a small snapshot. Note that this action will modify your local.' );
 
 		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
 		$this->addOption( 'db_host', null, InputOption::VALUE_REQUIRED, 'Database host.' );
@@ -103,6 +104,7 @@ class Push extends Command {
 					'project'     => $project,
 					'description' => $description,
 					'no_scrub'    => $input->getOption( 'no_scrub' ),
+					'small'       => $input->getOption( 'small' ),
 					'exclude'     => $exclude,
 					'repository'  => $repository->getName(),
 				], $output, $verbose
