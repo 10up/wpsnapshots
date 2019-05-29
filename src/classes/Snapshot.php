@@ -214,18 +214,6 @@ class Snapshot {
 					}
 				}
 
-				$post_metas = $wpdb->get_results( "SELECT * FROM {$prefix}postmeta ORDER BY meta_id DESC LIMIT 2000", ARRAY_A );
-
-				if ( ! empty( $post_metas ) ) {
-					$post_meta_ids = [];
-
-					foreach ( $post_metas as $post_meta ) {
-						$post_meta_ids[] = (int) $post_meta['meta_id'];
-					}
-
-					$wpdb->query( "DELETE FROM {$prefix}postmeta WHERE meta_id NOT IN (" . implode( ',', $post_meta_ids ) . ')' );
-				}
-
 				Log::instance()->write( 'Trimming comments...', 1 );
 
 				$comments = $wpdb->get_results( "SELECT comment_ID FROM {$prefix}comments ORDER BY comment_ID DESC LIMIT 500", ARRAY_A );
@@ -246,9 +234,9 @@ class Snapshot {
 				// Terms
 				Log::instance()->write( 'Trimming terms...', 1 );
 
-				$wpdb->query( "DELETE FROM {$prefix}term_relationships WHERE object_id NOT IN (" . implode( ',', $post_ids ) . ')' );
+				$wpdb->query( "DELETE FROM {$prefix}term_relationships WHERE object_id NOT IN (" . implode( ',', array_unique( $post_ids ) ) . ')' );
 
-				$term_relationships = $wpdb->get_results( "SELECT * FROM {$prefix}term_relationships ORDER BY term_taxonomy_id DESC LIMIT 750", ARRAY_A );
+				$term_relationships = $wpdb->get_results( "SELECT * FROM {$prefix}term_relationships ORDER BY term_taxonomy_id DESC", ARRAY_A );
 
 				if ( ! empty( $term_relationships ) ) {
 					$term_taxonomy_ids = [];
@@ -257,39 +245,23 @@ class Snapshot {
 						$term_taxonomy_ids[] = (int) $term_relationship['term_taxonomy_id'];
 					}
 
-					// Delete excess term relationships
-					$wpdb->query( "DELETE FROM {$prefix}term_relationships WHERE term_taxonomy_id NOT IN (" . implode( ',', $term_taxonomy_ids ) . ')' );
+					$wpdb->query( "DELETE FROM {$prefix}term_taxonomy WHERE term_taxonomy_id NOT IN (" . implode( ',', array_unique( $term_taxonomy_ids ) ) . ')' );
 				}
 
-				$terms = $wpdb->get_results( "SELECT tt.term_id as term_id FROM {$prefix}term_relationships as tr, {$prefix}term_taxonomy as tt WHERE tr.term_taxonomy_id = tt.term_taxonomy_id ORDER BY tt.term_taxonomy_id DESC LIMIT 1000", ARRAY_A );
+				$term_taxonomy = $wpdb->get_results( "SELECT * FROM {$prefix}term_taxonomy ORDER BY term_taxonomy_id DESC", ARRAY_A );
 
-				if ( ! empty( $terms ) ) {
+				if ( ! empty( $term_taxonomy ) ) {
 					$term_ids = [];
 
-					foreach ( $terms as $term ) {
-						$term_ids[] = (int) $term['term_id'];
+					foreach ( $term_taxonomy as $term_taxonomy_row ) {
+						$term_ids[] = (int) $term_taxonomy_row['term_id'];
 					}
 
 					// Delete excess terms
-					$wpdb->query( "DELETE FROM {$prefix}terms WHERE term_id NOT IN (" . implode( ',', $term_ids ) . ')' );
-
-					// Delete excess term taxonomies
-					$wpdb->query( "DELETE FROM {$prefix}term_taxonomy WHERE term_id NOT IN (" . implode( ',', $term_ids ) . ')' );
+					$wpdb->query( "DELETE FROM {$prefix}terms WHERE term_id NOT IN (" . implode( ',', array_unique( $term_ids ) ) . ')' );
 
 					// Delete excess term meta
-					$wpdb->query( "DELETE FROM {$prefix}termmeta WHERE term_id NOT IN (" . implode( ',', $term_ids ) . ')' );
-				}
-
-				$term_metas = $wpdb->get_results( "SELECT * FROM {$prefix}termmeta ORDER BY meta_id DESC LIMIT 750", ARRAY_A );
-
-				if ( ! empty( $term_metas ) ) {
-					$term_meta_ids = [];
-
-					foreach ( $term_metas as $term_meta ) {
-						$term_meta_ids[] = (int) $term_meta['meta_id'];
-					}
-
-					$wpdb->query( "DELETE FROM {$prefix}termmeta WHERE meta_id NOT IN (" . implode( ',', $term_meta_ids ) . ')' );
+					$wpdb->query( "DELETE FROM {$prefix}termmeta WHERE term_id NOT IN (" . implode( ',', array_unique( $term_ids ) ) . ')' );
 				}
 
 				if ( is_multisite() ) {
