@@ -4,7 +4,16 @@
 
 [![Support Level](https://img.shields.io/badge/support-active-green.svg)](#support-level) [![Release Version](https://img.shields.io/github/tag/10up/wpsnapshots.svg?label=release)](https://github.com/10up/wpsnapshots/releases/latest) [![MIT License](https://img.shields.io/github/license/10up/wpsnapshots.svg)](https://github.com/10up/wpsnapshots/blob/develop/LICENSE.md)
 
-## How Does It Work?
+## Table of Contents  
+* [Overview](#overview)
+* [Installation](#install)
+  * [Windows-specific Installation](#windows)
+* [Configure](#configure)
+* [Usage](#usage)
+* [Identity Access Management](#identity-access-management)
+* [Troubleshooting](#troubleshooting)
+
+## Overview
 
 WP Snapshots stores snapshots in a centralized repository (AWS). Users setup up WP Snapshots with their team's AWS credentials. Users can then push, pull, and search for snapshots. When a user pushes a snapshot, an instance of their current environment (`wp-content/` , database, etc.) is pushed to Amazon and associated with a particular project slug. When a snapshot is pulled, files are pulled from the cloud either by creating a new WordPress install with the pulled database or by replacing `wp-content/` and intelligently merging the database. WP Snapshots will ensure your local version of WordPress matches the snapshot.
 
@@ -115,7 +124,6 @@ WP Snapshots relies on AWS for access management. Each snapshot is associated wi
 
   A fatal error is most likely occuring when bootstrapping WordPress. Look at your error log to see what's happening. Often this happens because of a missing PHP class (Memcached) which is a result of not running WP Snapshots inside your environment (container or VM).
 
-
 ## Windows
 
 WP Snapshots has been used successfully inside [Windows Subsystem for Linux](https://msdn.microsoft.com/en-us/commandline/wsl/install-win10).
@@ -123,3 +131,7 @@ WP Snapshots has been used successfully inside [Windows Subsystem for Linux](htt
 ## Support Level
 
 **Active:** 10up is actively working on this, and we expect to continue work for the foreseeable future including keeping tested up to the most recent version of WordPress.  Bug reports, feature requests, questions, and pull requests are welcome.
+
+## Like what you see?
+
+<a href="http://10up.com/contact/"><img src="https://10updotcom-wpengine.s3.amazonaws.com/uploads/2016/10/10up-Github-Banner.png" width="850" alt="Work with us at 10up"></a>
