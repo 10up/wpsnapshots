@@ -771,7 +771,7 @@ define('BLOG_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['blog_id_current
 		Log::instance()->write( 'Visit in your browser: ' . $first_home_url, 0, 'success' );
 
 		if ( 'localhost' !== parse_url( $first_home_url, PHP_URL_HOST ) ) {
-			Log::instance()->write( 'Make sure the following entry is in your hosts file: ' . parse_url( $first_home_url, PHP_URL_HOST ) . ' 127.0.0.1', 0, 'success' );
+			Log::instance()->write( 'Make sure the following entry is in your hosts file: "127.0.0.1 ' . parse_url( $first_home_url, PHP_URL_HOST ) . '"', 0, 'success' );
 		}
 
 		Log::instance()->write( 'Admin login: username - "wpsnapshots", password - "password"', 0, 'success' );
