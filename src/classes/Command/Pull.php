@@ -277,7 +277,7 @@ class Pull extends Command {
 
 		Log::instance()->write( 'Decompressing database backup file...' );
 
-		exec( 'cd ' . Utils\escape_shell_path( $snapshot_path ) . ' && gzip -d -k -f data.sql.gz ' . $verbose_pipe );
+		exec( 'cd ' . Utils\escape_shell_path( $snapshot_path ) . ' && cat data.sql.gz | gzip -d - | tee data.sql ' . $verbose_pipe );
 
 		Log::instance()->write( 'Replacing wp-content/...' );
 
