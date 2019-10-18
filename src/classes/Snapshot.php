@@ -351,7 +351,7 @@ class Snapshot {
 		/**
 		 * Dump sql to .wpsnapshots/data.sql
 		 */
-		$command          = '/usr/bin/env mysqldump --no-defaults %s';
+		$command          = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
 		$command_esc_args = array( DB_NAME );
 		$command         .= ' --tables';
 
@@ -392,7 +392,7 @@ class Snapshot {
 		Utils\run_mysql_command( $escaped_command, $mysql_args );
 
 		if ( ! $args['no_scrub'] ) {
-			$command = '/usr/bin/env mysqldump --no-defaults %s';
+			$command = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
 
 			$command_esc_args = array( DB_NAME );
 
