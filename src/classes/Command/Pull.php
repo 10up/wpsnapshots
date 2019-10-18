@@ -442,7 +442,7 @@ class Pull extends Command {
 					}
 				}
 
-				if ( ! empty( $snapshot->meta['multisite'] ) ) {
+				if ( empty( $snapshot->meta['multisite'] ) ) {
 					$site_mapping = array_values( $site_mapping );
 				}
 			}
