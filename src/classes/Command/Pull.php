@@ -433,7 +433,7 @@ class Pull extends Command {
 					}
 				}
 
-				if ( 1 >= count( $site_mapping ) ) {
+				if ( ! empty( $snapshot->meta['multisite'] ) ) {
 					$site_mapping = array_values( $site_mapping );
 				}
 			}
