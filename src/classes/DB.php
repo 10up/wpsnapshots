@@ -72,6 +72,7 @@ class DB {
 				],
 				'region'      => $region,
 				'version'     => '2012-08-10',
+				'csm'         => false,
 			]
 		);
 	}
