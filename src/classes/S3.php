@@ -73,6 +73,7 @@ class S3 {
 				'signature'   => 'v4',
 				'region'      => $region,
 				'version'     => '2006-03-01',
+				'csm'         => false,
 			]
 		);
 	}
