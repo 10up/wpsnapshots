@@ -35,8 +35,9 @@ class Push extends Command {
 		$this->setDescription( 'Push a snapshot to a repository.' );
 		$this->addArgument( 'snapshot_id', InputArgument::OPTIONAL, 'Optional snapshot ID to push. If none is provided, a new snapshot will be created from the local environment.' );
 		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
-		$this->addOption( 'no_scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 		$this->addOption( 'small', false, InputOption::VALUE_NONE, 'Trim data and files to create a small snapshot. Note that this action will modify your local.' );
+		$this->addOption( 'no_scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data. This is a legacy option and equivalent to --scrub=0" );
+		$this->addOption( 'scrub', false, InputOption::VALUE_REQUIRED, 'Scrubbing to do on data. 2 is the most aggressive and replaces all user information with dummy data; 1 only replaces passwords; 0 is no scrubbing. Defaults to 2.', 2 );
 
 		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
 		$this->addOption( 'db_host', null, InputOption::VALUE_REQUIRED, 'Database host.' );
@@ -94,6 +95,12 @@ class Push extends Command {
 				$exclude[] = './uploads';
 			}
 
+			$scrub = $input->getOption( 'scrub' );
+
+			if ( $input->getOption( 'no_scrub' ) ) {
+				$scrub = 0;
+			}
+
 			$snapshot = Snapshot::create(
 				[
 					'path'        => $path,
@@ -103,7 +110,7 @@ class Push extends Command {
 					'db_password' => $input->getOption( 'db_password' ),
 					'project'     => $project,
 					'description' => $description,
-					'no_scrub'    => $input->getOption( 'no_scrub' ),
+					'scrub'       => (int) $scrub,
 					'small'       => $input->getOption( 'small' ),
 					'exclude'     => $exclude,
 					'repository'  => $repository->getName(),

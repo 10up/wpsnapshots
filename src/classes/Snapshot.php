@@ -363,8 +363,12 @@ class Snapshot {
 		$tables = Utils\get_tables();
 
 		foreach ( $tables as $table ) {
-			// We separate the users table for scrubbing
-			if ( ! $args['no_scrub'] && $GLOBALS['table_prefix'] . 'users' === $table ) {
+			// We separate the users/meta table for scrubbing
+			if ( 0 < $args['scrub'] && $GLOBALS['table_prefix'] . 'users' === $table ) {
+				continue;
+			}
+
+			if ( 2 === $args['scrub'] && $GLOBALS['table_prefix'] . 'usermeta' === $table ) {
 				continue;
 			}
 
@@ -391,7 +395,8 @@ class Snapshot {
 
 		Utils\run_mysql_command( $escaped_command, $mysql_args );
 
-		if ( ! $args['no_scrub'] ) {
+		if ( 1 === $args['scrub'] ) {
+
 			$command = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
 
 			$command_esc_args = array( DB_NAME );
@@ -413,6 +418,8 @@ class Snapshot {
 			Utils\run_mysql_command( $escaped_command, $mysql_args );
 
 			Log::instance()->write( 'Scrubbing user database...' );
+
+			Log::instance()->write( 'Scrub severity is 1.', 1 );
 
 			$all_hashed_passwords = [];
 			$all_emails           = [];
@@ -480,9 +487,130 @@ class Snapshot {
 			fclose( $data_handle );
 			fclose( $users_handle );
 
-			Log::instance()->write( 'Removing old SQL...', 1 );
+			Log::instance()->write( 'Removing old users SQL...', 1 );
 
 			unlink( $snapshot_path . 'data-users.sql' );
+		} elseif ( 2 === $args['scrub'] ) {
+			Log::instance()->write( 'Scrubbing users...' );
+
+			$dummy_users = Utils\get_dummy_users();
+
+			Log::instance()->write( 'Duplicating users table..', 1 );
+
+			$wpdb->query( "CREATE TABLE {$wpdb->users}_temp LIKE $wpdb->users" );
+			$wpdb->query( "INSERT INTO {$wpdb->users}_temp SELECT * FROM $wpdb->users" );
+
+			Log::instance()->write( 'Scrub each user record..', 1 );
+
+			$offset = 0;
+
+			$password = wp_hash_password( 'password' );
+
+			$user_ids = [];
+
+			while ( true ) {
+				$users = $wpdb->get_results( $wpdb->prepare( "SELECT ID, user_login FROM {$wpdb->users}_temp LIMIT 1000 OFFSET %d", $offset ), ARRAY_A );
+
+				if ( empty( $users ) ) {
+					break;
+				}
+
+				if ( 1000 <= $offset ) {
+					usleep( 100 );
+				}
+
+				foreach ( $users as $user ) {
+					$user_id = (int) $user['ID'];
+
+					$user_ids[] = $user_id;
+
+					$dummy_user = $dummy_users[ $user_id % 1000 ];
+
+					$wpdb->query( "UPDATE {$wpdb->users}_temp SET user_pass='{$password}', user_email='{$dummy_user['email']}', user_url='', user_activation_key='', display_name='{$user['user_login']}' WHERE ID='{$user['ID']}'" );
+				}
+
+				$offset += 1000;
+			}
+
+			$command = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
+
+			$command_esc_args = array( DB_NAME );
+
+			$command           .= ' --tables %s';
+			$command_esc_args[] = $GLOBALS['table_prefix'] . 'users_temp';
+
+			$mysql_args = [
+				'host'        => DB_HOST,
+				'pass'        => DB_PASSWORD,
+				'user'        => DB_USER,
+				'result-file' => $snapshot_path . 'data-users.sql',
+			];
+
+			$escaped_command = call_user_func_array( '\WPSnapshots\Utils\esc_cmd', array_merge( array( $command ), $command_esc_args ) );
+
+			Log::instance()->write( 'Exporting users...', 1 );
+
+			Utils\run_mysql_command( $escaped_command, $mysql_args );
+
+			$users_sql = file_get_contents( $snapshot_path . 'data-users.sql' );
+
+			Log::instance()->write( 'Duplicating user meta table..', 1 );
+
+			$wpdb->query( "CREATE TABLE {$wpdb->usermeta}_temp LIKE $wpdb->usermeta" );
+			$wpdb->query( "INSERT INTO {$wpdb->usermeta}_temp SELECT * FROM $wpdb->usermeta" );
+
+			// Just truncate these fields
+			$wpdb->query( "UPDATE {$wpdb->usermeta}_temp SET meta_value='' WHERE meta_key='description' OR meta_key='session_tokens'" );
+
+			for ( $i = 0; $i < count( $user_ids ); $i++ ) {
+				if ( 1 < $i && 0 === $i % 1000 ) {
+					usleep( 100 );
+				}
+
+				$user_id = $user_ids[ $i ];
+
+				$dummy_user = $dummy_users[ $user_id % 1000 ];
+
+				$wpdb->query( "UPDATE {$wpdb->usermeta}_temp SET meta_value='{$dummy_user['first_name']}' WHERE meta_key='first_name' AND user_id='{$user_id}'" );
+				$wpdb->query( "UPDATE {$wpdb->usermeta}_temp SET meta_value='{$dummy_user['last_name']}' WHERE meta_key='last_name' AND user_id='{$user_id}'" );
+				$wpdb->query( "UPDATE {$wpdb->usermeta}_temp SET meta_value='{$dummy_user['first_name']}' WHERE meta_key='nickname' AND user_id='{$user_id}'" );
+			}
+
+			$command = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
+
+			$command_esc_args = array( DB_NAME );
+
+			$command           .= ' --tables %s';
+			$command_esc_args[] = $GLOBALS['table_prefix'] . 'usermeta_temp';
+
+			$mysql_args = [
+				'host'        => DB_HOST,
+				'pass'        => DB_PASSWORD,
+				'user'        => DB_USER,
+				'result-file' => $snapshot_path . 'data-usermeta.sql',
+			];
+
+			$escaped_command = call_user_func_array( '\WPSnapshots\Utils\esc_cmd', array_merge( array( $command ), $command_esc_args ) );
+
+			Log::instance()->write( 'Exporting usermeta...', 1 );
+
+			Utils\run_mysql_command( $escaped_command, $mysql_args );
+
+			$usermeta_sql = file_get_contents( $snapshot_path . 'data-usermeta.sql' );
+
+			Log::instance()->write( 'Appending scrubbed SQL to dump file...', 1 );
+
+			file_put_contents( $snapshot_path . 'data.sql', preg_replace( '#`' . $wpdb->users . '_temp`#', $wpdb->users, $users_sql ) . preg_replace( '#`' . $wpdb->usermeta . '_temp`#', $wpdb->usermeta, $usermeta_sql ), FILE_APPEND );
+
+			Log::instance()->write( 'Removing temporary tables...', 1 );
+
+			$wpdb->query( "DROP TABLE {$wpdb->usermeta}_temp" );
+			$wpdb->query( "DROP TABLE {$wpdb->users}_temp" );
+
+			Log::instance()->write( 'Removing old users and usermeta SQL...', 1 );
+
+			unlink( $snapshot_path . 'data-users.sql' );
+			unlink( $snapshot_path . 'data-usermeta.sql' );
 		}
 
 		$verbose_pipe = ( empty( Log::instance()->getVerbosity() ) ) ? '> /dev/null' : '';
