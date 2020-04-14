@@ -38,6 +38,9 @@ class Push extends Command {
 		$this->addOption( 'no_scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 		$this->addOption( 'small', false, InputOption::VALUE_NONE, 'Trim data and files to create a small snapshot. Note that this action will modify your local.' );
 
+		$this->addOption( 'slug', null, InputOption::VALUE_REQUIRED, 'Project slug for snapshot.' );
+		$this->addOption( 'description', null, InputOption::VALUE_OPTIONAL, 'Description of snapshot.' );
+
 		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
 		$this->addOption( 'db_host', null, InputOption::VALUE_REQUIRED, 'Database host.' );
 		$this->addOption( 'db_name', null, InputOption::VALUE_REQUIRED, 'Database name.' );
@@ -78,15 +81,27 @@ class Push extends Command {
 
 			$verbose = $input->getOption( 'verbose' );
 
-			$project_question = new Question( 'Project Slug (letters, numbers, _, and - only): ' );
-			$project_question->setValidator( '\WPSnapshots\Utils\slug_validator' );
+			$project = $input->getOption( 'slug' );
 
-			$project = $helper->ask( $input, $output, $project_question );
+			if ( ! empty( $project ) ) {
+				$project = preg_replace( '#[^a-zA-Z0-9\-_]#', '', $project );
+			}
 
-			$description_question = new Question( 'Snapshot Description (e.g. Local environment): ' );
-			$description_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+			if ( empty( $project ) ) {
+				$project_question = new Question( 'Project Slug (letters, numbers, _, and - only): ' );
+				$project_question->setValidator( '\WPSnapshots\Utils\slug_validator' );
 
-			$description = $helper->ask( $input, $output, $description_question );
+				$project = $helper->ask( $input, $output, $project_question );
+			}
+
+			$description = $input->getOption( 'description' );
+
+			if ( ! isset( $description ) ) {
+				$description_question = new Question( 'Snapshot Description (e.g. Local environment): ' );
+				$description_question->setValidator( '\WPSnapshots\Utils\not_empty_validator' );
+
+				$description = $helper->ask( $input, $output, $description_question );
+			}
 
 			$exclude = $input->getOption( 'exclude' );
 
