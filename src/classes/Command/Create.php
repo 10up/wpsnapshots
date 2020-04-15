@@ -102,19 +102,34 @@ class Create extends Command {
 			$exclude[] = './uploads';
 		}
 
+		$files_question = new ConfirmationQuestion( 'Include files in snapshot? (yes|no) ', true );
+
+		$include_files = $helper->ask( $input, $output, $files_question );
+
+		$db_question = new ConfirmationQuestion( 'Include database in snapshot? (yes|no) ', true );
+
+		$include_db = $helper->ask( $input, $output, $db_question );
+
+		if ( empty( $include_files ) && empty( $include_db ) ) {
+			Log::instance()->write( 'A snapshot must include either a database or a snapshot.', 0, 'error' );
+			return 1;
+		}
+
 		$snapshot = Snapshot::create(
 			[
-				'db_host'     => $input->getOption( 'db_host' ),
-				'db_name'     => $input->getOption( 'db_name' ),
-				'db_user'     => $input->getOption( 'db_user' ),
-				'db_password' => $input->getOption( 'db_password' ),
-				'project'     => $project,
-				'path'        => $path,
-				'description' => $description,
-				'no_scrub'    => $input->getOption( 'no_scrub' ),
-				'small'       => $input->getOption( 'small' ),
-				'exclude'     => $exclude,
-				'repository'  => $repository->getName(),
+				'db_host'        => $input->getOption( 'db_host' ),
+				'db_name'        => $input->getOption( 'db_name' ),
+				'db_user'        => $input->getOption( 'db_user' ),
+				'db_password'    => $input->getOption( 'db_password' ),
+				'project'        => $project,
+				'path'           => $path,
+				'description'    => $description,
+				'no_scrub'       => $input->getOption( 'no_scrub' ),
+				'small'          => $input->getOption( 'small' ),
+				'exclude'        => $exclude,
+				'repository'     => $repository->getName(),
+				'contains_db'    => $include_db,
+				'contains_files' => $include_files,
 			], $output, $input->getOption( 'verbose' )
 		);
 

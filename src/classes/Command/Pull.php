@@ -102,6 +102,10 @@ class Pull extends Command {
 
 		$path = Utils\normalize_path( $path );
 
+		$helper = $this->getHelper( 'question' );
+
+		$pull_files = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to pull files(yes|no) ', true ) );
+
 		$snapshot_path = Utils\get_snapshot_directory() . $id . '/';
 
 		$snapshot = Snapshot::download( $id, $repository->getName() );
@@ -113,8 +117,6 @@ class Pull extends Command {
 		$verbose = $input->getOption( 'verbose' );
 
 		$verbose_pipe = ( ! $verbose ) ? '> /dev/null' : '';
-
-		$helper = $this->getHelper( 'question' );
 
 		if ( ! Utils\is_wp_present( $path ) ) {
 			Log::instance()->write( 'This is not a WordPress install. WordPress needs to be present in order to pull a snapshot.', 0, 'error' );
