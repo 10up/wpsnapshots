@@ -58,13 +58,31 @@ class Meta implements ArrayAccess {
 	}
 
 	/**
-	 * Download meta from remote
+	 * Get meta. First try locally then try downloading
 	 *
 	 * @param   string $id Snapshot id
 	 * @param   string $repository_name Name of repo
 	 * @return  bool|Meta
 	 */
-	public static function download( $id, $repository_name ) {
+	public static function get( $id, $repository_name ) {
+		$cached_meta = self::getLocal( $id, $repository_name );
+
+		// Maybe meta has already been downloaded.
+		if ( ! empty( $cached_meta ) ) {
+			return $cached_meta;
+		}
+
+		return self::getRemote( $id, $repository_name );
+	}
+
+	/**
+	 * Download meta from remote DB
+	 *
+	 * @param   string $id Snapshot id
+	 * @param   string $repository_name Name of repo
+	 * @return  bool|Meta
+	 */
+	public static function getRemote( $id, $repository_name ) {
 		$repository = RepositoryManager::instance()->setup( $repository_name );
 
 		if ( ! $repository ) {
@@ -73,11 +91,7 @@ class Meta implements ArrayAccess {
 			return false;
 		}
 
-		Log::instance()->write( 'Downloading snapshot information...' );
-
 		$snapshot = $repository->getDB()->getSnapshot( $id );
-
-		$snapshot['repository'] = $repository_name;
 
 		if ( ! $snapshot ) {
 			Log::instance()->write( 'Could not download snapshot meta from database.', 0, 'error' );
@@ -85,10 +99,19 @@ class Meta implements ArrayAccess {
 			return false;
 		}
 
-		$snapshot = new self( $id, $snapshot );
+		$snapshot['repository'] = $repository_name;
+
+		return new self( $id, $snapshot );
 	}
 
-	public static function get_remote( $id ) {
+	/**
+	 * Get local snapshot
+	 *
+	 * @param  string $id Snapshot ID
+	 * @param  string $repository_name Snapshot repository
+	 * @return self|bool
+	 */
+	public static function getLocal( $id, $repository_name ) {
 		if ( ! file_exists( Utils\get_snapshot_directory() . $id . '/meta.json' ) ) {
 			return false;
 		}
@@ -102,13 +125,8 @@ class Meta implements ArrayAccess {
 			return false;
 		}
 
-		/**
-		 * Backwards compant - need to fill in repo before we started saving repo in meta.
-		 */
-		if ( empty( $meta['repository'] ) ) {
-			Log::instance()->write( 'Legacy snapshot found without repository. Assuming default repository.', 1, 'warning' );
-
-			$meta['repository'] = RepositoryManager::instance()->getDefault();
+		if ( $repository_name !== $meta['repository'] ) {
+			return false;
 		}
 
 		return new self( $id, $meta );

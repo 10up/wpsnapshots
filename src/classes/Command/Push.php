@@ -20,6 +20,7 @@ use WPSnapshots\WordPressBridge;
 use WPSnapshots\Config;
 use WPSnapshots\Utils;
 use WPSnapshots\Snapshot;
+use WPSnapshots\Meta;
 use WPSnapshots\Log;
 
 /**
@@ -37,6 +38,8 @@ class Push extends Command {
 		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
 		$this->addOption( 'no_scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 		$this->addOption( 'small', false, InputOption::VALUE_NONE, 'Trim data and files to create a small snapshot. Note that this action will modify your local.' );
+		$this->addOption( 'include_files', null, InputOption::VALUE_NONE, 'Include files in snapshot.' );
+		$this->addOption( 'include_db', null, InputOption::VALUE_NONE, 'Include database in snapshot.' );
 
 		$this->addOption( 'slug', null, InputOption::VALUE_REQUIRED, 'Project slug for snapshot.' );
 		$this->addOption( 'description', null, InputOption::VALUE_OPTIONAL, 'Description of snapshot.' );
@@ -59,15 +62,34 @@ class Push extends Command {
 	protected function execute( InputInterface $input, OutputInterface $output ) {
 		Log::instance()->setOutput( $output );
 
+		$repository = RepositoryManager::instance()->setup( $input->getOption( 'repository' ) );
+
+		if ( ! $repository ) {
+			Log::instance()->write( 'Could not setup repository.', 0, 'error' );
+			return 1;
+		}
+
 		$snapshot_id = $input->getArgument( 'snapshot_id' );
 
-		if ( empty( $snapshot_id ) ) {
-			$repository = RepositoryManager::instance()->setup( $input->getOption( 'repository' ) );
+		if ( ! empty( $snapshot_id ) ) {
+			$remote_snapshot = Meta::getRemote( $snapshot_id, $repository->getName() );
 
-			if ( ! $repository ) {
-				Log::instance()->write( 'Could not setup repository.', 0, 'error' );
+			if ( ! empty( $remote_snapshot ) ) {
+				Log::instance()->write( 'You can not overwrite an existing snapshot. Please create a new one.', 0, 'error' );
+
 				return 1;
 			}
+
+			$local_snapshot = Meta::getLocal( $snapshot_id, $repository->getName() );
+
+			if ( empty( $local_snapshot ) ) {
+				Log::instance()->write( 'Snapshot not found locally.', 0, 'error' );
+
+				return 1;
+			}
+
+			$snapshot = Snapshot::getLocal( $snapshot_id, $repository->getName() );
+		} else {
 
 			$path = $input->getOption( 'path' );
 
@@ -109,29 +131,44 @@ class Push extends Command {
 				$exclude[] = './uploads';
 			}
 
-			$snapshot = Snapshot::create(
-				[
-					'path'        => $path,
-					'db_host'     => $input->getOption( 'db_host' ),
-					'db_name'     => $input->getOption( 'db_name' ),
-					'db_user'     => $input->getOption( 'db_user' ),
-					'db_password' => $input->getOption( 'db_password' ),
-					'project'     => $project,
-					'description' => $description,
-					'no_scrub'    => $input->getOption( 'no_scrub' ),
-					'small'       => $input->getOption( 'small' ),
-					'exclude'     => $exclude,
-					'repository'  => $repository->getName(),
-				], $output, $verbose
-			);
-		} else {
-			if ( ! Utils\is_snapshot_cached( $snapshot_id ) ) {
-				Log::instance()->write( 'Snapshot not found locally.', 0, 'error' );
+			if ( empty( $input->getOption( 'include_files' ) ) ) {
+				$files_question = new ConfirmationQuestion( 'Include files in snapshot? (yes|no) ', true );
 
+				$include_files = $helper->ask( $input, $output, $files_question );
+			} else {
+				$include_files = true;
+			}
+
+			if ( empty( $input->getOption( 'include_db' ) ) ) {
+				$db_question = new ConfirmationQuestion( 'Include database in snapshot? (yes|no) ', true );
+
+				$include_db = $helper->ask( $input, $output, $db_question );
+			} else {
+				$include_db = true;
+			}
+
+			if ( empty( $include_files ) && empty( $include_db ) ) {
+				Log::instance()->write( 'A snapshot must include either a database or a snapshot.', 0, 'error' );
 				return 1;
 			}
 
-			$snapshot = Snapshot::get( $snapshot_id );
+			$snapshot = Snapshot::create(
+				[
+					'path'           => $path,
+					'db_host'        => $input->getOption( 'db_host' ),
+					'db_name'        => $input->getOption( 'db_name' ),
+					'db_user'        => $input->getOption( 'db_user' ),
+					'db_password'    => $input->getOption( 'db_password' ),
+					'project'        => $project,
+					'description'    => $description,
+					'no_scrub'       => $input->getOption( 'no_scrub' ),
+					'small'          => $input->getOption( 'small' ),
+					'exclude'        => $exclude,
+					'repository'     => $repository->getName(),
+					'contains_db'    => $include_db,
+					'contains_files' => $include_files,
+				], $output, $verbose
+			);
 		}
 
 		if ( ! is_a( $snapshot, '\WPSnapshots\Snapshot' ) ) {

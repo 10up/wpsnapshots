@@ -37,6 +37,8 @@ class Create extends Command {
 		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
 		$this->addOption( 'no_scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 		$this->addOption( 'small', false, InputOption::VALUE_NONE, 'Trim data and files to create a small snapshot. Note that this action will modify your local.' );
+		$this->addOption( 'include_files', null, InputOption::VALUE_NONE, 'Include files in snapshot.' );
+		$this->addOption( 'include_db', null, InputOption::VALUE_NONE, 'Include database in snapshot.' );
 
 		$this->addOption( 'slug', null, InputOption::VALUE_REQUIRED, 'Project slug for snapshot.' );
 		$this->addOption( 'description', null, InputOption::VALUE_OPTIONAL, 'Description of snapshot.' );
@@ -102,13 +104,21 @@ class Create extends Command {
 			$exclude[] = './uploads';
 		}
 
-		$files_question = new ConfirmationQuestion( 'Include files in snapshot? (yes|no) ', true );
+		if ( empty( $input->getOption( 'include_files' ) ) ) {
+			$files_question = new ConfirmationQuestion( 'Include files in snapshot? (yes|no) ', true );
 
-		$include_files = $helper->ask( $input, $output, $files_question );
+			$include_files = $helper->ask( $input, $output, $files_question );
+		} else {
+			$include_files = true;
+		}
 
-		$db_question = new ConfirmationQuestion( 'Include database in snapshot? (yes|no) ', true );
+		if ( empty( $input->getOption( 'include_db' ) ) ) {
+			$db_question = new ConfirmationQuestion( 'Include database in snapshot? (yes|no) ', true );
 
-		$include_db = $helper->ask( $input, $output, $db_question );
+			$include_db = $helper->ask( $input, $output, $db_question );
+		} else {
+			$include_db = true;
+		}
 
 		if ( empty( $include_files ) && empty( $include_db ) ) {
 			Log::instance()->write( 'A snapshot must include either a database or a snapshot.', 0, 'error' );

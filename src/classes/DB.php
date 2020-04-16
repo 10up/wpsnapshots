@@ -140,12 +140,12 @@ class DB {
 		$marshaler = new Marshaler();
 
 		$snapshot_item = [
-			'project' => strtolower( $snapshot->project ),
+			'project' => strtolower( $snapshot->meta['project'] ),
 			'id'      => $snapshot->id,
 			'time'    => time(),
 		];
 
-		$snapshot_item = array_merge( $snapshot_item, $snapshot->meta );
+		$snapshot_item = array_merge( $snapshot_item, $snapshot->meta->toArray() );
 		$snapshot_json = json_encode( $snapshot_item );
 
 		try {

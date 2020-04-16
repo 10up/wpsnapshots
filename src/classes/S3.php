@@ -92,7 +92,7 @@ class S3 {
 				$db_result = $this->client->putObject(
 					[
 						'Bucket'     => self::getBucketName( $this->repository ),
-						'Key'        => $snapshot->project . '/' . $snapshot->id . '/data.sql.gz',
+						'Key'        => $snapshot->meta['project'] . '/' . $snapshot->id . '/data.sql.gz',
 						'SourceFile' => realpath( Utils\get_snapshot_directory() . $snapshot->id . '/data.sql.gz' ),
 					]
 				);
@@ -102,7 +102,7 @@ class S3 {
 				$files_result = $this->client->putObject(
 					[
 						'Bucket'     => self::getBucketName( $this->repository ),
-						'Key'        => $snapshot->project . '/' . $snapshot->id . '/files.tar.gz',
+						'Key'        => $snapshot->meta['project'] . '/' . $snapshot->id . '/files.tar.gz',
 						'SourceFile' => realpath( Utils\get_snapshot_directory() . $snapshot->id . '/files.tar.gz' ),
 					]
 				);
@@ -115,7 +115,7 @@ class S3 {
 				$this->client->waitUntil(
 					'ObjectExists', [
 						'Bucket' => self::getBucketName( $this->repository ),
-						'Key'    => $snapshot->project . '/' . $snapshot->id . '/files.tar.gz',
+						'Key'    => $snapshot->meta['project'] . '/' . $snapshot->id . '/files.tar.gz',
 					]
 				);
 			}
@@ -124,7 +124,7 @@ class S3 {
 				$this->client->waitUntil(
 					'ObjectExists', [
 						'Bucket' => self::getBucketName( $this->repository ),
-						'Key'    => $snapshot->project . '/' . $snapshot->id . '/data.sql.gz',
+						'Key'    => $snapshot->meta['project'] . '/' . $snapshot->id . '/data.sql.gz',
 					]
 				);
 			}
@@ -156,7 +156,7 @@ class S3 {
 				$db_download = $this->client->getObject(
 					[
 						'Bucket' => self::getBucketName( $this->repository ),
-						'Key'    => $snapshot->project . '/' . $snapshot->id . '/data.sql.gz',
+						'Key'    => $snapshot->meta['project'] . '/' . $snapshot->id . '/data.sql.gz',
 						'SaveAs' => Utils\get_snapshot_directory() . $snapshot->id . '/data.sql.gz',
 					]
 				);
@@ -166,7 +166,7 @@ class S3 {
 				$files_download = $this->client->getObject(
 					[
 						'Bucket' => self::getBucketName( $this->repository ),
-						'Key'    => $snapshot->project . '/' . $snapshot->id . '/files.tar.gz',
+						'Key'    => $snapshot->meta['project'] . '/' . $snapshot->id . '/files.tar.gz',
 						'SaveAs' => Utils\get_snapshot_directory() . $snapshot->id . '/files.tar.gz',
 					]
 				);

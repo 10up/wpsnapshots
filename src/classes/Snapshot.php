@@ -58,44 +58,65 @@ class Snapshot {
 		$this->repository_name = $repository_name;
 		$this->remote          = $remote;
 
-		if ( is_a( $meta, 'Meta' ) ) {
+		if ( is_a( $meta, '\WPSnapshots\Meta' ) ) {
 			$this->meta = $meta;
 		} else {
 			$this->meta = new Meta( $id, $meta );
 		}
+	}
 
-		if ( $meta['contains_db'] && ! file_exists( Utils\get_snapshot_directory() . $id . '/data.sql.gz' ) ) {
-			throw new Exception( 'Snapshot database do not exist locally.' );
+	/**
+	 * Get a snapshot. First try locally and then remote.
+	 *
+	 * @param   string $id Snapshot id
+	 * @param   string $repository_name Name of repo
+	 * @param   bool   $no_files If set to true, files will not be downloaded even if available. Defaults to false.
+	 * @param   bool   $no_db If set to true, db will not be downloaded even if available. Defaults to false.
+	 * @return  bool|Snapshot
+	 */
+	public static function get( $id, $repository_name, $no_files = false, $no_db = false ) {
+		$local_snapshot = self::getLocal( $id, $repository_name, $no_files, $no_db );
+
+		if ( ! empty( $local_snapshot ) ) {
+			Log::instance()->write( 'Snapshot found in cache.' );
+
+			return $local_snapshot;
 		}
 
-		if ( $meta['contains_files'] && ! file_exists( Utils\get_snapshot_directory() . $id . '/files.tar.gz' ) ) {
-			throw new Exception( 'Snapshot files do not exist locally.' );
-		}
+		return self::getRemote( $id, $repository_name, $no_files, $no_db );
 	}
 
 	/**
 	 * Given an ID, create a WP Snapshots object
 	 *
-	 * @param  string $id Snapshot ID
-	 * @return Snapshot
+	 * @param   string $id Snapshot id
+	 * @param   string $repository_name Name of repo
+	 * @param   bool   $no_files If set to true, files will not be downloaded even if available. Defaults to false.
+	 * @param   bool   $no_db If set to true, db will not be downloaded even if available. Defaults to false.
+	 * @return  bool|Snapshot
 	 */
-	public static function get( $id ) {
-		$meta = Meta::get( $id );
+	public static function getLocal( $id, $repository_name, $no_files = false, $no_db = false ) {
+		if ( $no_files && $no_db ) {
+			Log::instance()->write( 'Either files or database must be in snapshot.', 0, 'error' );
+
+			return false;
+		}
+
+		$meta = Meta::getLocal( $id, $repository_name );
 
 		if ( empty( $meta ) ) {
 			return false;
 		}
 
-		/**
-		 * Backwards compant - need to fill in repo before we started saving repo in meta.
-		 */
-		if ( empty( $meta['repository'] ) ) {
-			Log::instance()->write( 'Legacy snapshot found without repository. Assuming default repository.', 1, 'warning' );
-
-			$meta['repository'] = RepositoryManager::instance()->getDefault();
+		if ( $no_files ) {
+			$meta['contains_files'] = false;
 		}
 
-		return new self( $id, $meta['repository'], $meta );
+		if ( $no_db ) {
+			$meta['contains_db'] = false;
+		}
+
+		return new self( $id, $repository_name, $meta );
 	}
 
 	/**
@@ -319,8 +340,8 @@ class Snapshot {
 			$meta['path_current_site']    = false;
 			$meta['site_id_current_site'] = false;
 			$meta['blog_id_current_site'] = false;
-			$meta['scrub']                = $args['scrub'];
-			$meta['sites']                = [];
+
+			$meta_sites = [];
 
 			if ( is_multisite() ) {
 				$meta['multisite'] = true;
@@ -348,7 +369,7 @@ class Snapshot {
 				$sites = get_sites( [ 'number' => 500 ] );
 
 				foreach ( $sites as $site ) {
-					$meta['sites'][] = [
+					$meta_sites[] = [
 						'blog_id'  => $site->blog_id,
 						'domain'   => $site->domain,
 						'path'     => $site->path,
@@ -358,12 +379,14 @@ class Snapshot {
 					];
 				}
 			} else {
-				$meta['sites'][] = [
+				$meta_sites[] = [
 					'site_url' => get_option( 'siteurl' ),
 					'home_url' => get_option( 'home' ),
 					'blogname' => get_option( 'blogname' ),
 				];
 			}
+
+			$meta['sites'] = $meta_sites;
 
 			$main_blog_id = ( defined( 'BLOG_ID_CURRENT_SITE' ) ) ? BLOG_ID_CURRENT_SITE : null;
 
@@ -514,7 +537,7 @@ class Snapshot {
 		 */
 
 		if ( $args['contains_files'] ) {
-			Log::instance()->write( 'Saving file back up...' );
+			Log::instance()->write( 'Saving files...' );
 
 			$excludes = '';
 
@@ -564,20 +587,22 @@ class Snapshot {
 	}
 
 	/**
-	 * Download snapshot.
+	 * Download snapshot from remote DB.
 	 *
 	 * @param   string $id Snapshot id
 	 * @param   string $repository_name Name of repo
+	 * @param   bool   $no_files If set to true, files will not be downloaded even if available. Defaults to false.
+	 * @param   bool   $no_db If set to true, db will not be downloaded even if available. Defaults to false.
 	 * @return  bool|Snapshot
 	 */
-	public static function download( $id, $repository_name ) {
-		if ( Utils\is_snapshot_cached( $id ) ) {
-			Log::instance()->write( 'Snapshot found in cache.' );
+	public static function getRemote( $id, $repository_name, $no_files = false, $no_db = false ) {
+		if ( $no_files && $no_db ) {
+			Log::instance()->write( 'Either files or database must be downloaded.', 0, 'error' );
 
-			return self::get( $id );
+			return false;
 		}
 
-		$create_dir = Utils\create_snapshot_directory( $id );
+		$create_dir = Utils\create_snapshot_directory( $id, true );
 
 		if ( ! $create_dir ) {
 			Log::instance()->write( 'Cannot create necessary snapshot directories.', 0, 'error' );
@@ -595,7 +620,7 @@ class Snapshot {
 
 		Log::instance()->write( 'Getting snapshot information...' );
 
-		$meta = Meta::get_remote( $id );
+		$meta = Meta::getRemote( $id, $repository_name );
 
 		if ( empty( $meta ) ) {
 			Log::instance()->write( 'Could not get snapshot from database.', 0, 'error' );
@@ -607,6 +632,14 @@ class Snapshot {
 			Log::instance()->write( 'Missing critical snapshot data.', 0, 'error' );
 
 			return false;
+		}
+
+		if ( $no_files ) {
+			$meta['contains_files'] = false;
+		}
+
+		if ( $no_db ) {
+			$meta['contains_db'] = false;
 		}
 
 		/**
