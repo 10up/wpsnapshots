@@ -99,13 +99,20 @@ class Meta implements ArrayAccess {
 			return false;
 		}
 
+		// Backwards compat since these previously were not set.
+		if ( ! isset( $snapshot['contains_files'] ) ) {
+			$snapshot['contains_files'] = true;
+		} if ( ! isset( $snapshot['contains_db'] ) ) {
+			$snapshot['contains_db'] = true;
+		}
+
 		$snapshot['repository'] = $repository_name;
 
 		return new self( $id, $snapshot );
 	}
 
 	/**
-	 * Get local snapshot
+	 * Get local snapshot meta
 	 *
 	 * @param  string $id Snapshot ID
 	 * @param  string $repository_name Snapshot repository
@@ -126,6 +133,19 @@ class Meta implements ArrayAccess {
 		}
 
 		if ( $repository_name !== $meta['repository'] ) {
+			return false;
+		}
+
+		// Backwards compat since these previously were not set.
+		if ( ! isset( $meta['contains_files'] ) && file_exists( Utils\get_snapshot_directory() . $id . '/files.tar.gz' ) ) {
+			$meta['contains_files'] = true;
+		} if ( ! isset( $meta['contains_db'] ) && file_exists( Utils\get_snapshot_directory() . $id . '/data.sql.gz' ) ) {
+			$meta['contains_db'] = true;
+		}
+
+		if ( empty( $meta['contains_files'] ) && empty( $meta['contains_db'] ) ) {
+			Log::instance()->write( 'Snapshot meta invalid.', 0, 'error' );
+
 			return false;
 		}
 

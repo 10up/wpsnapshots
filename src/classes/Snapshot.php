@@ -566,14 +566,12 @@ class Snapshot {
 			exec( $command );
 		}
 
-		$meta['size'] = 0;
-
 		if ( $args['contains_db'] ) {
-			$meta['size'] += filesize( $snapshot_path . 'data.sql.gz' );
+			$meta['db_size'] = filesize( $snapshot_path . 'data.sql.gz' );
 		}
 
 		if ( $args['contains_files'] ) {
-			$meta['size'] += filesize( $snapshot_path . 'files.tar.gz' );
+			$meta['files_size'] = filesize( $snapshot_path . 'files.tar.gz' );
 		}
 
 		/**
@@ -649,9 +647,21 @@ class Snapshot {
 			$meta['repository'] = $repository_name;
 		}
 
+		$formatted_size = '';
+
+		if ( empty( $meta['files_size'] ) && empty( $meta['db_size'] ) ) {
+			if ( $meta['contains_files'] && $meta['contains_db'] ) {
+				$formatted_size = ' (' . Utils\format_bytes( $meta['size'] ) . ')';
+			}
+		} else {
+			$size = (int) $meta['files_size'] + (int) $meta['db_size'];
+
+			$formatted_size = ' (' . Utils\format_bytes( $size ) . ')';
+		}
+
 		$snapshot = new self( $id, $repository_name, $meta, true );
 
-		Log::instance()->write( 'Downloading snapshot files and database (' . Utils\format_bytes( $meta['size'] ) . ')...' );
+		Log::instance()->write( 'Downloading snapshot' . $formatted_size . '...' );
 
 		$download = $repository->getS3()->downloadSnapshot( $snapshot );
 
@@ -698,7 +708,7 @@ class Snapshot {
 		/**
 		 * Put files to S3
 		 */
-		Log::instance()->write( 'Uploading files (' . Utils\format_bytes( $this->meta['size'] ) . ')...' );
+		Log::instance()->write( 'Uploading files (' . Utils\format_bytes( ( (int) $this->meta['files_size'] + (int) $this->meta['db_size'] ) ) . ')...' );
 
 		$s3_add = $repository->getS3()->putSnapshot( $this );
 

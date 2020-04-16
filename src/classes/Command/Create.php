@@ -140,7 +140,9 @@ class Create extends Command {
 				'repository'     => $repository->getName(),
 				'contains_db'    => $include_db,
 				'contains_files' => $include_files,
-			], $output, $input->getOption( 'verbose' )
+			],
+			$output,
+			$input->getOption( 'verbose' )
 		);
 
 		if ( is_a( $snapshot, '\WPSnapshots\Snapshot' ) ) {

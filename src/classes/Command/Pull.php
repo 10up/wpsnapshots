@@ -130,13 +130,6 @@ class Pull extends Command {
 			}
 		}
 
-		// Backwards compat since these previously were not set.
-		if ( ! isset( $meta['contains_files'] ) ) {
-			$meta['contains_files'] = true;
-		} if ( ! isset( $meta['contains_db'] ) ) {
-			$meta['contains_db'] = true;
-		}
-
 		if ( empty( $meta ) || ( empty( $meta['contains_files'] ) && empty( $meta['contains_db'] ) ) ) {
 			Log::instance()->write( 'Snapshot is not valid.', 0, 'error' );
 

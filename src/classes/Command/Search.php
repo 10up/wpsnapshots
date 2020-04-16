@@ -83,6 +83,25 @@ class Search extends Command {
 				$contains_db = $instance['contains_db'] ? 'Yes' : 'No';
 			}
 
+			$size = '-';
+
+			if ( empty( $instance['files_size'] ) && empty( $instance['db_size'] ) ) {
+				// This is for backwards compat with old snapshots
+				if ( ! empty( $instance['size'] ) ) {
+					$size = Utils\format_bytes( (int) $instance['size'] );
+				}
+			} else {
+				$size = 0;
+
+				if ( ! empty( $instance['files_size'] ) ) {
+					$size += (int) $instance['files_size'];
+				} if ( ! empty( $instance['db_size'] ) ) {
+					$size += (int) $instance['db_size'];
+				}
+
+				$size = Utils\format_bytes( $size );
+			}
+
 			$rows[ $instance['time'] ] = [
 				'id'             => ( ! empty( $instance['id'] ) ) ? $instance['id'] : '',
 				'project'        => ( ! empty( $instance['project'] ) ) ? $instance['project'] : '',
@@ -90,7 +109,7 @@ class Search extends Command {
 				'contains_db'    => $contains_db,
 				'description'    => ( ! empty( $instance['description'] ) ) ? $instance['description'] : '',
 				'author'         => ( ! empty( $instance['author']['name'] ) ) ? $instance['author']['name'] : '',
-				'size'           => ( ! empty( $instance['size'] ) ) ? Utils\format_bytes( (int) $instance['size'] ) : '',
+				'size'           => $size,
 				'multisite'      => ( ! empty( $instance['multisite'] ) ) ? 'Yes' : 'No',
 				'created'        => ( ! empty( $instance['time'] ) ) ? date( 'F j, Y, g:i a', $instance['time'] ) : '',
 			];

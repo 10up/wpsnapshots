@@ -60,27 +60,40 @@ class Download extends Command {
 			$path = getcwd();
 		}
 
-		$helper = $this->getHelper( 'question' );
+		$remote_meta = Meta::getRemote( $id, $repository->getName() );
 
-		if ( empty( $input->getOption( 'include_files' ) ) ) {
-			$files_question = new ConfirmationQuestion( 'Include files in snapshot? (yes|no) ', true );
+		if ( empty( $remote_meta ) ) {
+			Log::instance()->write( 'Snapshot does not exist.', 0, 'error' );
 
-			$include_files = $helper->ask( $input, $output, $files_question );
-		} else {
-			$include_files = true;
+			return 1;
 		}
 
-		if ( empty( $input->getOption( 'include_db' ) ) ) {
-			$db_question = new ConfirmationQuestion( 'Include database in snapshot? (yes|no) ', true );
+		$helper = $this->getHelper( 'question' );
 
-			$include_db = $helper->ask( $input, $output, $db_question );
+		if ( ! empty( $remote_meta['contains_files'] ) && ! empty( $remote_meta['contains_db'] ) ) {
+			if ( empty( $input->getOption( 'include_files' ) ) ) {
+				$files_question = new ConfirmationQuestion( 'Include files in snapshot? (yes|no) ', true );
+
+				$include_files = $helper->ask( $input, $output, $files_question );
+			} else {
+				$include_files = true;
+			}
+
+			if ( empty( $input->getOption( 'include_db' ) ) ) {
+				$db_question = new ConfirmationQuestion( 'Include database in snapshot? (yes|no) ', true );
+
+				$include_db = $helper->ask( $input, $output, $db_question );
+			} else {
+				$include_db = true;
+			}
 		} else {
-			$include_db = true;
+			$include_db    = true;
+			$include_files = true;
 		}
 
 		$local_meta = Meta::getLocal( $id, $repository->getName() );
 
-		if ( ! empty( $local_meta ) ) {
+		if ( ! empty( $local_meta ) && $local_meta['contains_files'] === $include_files && $local_meta['contains_db'] === $include_db ) {
 			$overwrite_snapshot = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot exists locally. Do you want to overwrite it? (yes|no) ', true ) );
 
 			if ( empty( $overwrite_snapshot ) ) {
