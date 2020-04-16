@@ -73,17 +73,17 @@ WP Snapshots revolves around pushing, pulling, and searching for snapshots. WP S
 
 Documentation for each operation is as follows:
 
-* __wpsnapshots push [\<snapshot-id\>] [--exclude_uploads] [--exclude] [--no_scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose] [--small]__
+* __wpsnapshots push [\<snapshot-id\>] [--exclude_uploads] [--exclude] [--scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose] [--small] [--slug] [--description] [--include_files] [--include_db]
 
   This command pushes a snapshot of a WordPress install to the repository. The command will return a snapshot ID once it's finished that you could pass to a team member. When pushing a snapshot, you can include files and/or the database.
 
-  By default all passwords are converted to `password` and emails to `user@example.com`. The `--no_scrub` option will disable scrubbing.
+  WP Snapshots scrubs all user information by default including names, emails, and passwords.
 
   Pushing a snapshot will not replace older snapshots with the same name. There's been discussion on this. It seems easier and safer not to delete old snapshots (otherwise we have to deal with permissions).
 
   `--small` will take 250 posts from each post type along with the associated terms and post meta and delete the rest of the data. This will modify your local database so be careful.
 
-* __wpsnapshots pull \<snapshot-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose]__
+* __wpsnapshots pull \<snapshot-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose] [--include_files] [--include_db]__
 
   This command pulls an existing snapshot from the repository into your current WordPress install replacing your database and/or `wp-content` directory entirely. If a WordPress install does not exist, it will prompt you to create it. The command will interactively prompt you to map URLs to be search and replaced. If the snapshot is a multisite, you will have to map URLs interactively for each blog in the network. This command will also (optionally) match your current version of WordPress with the snapshots.
 
