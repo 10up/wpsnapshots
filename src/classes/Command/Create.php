@@ -35,13 +35,14 @@ class Create extends Command {
 		$this->addOption( 'exclude', false, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Exclude a file or directory from the snapshot.' );
 		$this->addOption( 'exclude_uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
 		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
-		$this->addOption( 'no_scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data." );
 		$this->addOption( 'small', false, InputOption::VALUE_NONE, 'Trim data and files to create a small snapshot. Note that this action will modify your local.' );
 		$this->addOption( 'include_files', null, InputOption::VALUE_NONE, 'Include files in snapshot.' );
 		$this->addOption( 'include_db', null, InputOption::VALUE_NONE, 'Include database in snapshot.' );
 
 		$this->addOption( 'slug', null, InputOption::VALUE_REQUIRED, 'Project slug for snapshot.' );
 		$this->addOption( 'description', null, InputOption::VALUE_OPTIONAL, 'Description of snapshot.' );
+		$this->addOption( 'no_scrub', false, InputOption::VALUE_NONE, "Don't scrub personal user data. This is a legacy option and equivalent to --scrub=0" );
+		$this->addOption( 'scrub', false, InputOption::VALUE_REQUIRED, 'Scrubbing to do on data. 2 is the most aggressive and replaces all user information with dummy data; 1 only replaces passwords; 0 is no scrubbing. Defaults to 2.', 2 );
 
 		$this->addOption( 'path', null, InputOption::VALUE_REQUIRED, 'Path to WordPress files.' );
 		$this->addOption( 'db_host', null, InputOption::VALUE_REQUIRED, 'Database host.' );
@@ -125,6 +126,12 @@ class Create extends Command {
 			return 1;
 		}
 
+		$scrub = $input->getOption( 'scrub' );
+
+		if ( $input->getOption( 'no_scrub' ) ) {
+			$scrub = 0;
+		}
+
 		$snapshot = Snapshot::create(
 			[
 				'db_host'        => $input->getOption( 'db_host' ),
@@ -134,7 +141,7 @@ class Create extends Command {
 				'project'        => $project,
 				'path'           => $path,
 				'description'    => $description,
-				'no_scrub'       => $input->getOption( 'no_scrub' ),
+				'scrub'          => (int) $scrub,
 				'small'          => $input->getOption( 'small' ),
 				'exclude'        => $exclude,
 				'repository'     => $repository->getName(),

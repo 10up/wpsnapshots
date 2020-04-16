@@ -407,8 +407,12 @@ class Snapshot {
 			$tables = Utils\get_tables();
 
 			foreach ( $tables as $table ) {
-				// We separate the users table for scrubbing
-				if ( ! $args['no_scrub'] && $GLOBALS['table_prefix'] . 'users' === $table ) {
+				// We separate the users/meta table for scrubbing
+				if ( 0 < $args['scrub'] && $GLOBALS['table_prefix'] . 'users' === $table ) {
+					continue;
+				}
+
+				if ( 2 === $args['scrub'] && $GLOBALS['table_prefix'] . 'usermeta' === $table ) {
 					continue;
 				}
 

@@ -622,3 +622,32 @@ function check_proc_available() {
 
 	return true;
 }
+
+/**
+ * Get array of dummy user data to use for scrubbing
+ *
+ * @return array
+ */
+function get_dummy_users() {
+	static $users = [];
+
+	if ( empty( $users ) ) {
+		$file = fopen( __DIR__ . '/data/users.csv', 'r' );
+
+		while ( false !== ( $line = fgetcsv( $file ) ) ) {
+
+			$user = [
+				'username'   => $line[0],
+				'first_name' => $line[1],
+				'last_name'  => $line[2],
+				'email'      => $line[3],
+			];
+
+			$users[] = $user;
+		}
+
+		fclose( $file );
+	}
+
+	return $users;
+}
