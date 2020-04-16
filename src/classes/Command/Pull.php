@@ -21,6 +21,7 @@ use WPSnapshots\Config;
 use WPSnapshots\Utils;
 use WPSnapshots\SearchReplace;
 use WPSnapshots\Snapshot;
+use WPSnapshots\Meta;
 use WPSnapshots\Log;
 use Requests;
 
@@ -43,6 +44,8 @@ class Pull extends Command {
 		$this->addOption( 'confirm_config_create', null, InputOption::VALUE_NONE, 'Confirm wp-config.php create.' );
 		$this->addOption( 'confirm_wp_version_change', null, InputOption::VALUE_NONE, 'Confirm changing WP version to match snapshot.' );
 		$this->addOption( 'confirm_ms_constant_update', null, InputOption::VALUE_NONE, 'Confirm updating constants in wp-config.php for multisite.' );
+		$this->addOption( 'include_files', null, InputOption::VALUE_NONE, 'Pull files within snapshot.' );
+		$this->addOption( 'include_db', null, InputOption::VALUE_NONE, 'Pull database within snapshot.' );
 
 		$this->addOption( 'config_db_host', null, InputOption::VALUE_REQUIRED, 'Config database host.' );
 		$this->addOption( 'config_db_name', null, InputOption::VALUE_REQUIRED, 'Config database name.' );
@@ -94,6 +97,45 @@ class Pull extends Command {
 
 		$id = $input->getArgument( 'snapshot_id' );
 
+		$helper = $this->getHelper( 'question' );
+
+		$remote_meta     = Meta::getRemote( $id, $repository->getName() );
+		$local_meta      = Meta::getLocal( $id, $repository->getName() );
+		$snapshot_source = null;
+		$meta            = null;
+
+		if ( empty( $remote_meta ) && empty( $local_meta ) ) {
+			Log::instance()->write( 'Snapshot does not exist.', 0, 'error' );
+
+			return 1;
+		}
+
+		if ( ! empty( $remote_meta ) && ! empty( $local_meta ) ) {
+			$overwrite_local = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot exists locally. Do you want to overwrite it with the remote copy? (no|yes) ', false ) );
+		}
+
+		if ( empty( $local_meta ) && ! empty( $remote_meta ) ) {
+			$meta            = $remote_meta;
+			$snapshot_source = 'remote';
+		} elseif ( ! empty( $local_meta ) && empty( $remote_meta ) ) {
+			$meta            = $local_meta;
+			$snapshot_source = 'local';
+		} elseif ( ! empty( $local_meta ) && ! empty( $remote_meta ) ) {
+			if ( $overwrite_local ) {
+				$meta            = $remote_meta;
+				$snapshot_source = 'remote';
+			} else {
+				$meta            = $local_meta;
+				$snapshot_source = 'local';
+			}
+		}
+
+		if ( empty( $meta ) || ( empty( $meta['contains_files'] ) && empty( $meta['contains_db'] ) ) ) {
+			Log::instance()->write( 'Snapshot is not valid.', 0, 'error' );
+
+			return 1;
+		}
+
 		$path = $input->getOption( 'path' );
 
 		if ( empty( $path ) ) {
@@ -102,19 +144,46 @@ class Pull extends Command {
 
 		$path = Utils\normalize_path( $path );
 
-		$snapshot_path = Utils\get_snapshot_directory() . $id . '/';
+		if ( $meta['contains_files'] && $meta['contains_db'] ) {
+			if ( $meta['contains_files'] ) {
+				if ( empty( $input->getOption( 'include_files' ) ) ) {
+					$pull_files = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to pull files? (yes|no) ', true ) );
+				} else {
+					$pull_files = true;
+				}
+			} else {
+				$pull_files = false;
+			}
 
-		$snapshot = Snapshot::download( $id, $repository->getName() );
+			if ( $meta['contains_db'] ) {
+				if ( empty( $input->getOption( 'include_db' ) ) ) {
+					$pull_db = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to pull the database? (yes|no) ', true ) );
+				} else {
+					$pull_db = true;
+				}
+			} else {
+				$pull_db = false;
+			}
+		} else {
+			$pull_db    = $meta['contains_db'];
+			$pull_files = $meta['contains_files'];
+		}
+
+		if ( 'remote' === $snapshot_source ) {
+			$snapshot = Snapshot::getRemote( $id, $repository->getName(), ! $pull_files, ! $pull_db );
+		} else {
+			$snapshot = Snapshot::getLocal( $id, $repository->getName(), ! $pull_files, ! $pull_db );
+		}
 
 		if ( ! is_a( $snapshot, '\WPSnapshots\Snapshot' ) ) {
 			return 1;
 		}
 
+		$snapshot_path = Utils\get_snapshot_directory() . $id . '/';
+
 		$verbose = $input->getOption( 'verbose' );
 
 		$verbose_pipe = ( ! $verbose ) ? '> /dev/null' : '';
-
-		$helper = $this->getHelper( 'question' );
 
 		if ( ! Utils\is_wp_present( $path ) ) {
 			Log::instance()->write( 'This is not a WordPress install. WordPress needs to be present in order to pull a snapshot.', 0, 'error' );
@@ -257,19 +326,6 @@ class Pull extends Command {
 			return 1;
 		}
 
-		$pre_update_site_url = site_url();
-		$pre_update_home_url = home_url();
-
-		$use_https = false;
-
-		if ( ! empty( $pre_update_site_url ) ) {
-			$pre_update_site_url_parsed = parse_url( $pre_update_site_url );
-
-			if ( 'https' === $pre_update_site_url_parsed['scheme'] ) {
-				$use_https = true;
-			}
-		}
-
 		/**
 		 * We make the user double confirm since this could destroy a website
 		 */
@@ -284,445 +340,509 @@ class Pull extends Command {
 			}
 		}
 
-		Log::instance()->write( 'Decompressing database backup file...' );
+		if ( $pull_db ) {
+			$pre_update_site_url = site_url();
+			$pre_update_home_url = home_url();
 
-		exec( 'cd ' . Utils\escape_shell_path( $snapshot_path ) . ' && gzip -d -k -f data.sql.gz ' . $verbose_pipe );
+			$use_https = false;
 
-		Log::instance()->write( 'Replacing wp-content/...' );
+			if ( ! empty( $pre_update_site_url ) ) {
+				$pre_update_site_url_parsed = parse_url( $pre_update_site_url );
 
-		Log::instance()->write( 'wp-content path set to ' . WP_CONTENT_DIR, 1 );
-
-		Log::instance()->write( 'Removing old wp-content/...', 1 );
-		exec( 'rm -rf ' . Utils\escape_shell_path( WP_CONTENT_DIR ) . '/..?* ' . Utils\escape_shell_path( WP_CONTENT_DIR ) . '/.[!.]* ' . Utils\escape_shell_path( WP_CONTENT_DIR ) . '/*' );
-
-		Log::instance()->write( 'Extracting snapshot wp-content/...', 1 );
-
-		exec( 'mkdir -p ' . Utils\escape_shell_path( WP_CONTENT_DIR ) );
-
-		exec( 'tar -C ' . Utils\escape_shell_path( WP_CONTENT_DIR ) . ' -xf ' . Utils\escape_shell_path( $snapshot_path ) . 'files.tar.gz ' . $verbose_pipe );
-
-		/**
-		 * Import tables
-		 */
-
-		$args = array(
-			'host'     => DB_HOST,
-			'user'     => DB_USER,
-			'pass'     => DB_PASSWORD,
-			'database' => DB_NAME,
-			'execute'  => 'SET GLOBAL max_allowed_packet=51200000;',
-		);
-
-		Log::instance()->write( 'Attempting to set max_allowed_packet...', 1 );
-
-		$command_result = Utils\run_mysql_command( 'mysql --no-defaults --no-auto-rehash', $args, '', false );
-
-		if ( 0 !== $command_result ) {
-			Log::instance()->write( 'Could not set MySQL max_allowed_packet. If MySQL import fails, try running WP Snapshots using root DB user.', 0, 'warning' );
-		}
-
-		Log::instance()->write( 'Updating database. This may take awhile depending on the size of the database (' . Utils\format_bytes( filesize( $snapshot_path . 'data.sql' ) ) . ')...' );
-		$query = 'SET autocommit = 0; SET unique_checks = 0; SET foreign_key_checks = 0; SOURCE %s; COMMIT;';
-
-		$args = array(
-			'host'     => DB_HOST,
-			'user'     => DB_USER,
-			'pass'     => DB_PASSWORD,
-			'database' => DB_NAME,
-			'execute'  => sprintf( $query, $snapshot_path . 'data.sql' ),
-		);
-
-		if ( ! isset( $assoc_args['default-character-set'] ) && defined( 'DB_CHARSET' ) && constant( 'DB_CHARSET' ) ) {
-			$args['default-character-set'] = constant( 'DB_CHARSET' );
-		}
-
-		Utils\run_mysql_command( 'mysql --no-defaults --no-auto-rehash', $args );
-
-		/**
-		 * Customize DB for current install
-		 */
-
-		Log::instance()->write( 'Getting MySQL tables...', 1 );
-
-		$all_tables = Utils\get_tables( false );
-
-		global $wpdb;
-
-		$main_blog_id = ( defined( 'BLOG_ID_CURRENT_SITE' ) ) ? BLOG_ID_CURRENT_SITE : null;
-
-		$current_table_prefix = $wpdb->get_blog_prefix( $main_blog_id );
-
-		/**
-		 * First update table prefixes
-		 */
-		if ( ! empty( $snapshot->meta['table_prefix'] ) && ! empty( $current_table_prefix ) && $snapshot->meta['table_prefix'] !== $current_table_prefix ) {
-			Log::instance()->write( 'Renaming WordPress tables...' );
-
-			foreach ( $all_tables as $table ) {
-				if ( 0 === strpos( $table, $snapshot->meta['table_prefix'] ) ) {
-					/**
-					 * Update this table to use the current config prefix
-					 */
-					$new_table = $current_table_prefix . str_replace( $snapshot->meta['table_prefix'], '', $table );
-					$wpdb->query( sprintf( 'RENAME TABLE `%s` TO `%s`', esc_sql( $table ), esc_sql( $new_table ) ) );
+				if ( 'https' === $pre_update_site_url_parsed['scheme'] ) {
+					$use_https = true;
 				}
 			}
-		}
 
-		global $wp_version;
+			Log::instance()->write( 'Pulling database...' );
 
-		if ( ! empty( $snapshot->meta['wp_version'] ) && $snapshot->meta['wp_version'] !== $wp_version ) {
-			$confirm_wp_version_change = $input->getOption( 'confirm_wp_version_change' );
+			Log::instance()->write( 'Decompressing database backup file...' );
 
-			$change_wp_version = true;
+			exec( 'cd ' . Utils\escape_shell_path( $snapshot_path ) . ' && gzip -d -k -f data.sql.gz ' . $verbose_pipe );
 
-			if ( empty( $confirm_wp_version_change ) ) {
-				$change_wp_version = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot is running WordPress version ' . $snapshot->meta['wp_version'] . ', and you are running ' . $wp_version . '. Do you want to change your WordPress version to ' . $snapshot->meta['wp_version'] . '? (yes|no) ', true ) );
+			/**
+			 * Import tables
+			 */
+
+			$args = array(
+				'host'     => DB_HOST,
+				'user'     => DB_USER,
+				'pass'     => DB_PASSWORD,
+				'database' => DB_NAME,
+				'execute'  => 'SET GLOBAL max_allowed_packet=51200000;',
+			);
+
+			Log::instance()->write( 'Attempting to set max_allowed_packet...', 1 );
+
+			$command_result = Utils\run_mysql_command( 'mysql --no-defaults --no-auto-rehash', $args, '', false );
+
+			if ( 0 !== $command_result ) {
+				Log::instance()->write( 'Could not set MySQL max_allowed_packet. If MySQL import fails, try running WP Snapshots using root DB user.', 0, 'warning' );
 			}
 
-			if ( ! empty( $change_wp_version ) ) {
-				// Delete old WordPress
-				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wp-includes ' . Utils\escape_shell_path( $path ) . 'wp-admin' );
-				exec( 'cd ' . Utils\escape_shell_path( $path ) . ' && rm index.php && rm xmlrpc.php && rm license.txt && rm readme.html' );
-				exec( 'cd ' . Utils\escape_shell_path( $path ) . ' && find . -maxdepth 1 ! -path . -type f -name "wp-*.php" ! -iname "wp-config.php" -delete' );
-				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress' );
+			Log::instance()->write( 'Updating database. This may take awhile depending on the size of the database (' . Utils\format_bytes( filesize( $snapshot_path . 'data.sql' ) ) . ')...' );
+			$query = 'SET autocommit = 0; SET unique_checks = 0; SET foreign_key_checks = 0; SOURCE %s; COMMIT;';
 
-				Log::instance()->write( 'Getting WordPress download URL...', 1 );
+			$args = array(
+				'host'     => DB_HOST,
+				'user'     => DB_USER,
+				'pass'     => DB_PASSWORD,
+				'database' => DB_NAME,
+				'execute'  => sprintf( $query, $snapshot_path . 'data.sql' ),
+			);
 
-				$download_url = Utils\get_download_url( $snapshot->meta['wp_version'] );
-
-				$headers = [ 'Accept' => 'application/json' ];
-				$options = [
-					'timeout'  => 600,
-					'filename' => $snapshot_path . 'wp.tar.gz',
-				];
-
-				Log::instance()->write( 'Downloading WordPress ' . $snapshot->meta['wp_version'] . '...', 1 );
-
-				$request = Requests::get( $download_url, $headers, $options );
-
-				Log::instance()->write( 'Extracting WordPress...', 1 );
-
-				exec( 'tar -C ' . Utils\escape_shell_path( $path ) . ' -xf ' . Utils\escape_shell_path( $snapshot_path ) . 'wp.tar.gz ' . $verbose_pipe );
-
-				Log::instance()->write( 'Moving WordPress files...', 1 );
-
-				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress/wp-content && mv ' . Utils\escape_shell_path( $path ) . 'wordpress/* .' );
-
-				Log::instance()->write( 'Removing temporary WordPress files...', 1 );
-
-				exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress' );
-
-				Log::instance()->write( 'WordPress version changed.' );
+			if ( ! isset( $assoc_args['default-character-set'] ) && defined( 'DB_CHARSET' ) && constant( 'DB_CHARSET' ) ) {
+				$args['default-character-set'] = constant( 'DB_CHARSET' );
 			}
-		}
 
-		/**
-		 * Get tables again since it could have changed
-		 */
-		$wp_tables = Utils\get_tables();
+			Utils\run_mysql_command( 'mysql --no-defaults --no-auto-rehash', $args );
 
-		/**
-		 * Handle url replacements
-		 */
-		if ( ! empty( $snapshot->meta['sites'] ) ) {
-			Log::instance()->write( 'Preparing to replace URLs...' );
+			/**
+			 * Customize DB for current install
+			 */
 
-			$site_mapping     = [];
-			$site_mapping_raw = $input->getOption( 'site_mapping' );
+			Log::instance()->write( 'Getting MySQL tables...', 1 );
 
-			if ( ! empty( $site_mapping_raw ) ) {
-				$site_mapping_raw = json_decode( $site_mapping_raw, true );
+			$all_tables = Utils\get_tables( false );
 
-				foreach ( $site_mapping_raw as $site ) {
-					if ( ! empty( $site['blog_id'] ) ) {
-						$site_mapping[ (int) $site['blog_id'] ] = $site;
+			global $wpdb;
+
+			$main_blog_id = ( defined( 'BLOG_ID_CURRENT_SITE' ) ) ? BLOG_ID_CURRENT_SITE : null;
+
+			$current_table_prefix = $wpdb->get_blog_prefix( $main_blog_id );
+
+			/**
+			 * First update table prefixes
+			 */
+			if ( ! empty( $snapshot->meta['table_prefix'] ) && ! empty( $current_table_prefix ) && $snapshot->meta['table_prefix'] !== $current_table_prefix ) {
+				Log::instance()->write( 'Renaming WordPress tables...' );
+
+				foreach ( $all_tables as $table ) {
+					if ( 0 === strpos( $table, $snapshot->meta['table_prefix'] ) ) {
+						/**
+						 * Update this table to use the current config prefix
+						 */
+						$new_table = $current_table_prefix . str_replace( $snapshot->meta['table_prefix'], '', $table );
+						$wpdb->query( sprintf( 'RENAME TABLE `%s` TO `%s`', esc_sql( $table ), esc_sql( $new_table ) ) );
+					}
+				}
+			}
+
+			global $wp_version;
+
+			if ( ! empty( $snapshot->meta['wp_version'] ) && $snapshot->meta['wp_version'] !== $wp_version ) {
+				$confirm_wp_version_change = $input->getOption( 'confirm_wp_version_change' );
+
+				$change_wp_version = true;
+
+				if ( empty( $confirm_wp_version_change ) ) {
+					$change_wp_version = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot is running WordPress version ' . $snapshot->meta['wp_version'] . ', and you are running ' . $wp_version . '. Do you want to change your WordPress version to ' . $snapshot->meta['wp_version'] . '? (yes|no) ', true ) );
+				}
+
+				if ( ! empty( $change_wp_version ) ) {
+					// Delete old WordPress
+					exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wp-includes ' . Utils\escape_shell_path( $path ) . 'wp-admin' );
+					exec( 'cd ' . Utils\escape_shell_path( $path ) . ' && rm index.php && rm xmlrpc.php && rm license.txt && rm readme.html' );
+					exec( 'cd ' . Utils\escape_shell_path( $path ) . ' && find . -maxdepth 1 ! -path . -type f -name "wp-*.php" ! -iname "wp-config.php" -delete' );
+					exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress' );
+
+					Log::instance()->write( 'Getting WordPress download URL...', 1 );
+
+					$download_url = Utils\get_download_url( $snapshot->meta['wp_version'] );
+
+					$headers = [ 'Accept' => 'application/json' ];
+					$options = [
+						'timeout'  => 600,
+						'filename' => $snapshot_path . 'wp.tar.gz',
+					];
+
+					Log::instance()->write( 'Downloading WordPress ' . $snapshot->meta['wp_version'] . '...', 1 );
+
+					$request = Requests::get( $download_url, $headers, $options );
+
+					Log::instance()->write( 'Extracting WordPress...', 1 );
+
+					exec( 'tar -C ' . Utils\escape_shell_path( $path ) . ' -xf ' . Utils\escape_shell_path( $snapshot_path ) . 'wp.tar.gz ' . $verbose_pipe );
+
+					Log::instance()->write( 'Moving WordPress files...', 1 );
+
+					exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress/wp-content && mv ' . Utils\escape_shell_path( $path ) . 'wordpress/* .' );
+
+					Log::instance()->write( 'Removing temporary WordPress files...', 1 );
+
+					exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress' );
+
+					Log::instance()->write( 'WordPress version changed.' );
+				}
+			}
+
+			/**
+			 * Get tables again since it could have changed
+			 */
+			$wp_tables = Utils\get_tables();
+
+			/**
+			 * Handle url replacements
+			 */
+			if ( ! empty( $snapshot->meta['sites'] ) ) {
+				Log::instance()->write( 'Preparing to replace URLs...' );
+
+				$site_mapping     = [];
+				$site_mapping_raw = $input->getOption( 'site_mapping' );
+
+				if ( ! empty( $site_mapping_raw ) ) {
+					$site_mapping_raw = json_decode( $site_mapping_raw, true );
+
+					foreach ( $site_mapping_raw as $site ) {
+						if ( ! empty( $site['blog_id'] ) ) {
+							$site_mapping[ (int) $site['blog_id'] ] = $site;
+						} else {
+							$site_mapping[] = $site;
+						}
+					}
+
+					if ( empty( $snapshot->meta['multisite'] ) ) {
+						$site_mapping = array_values( $site_mapping );
+					}
+				}
+
+				$url_validator = function( $answer ) {
+					if ( '' === trim( $answer ) || false !== strpos( $answer, ' ' ) || ! preg_match( '#https?:#i', $answer ) ) {
+						throw new \RuntimeException(
+							'URL is not valid. Should be prefixed with http(s) and contain no spaces.'
+						);
+					}
+
+					return $answer;
+				};
+
+				$skip_table_search_replace = $input->getOption( 'skip_table_search_replace' );
+
+				if ( empty( $skip_table_search_replace ) ) {
+					$skip_table_search_replace = [
+						'terms',
+						'term_relationships',
+						'term_taxonomy',
+					];
+				}
+
+				if ( ! empty( $snapshot->meta['multisite'] ) ) {
+					$used_home_urls = [];
+					$used_site_urls = [];
+
+					$skip_table_search_replace = array_merge( [ 'site', 'blogs' ], $skip_table_search_replace );
+
+					// Make WP realize we are in multisite now
+					if ( ! defined( 'MULTISITE' ) ) {
+						define( 'MULTISITE', true );
+					}
+
+					if ( empty( $snapshot->meta['subdomain_install'] ) ) {
+						Log::instance()->write( 'Multisite installation (path based install) detected.' );
 					} else {
-						$site_mapping[] = $site;
-					}
-				}
-
-				if ( empty( $snapshot->meta['multisite'] ) ) {
-					$site_mapping = array_values( $site_mapping );
-				}
-			}
-
-			$url_validator = function( $answer ) {
-				if ( '' === trim( $answer ) || false !== strpos( $answer, ' ' ) || ! preg_match( '#https?:#i', $answer ) ) {
-					throw new \RuntimeException(
-						'URL is not valid. Should be prefixed with http(s) and contain no spaces.'
-					);
-				}
-
-				return $answer;
-			};
-
-			$skip_table_search_replace = $input->getOption( 'skip_table_search_replace' );
-
-			if ( empty( $skip_table_search_replace ) ) {
-				$skip_table_search_replace = [
-					'terms',
-					'term_relationships',
-					'term_taxonomy',
-				];
-			}
-
-			if ( ! empty( $snapshot->meta['multisite'] ) ) {
-				$used_home_urls = [];
-				$used_site_urls = [];
-
-				$skip_table_search_replace = array_merge( [ 'site', 'blogs' ], $skip_table_search_replace );
-
-				// Make WP realize we are in multisite now
-				if ( ! defined( 'MULTISITE' ) ) {
-					define( 'MULTISITE', true );
-				}
-
-				if ( empty( $snapshot->meta['subdomain_install'] ) ) {
-					Log::instance()->write( 'Multisite installation (path based install) detected.' );
-				} else {
-					Log::instance()->write( 'Multisite installation (subdomain based install) detected.' );
-				}
-
-				$i = 0;
-
-				/**
-				 * First handle multisite intricacies. We need to set domains and paths for each blog. We'll copy
-				 * whatever the current path is. However, the user needs to set the domain for every blog. For
-				 * path based installed we just use the first domain.
-				 */
-
-				$main_domain = $input->getOption( 'main_domain' );
-
-				$snapshot_main_domain = ( ! empty( $snapshot->meta['domain_current_site'] ) ) ? $snapshot->meta['domain_current_site'] : '';
-
-				if ( ! empty( $snapshot_main_domain ) ) {
-					$main_domain_question = new Question( 'Main domain (defaults to main domain in the snapshot: ' . $snapshot_main_domain . '): ', $snapshot_main_domain );
-				} else {
-					$example_site = 'mysite.test';
-
-					if ( ! empty( $snapshot->meta['sites'][0]['home_url'] ) ) {
-						$example_site = parse_url( $snapshot->meta['sites'][0]['home_url'], PHP_URL_HOST );
+						Log::instance()->write( 'Multisite installation (subdomain based install) detected.' );
 					}
 
-					$main_domain_question = new Question( 'Main domain (' . $example_site . ' for example): ' );
-				}
+					$i = 0;
 
-				$main_domain_question->setValidator(
-					function( $answer ) {
-						if ( '' === trim( $answer ) || false !== strpos( $answer, ' ' ) || preg_match( '#https?:#i', $answer ) ) {
-							throw new \RuntimeException(
-								'Domain not valid. The domain should be in the form of `google.com`, no https:// needed'
-							);
+					/**
+					 * First handle multisite intricacies. We need to set domains and paths for each blog. We'll copy
+					 * whatever the current path is. However, the user needs to set the domain for every blog. For
+					 * path based installed we just use the first domain.
+					 */
+
+					$main_domain = $input->getOption( 'main_domain' );
+
+					$snapshot_main_domain = ( ! empty( $snapshot->meta['domain_current_site'] ) ) ? $snapshot->meta['domain_current_site'] : '';
+
+					if ( ! empty( $snapshot_main_domain ) ) {
+						$main_domain_question = new Question( 'Main domain (defaults to main domain in the snapshot: ' . $snapshot_main_domain . '): ', $snapshot_main_domain );
+					} else {
+						$example_site = 'mysite.test';
+
+						if ( ! empty( $snapshot->meta['sites'][0]['home_url'] ) ) {
+							$example_site = parse_url( $snapshot->meta['sites'][0]['home_url'], PHP_URL_HOST );
 						}
 
-							return $answer;
+						$main_domain_question = new Question( 'Main domain (' . $example_site . ' for example): ' );
 					}
-				);
 
-				if ( empty( $main_domain ) ) {
-					$main_domain = $helper->ask( $input, $output, $main_domain_question );
-				}
+					$main_domain_question->setValidator(
+						function( $answer ) {
+							if ( '' === trim( $answer ) || false !== strpos( $answer, ' ' ) || preg_match( '#https?:#i', $answer ) ) {
+								throw new \RuntimeException(
+									'Domain not valid. The domain should be in the form of `google.com`, no https:// needed'
+								);
+							}
 
-				foreach ( $snapshot->meta['sites'] as $site ) {
+								return $answer;
+						}
+					);
 
-					Log::instance()->write( 'Replacing URLs for blog ' . $site['blog_id'] . '.' );
+					if ( empty( $main_domain ) ) {
+						$main_domain = $helper->ask( $input, $output, $main_domain_question );
+					}
 
-					if ( ! empty( $site_mapping[ (int) $site['blog_id'] ] ) ) {
-						$new_home_url = $site_mapping[ (int) $site['blog_id'] ]['home_url'];
-						$new_site_url = $site_mapping[ (int) $site['blog_id'] ]['site_url'];
-					} else {
-						$home_question = new Question( 'Home URL (defaults home URL in snapshot: ' . $site['home_url'] . '): ', $site['home_url'] );
-						$home_question->setValidator( $url_validator );
+					foreach ( $snapshot->meta['sites'] as $site ) {
 
-						$new_home_url = $helper->ask( $input, $output, $home_question );
+						Log::instance()->write( 'Replacing URLs for blog ' . $site['blog_id'] . '.' );
 
-						while ( in_array( $new_home_url, $used_home_urls, true ) ) {
-							Log::instance()->write( 'Sorry, that home URL is already taken by another site.', 0, 'error' );
-
-							$home_question = new Question( 'Home URL (defaults to home URL in snapshot: ' . $site['home_url'] . '): ', $site['home_url'] );
+						if ( ! empty( $site_mapping[ (int) $site['blog_id'] ] ) ) {
+							$new_home_url = $site_mapping[ (int) $site['blog_id'] ]['home_url'];
+							$new_site_url = $site_mapping[ (int) $site['blog_id'] ]['site_url'];
+						} else {
+							$home_question = new Question( 'Home URL (defaults home URL in snapshot: ' . $site['home_url'] . '): ', $site['home_url'] );
 							$home_question->setValidator( $url_validator );
 
 							$new_home_url = $helper->ask( $input, $output, $home_question );
-						}
 
-						$site_question = new Question( 'Site URL (defaults to site URL in snapshot: ' . $site['site_url'] . '): ', $site['site_url'] );
-						$site_question->setValidator( $url_validator );
+							while ( in_array( $new_home_url, $used_home_urls, true ) ) {
+								Log::instance()->write( 'Sorry, that home URL is already taken by another site.', 0, 'error' );
 
-						$new_site_url = $helper->ask( $input, $output, $site_question );
+								$home_question = new Question( 'Home URL (defaults to home URL in snapshot: ' . $site['home_url'] . '): ', $site['home_url'] );
+								$home_question->setValidator( $url_validator );
 
-						while ( in_array( $new_site_url, $used_site_urls, true ) ) {
-							Log::instance()->write( 'Sorry, that site URL is already taken by another site.', 0, 'error' );
+								$new_home_url = $helper->ask( $input, $output, $home_question );
+							}
 
 							$site_question = new Question( 'Site URL (defaults to site URL in snapshot: ' . $site['site_url'] . '): ', $site['site_url'] );
 							$site_question->setValidator( $url_validator );
 
 							$new_site_url = $helper->ask( $input, $output, $site_question );
+
+							while ( in_array( $new_site_url, $used_site_urls, true ) ) {
+								Log::instance()->write( 'Sorry, that site URL is already taken by another site.', 0, 'error' );
+
+								$site_question = new Question( 'Site URL (defaults to site URL in snapshot: ' . $site['site_url'] . '): ', $site['site_url'] );
+								$site_question->setValidator( $url_validator );
+
+								$new_site_url = $helper->ask( $input, $output, $site_question );
+							}
+						}
+
+						if ( empty( $first_home_url ) ) {
+							$first_home_url = $new_home_url;
+						}
+
+						$used_home_urls[] = $new_home_url;
+						$used_site_urls[] = $new_site_url;
+
+						Log::instance()->write( 'Updating blogs table...', 1 );
+
+						$blog_path = trailingslashit( parse_url( $new_home_url, PHP_URL_PATH ) );
+						if ( empty( $blog_path ) ) {
+							$blog_path = '/';
+						}
+
+						$blog_url = parse_url( $new_home_url, PHP_URL_HOST );
+
+						if ( ! empty( parse_url( $new_home_url, PHP_URL_PORT ) ) ) {
+							$blog_url .= ':' . parse_url( $new_home_url, PHP_URL_PORT );
+						}
+
+						/**
+						 * Update multisite stuff for each blog
+						 */
+						$wpdb->query( $wpdb->prepare( 'UPDATE ' . $current_table_prefix . 'blogs SET path=%s, domain=%s WHERE blog_id=%d', $blog_path, $blog_url, (int) $site['blog_id'] ) );
+
+						/**
+						 * Update all tables except wp_site and wp_blog since we handle that separately
+						 */
+						$tables_to_update = [];
+
+						foreach ( $wp_tables as $table ) {
+							if ( 1 === (int) $site['blog_id'] ) {
+								if ( preg_match( '#^' . $current_table_prefix . '#', $table ) && ! preg_match( '#^' . $current_table_prefix . '[0-9]+_#', $table ) ) {
+									if ( ! in_array( str_replace( $current_table_prefix, '', $table ), $skip_table_search_replace ) ) {
+										$tables_to_update[] = $table;
+									}
+								}
+							} else {
+								if ( preg_match( '#^' . $current_table_prefix . $site['blog_id'] . '_#', $table ) ) {
+									$raw_table = str_replace( $current_table_prefix . $site['blog_id'] . '_', '', $table );
+
+									if ( ! in_array( $raw_table, $skip_table_search_replace ) ) {
+										$tables_to_update[] = $table;
+									}
+								}
+							}
+						}
+
+						if ( ! empty( $tables_to_update ) ) {
+							Log::instance()->write( 'Running replacement... This may take awhile depending on the size of the database.' );
+							Log::instance()->write( 'Search and replacing tables: ' . implode( ', ', $tables_to_update ), 1 );
+
+							new SearchReplace( $site['home_url'], $new_home_url, $tables_to_update );
+
+							if ( $site['home_url'] !== $site['site_url'] ) {
+								new SearchReplace( $site['site_url'], $new_site_url, $tables_to_update );
+							}
+						}
+
+						$i++;
+					}
+
+					Log::instance()->write( 'Updating site table...', 1 );
+
+					/**
+					 * Update site domain with main domain
+					 */
+					$wpdb->query( $wpdb->prepare( 'UPDATE ' . $current_table_prefix . 'site SET domain=%s', $main_domain ) );
+
+					Log::instance()->write( 'URLs replaced.' );
+
+					if (
+						! defined( 'BLOG_ID_CURRENT_SITE' )
+						|| ( ! empty( $snapshot->meta['blog_id_current_site'] ) && BLOG_ID_CURRENT_SITE !== (int) $snapshot->meta['blog_id_current_site'] )
+						|| ! defined( 'SITE_ID_CURRENT_SITE' )
+						|| ( ! empty( $snapshot->meta['site_id_current_site'] ) && SITE_ID_CURRENT_SITE !== (int) $snapshot->meta['site_id_current_site'] )
+						|| ! defined( 'PATH_CURRENT_SITE' )
+						|| ( ! empty( $snapshot->meta['path_current_site'] ) && PATH_CURRENT_SITE !== $snapshot->meta['path_current_site'] )
+						|| ! defined( 'MULTISITE' )
+						|| ! MULTISITE
+						|| ! defined( 'DOMAIN_CURRENT_SITE' )
+						|| DOMAIN_CURRENT_SITE !== $main_domain
+						|| ! defined( 'SUBDOMAIN_INSTALL' )
+						|| SUBDOMAIN_INSTALL !== $snapshot->meta['subdomain_install']
+					) {
+						$update_ms_constants = $input->getOption( 'confirm_ms_constant_update' );
+
+						if ( ! $update_ms_constants ) {
+							$update_ms_constants = $helper->ask( $input, $output, new ConfirmationQuestion( 'Constants need to be updated in your wp-config.php file. Want WP Snapshots to do this automatically? (yes|no) ', true ) );
+						}
+
+						if ( ! $update_ms_constants ) {
+
+							Log::instance()->write( 'The following code should be in your wp-config.php file:', 0, 'warning' );
+							Log::instance()->write(
+								"define('WP_ALLOW_MULTISITE', true);
+	define('MULTISITE', true);
+	define('SUBDOMAIN_INSTALL', " . ( ( ! empty( $snapshot->meta['subdomain_install'] ) ) ? 'true' : 'false' ) . ");
+	define('DOMAIN_CURRENT_SITE', '" . $main_domain . "');
+	define('PATH_CURRENT_SITE', '" . ( ( ! empty( $snapshot->meta['path_current_site'] ) ) ? $snapshot->meta['path_current_site'] : '/' ) . "');
+	define('SITE_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['site_id_current_site'] ) ) ? $snapshot->meta['site_id_current_site'] : '1' ) . ");
+	define('BLOG_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['blog_id_current_site'] ) ) ? $snapshot->meta['blog_id_current_site'] : '1' ) . ');',
+								0,
+								'success'
+							);
+						} else {
+							Utils\write_constants_to_wp_config(
+								[
+									'WP_ALLOW_MULTISITE'   => true,
+									'MULTISITE'            => true,
+									'SUBDOMAIN_INSTALL'    => ( ! empty( $snapshot->meta['subdomain_install'] ) ) ? true : false,
+									'DOMAIN_CURRENT_SITE'  => $main_domain,
+									'PATH_CURRENT_SITE'    => ( ! empty( $snapshot->meta['path_current_site'] ) ) ? $snapshot->meta['path_current_site'] : '/',
+									'SITE_ID_CURRENT_SITE' => ( ! empty( $snapshot->meta['site_id_current_site'] ) ) ? $snapshot->meta['site_id_current_site'] : 1,
+									'BLOG_ID_CURRENT_SITE' => ( ! empty( $snapshot->meta['blog_id_current_site'] ) ) ? $snapshot->meta['blog_id_current_site'] : 1,
+								],
+								$path . 'wp-config.php'
+							);
+
+							Log::instance()->write( 'Multisite constants added to wp-config.php.' );
 						}
 					}
+				} else {
+					if ( ! empty( $site_mapping ) ) {
+						$new_home_url = $site_mapping[0]['home_url'];
+						$new_site_url = $site_mapping[0]['site_url'];
+					} else {
+						$home_question = new Question( 'Home URL (defaults to home URL in snapshot: ' . $snapshot->meta['sites'][0]['home_url'] . '): ', $snapshot->meta['sites'][0]['home_url'] );
+						$home_question->setValidator( $url_validator );
 
-					if ( empty( $first_home_url ) ) {
-						$first_home_url = $new_home_url;
+						$new_home_url = $helper->ask( $input, $output, $home_question );
+
+						$site_question = new Question( 'Site URL (defaults to site URL in snapshot: ' . $snapshot->meta['sites'][0]['site_url'] . '): ', $snapshot->meta['sites'][0]['site_url'] );
+						$site_question->setValidator( $url_validator );
+
+						$new_site_url = $helper->ask( $input, $output, $site_question );
 					}
 
-					$used_home_urls[] = $new_home_url;
-					$used_site_urls[] = $new_site_url;
+					$first_home_url = $new_home_url;
 
-					Log::instance()->write( 'Updating blogs table...', 1 );
+					Log::instance()->write( 'Running replacement... This may take awhile depending on the size of the database.' );
 
-					$blog_path = trailingslashit( parse_url( $new_home_url, PHP_URL_PATH ) );
-					if ( empty( $blog_path ) ) {
-						$blog_path = '/';
-					}
-
-					$blog_url = parse_url( $new_home_url, PHP_URL_HOST );
-
-					if ( ! empty( parse_url( $new_home_url, PHP_URL_PORT ) ) ) {
-						$blog_url .= ':' . parse_url( $new_home_url, PHP_URL_PORT );
-					}
-
-					/**
-					 * Update multisite stuff for each blog
-					 */
-					$wpdb->query( $wpdb->prepare( 'UPDATE ' . $current_table_prefix . 'blogs SET path=%s, domain=%s WHERE blog_id=%d', $blog_path, $blog_url, (int) $site['blog_id'] ) );
-
-					/**
-					 * Update all tables except wp_site and wp_blog since we handle that separately
-					 */
 					$tables_to_update = [];
 
 					foreach ( $wp_tables as $table ) {
-						if ( 1 === (int) $site['blog_id'] ) {
-							if ( preg_match( '#^' . $current_table_prefix . '#', $table ) && ! preg_match( '#^' . $current_table_prefix . '[0-9]+_#', $table ) ) {
-								if ( ! in_array( str_replace( $current_table_prefix, '', $table ), $skip_table_search_replace ) ) {
-									$tables_to_update[] = $table;
-								}
-							}
-						} else {
-							if ( preg_match( '#^' . $current_table_prefix . $site['blog_id'] . '_#', $table ) ) {
-								$raw_table = str_replace( $current_table_prefix . $site['blog_id'] . '_', '', $table );
+						$raw_table = str_replace( $current_table_prefix, '', $table );
 
-								if ( ! in_array( $raw_table, $skip_table_search_replace ) ) {
-									$tables_to_update[] = $table;
-								}
-							}
+						if ( ! in_array( $raw_table, $skip_table_search_replace ) ) {
+							$tables_to_update[] = $table;
 						}
 					}
 
-					if ( ! empty( $tables_to_update ) ) {
-						Log::instance()->write( 'Running replacement... This may take awhile depending on the size of the database.' );
-						Log::instance()->write( 'Search and replacing tables: ' . implode( ', ', $tables_to_update ), 1 );
+					Log::instance()->write( 'Search and replacing tables: ' . implode( ', ', $tables_to_update ), 1 );
 
-						new SearchReplace( $site['home_url'], $new_home_url, $tables_to_update );
+					new SearchReplace( $snapshot->meta['sites'][0]['home_url'], $new_home_url, $tables_to_update );
 
-						if ( $site['home_url'] !== $site['site_url'] ) {
-							new SearchReplace( $site['site_url'], $new_site_url, $tables_to_update );
-						}
+					if ( $snapshot->meta['sites'][0]['home_url'] !== $snapshot->meta['sites'][0]['site_url'] ) {
+						new SearchReplace( $snapshot->meta['sites'][0]['site_url'], $new_site_url, $tables_to_update );
 					}
 
-					$i++;
+					Log::instance()->write( 'URLs replaced.' );
 				}
-
-				Log::instance()->write( 'Updating site table...', 1 );
-
-				/**
-				 * Update site domain with main domain
-				 */
-				$wpdb->query( $wpdb->prepare( 'UPDATE ' . $current_table_prefix . 'site SET domain=%s', $main_domain ) );
-
-				Log::instance()->write( 'URLs replaced.' );
-
-				if (
-					! defined( 'BLOG_ID_CURRENT_SITE' )
-					|| ( ! empty( $snapshot->meta['blog_id_current_site'] ) && BLOG_ID_CURRENT_SITE !== (int) $snapshot->meta['blog_id_current_site'] )
-					|| ! defined( 'SITE_ID_CURRENT_SITE' )
-					|| ( ! empty( $snapshot->meta['site_id_current_site'] ) && SITE_ID_CURRENT_SITE !== (int) $snapshot->meta['site_id_current_site'] )
-					|| ! defined( 'PATH_CURRENT_SITE' )
-					|| ( ! empty( $snapshot->meta['path_current_site'] ) && PATH_CURRENT_SITE !== $snapshot->meta['path_current_site'] )
-					|| ! defined( 'MULTISITE' )
-					|| ! MULTISITE
-					|| ! defined( 'DOMAIN_CURRENT_SITE' )
-					|| DOMAIN_CURRENT_SITE !== $main_domain
-					|| ! defined( 'SUBDOMAIN_INSTALL' )
-					|| SUBDOMAIN_INSTALL !== $snapshot->meta['subdomain_install']
-				) {
-					$update_ms_constants = $input->getOption( 'confirm_ms_constant_update' );
-
-					if ( ! $update_ms_constants ) {
-						$update_ms_constants = $helper->ask( $input, $output, new ConfirmationQuestion( 'Constants need to be updated in your wp-config.php file. Want WP Snapshots to do this automatically? (yes|no) ', true ) );
-					}
-
-					if ( ! $update_ms_constants ) {
-
-						Log::instance()->write( 'The following code should be in your wp-config.php file:', 0, 'warning' );
-						Log::instance()->write(
-							"define('WP_ALLOW_MULTISITE', true);
-define('MULTISITE', true);
-define('SUBDOMAIN_INSTALL', " . ( ( ! empty( $snapshot->meta['subdomain_install'] ) ) ? 'true' : 'false' ) . ");
-define('DOMAIN_CURRENT_SITE', '" . $main_domain . "');
-define('PATH_CURRENT_SITE', '" . ( ( ! empty( $snapshot->meta['path_current_site'] ) ) ? $snapshot->meta['path_current_site'] : '/' ) . "');
-define('SITE_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['site_id_current_site'] ) ) ? $snapshot->meta['site_id_current_site'] : '1' ) . ");
-define('BLOG_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['blog_id_current_site'] ) ) ? $snapshot->meta['blog_id_current_site'] : '1' ) . ');',
-							0,
-							'success'
-						);
-					} else {
-						Utils\write_constants_to_wp_config(
-							[
-								'WP_ALLOW_MULTISITE'   => true,
-								'MULTISITE'            => true,
-								'SUBDOMAIN_INSTALL'    => ( ! empty( $snapshot->meta['subdomain_install'] ) ) ? true : false,
-								'DOMAIN_CURRENT_SITE'  => $main_domain,
-								'PATH_CURRENT_SITE'    => ( ! empty( $snapshot->meta['path_current_site'] ) ) ? $snapshot->meta['path_current_site'] : '/',
-								'SITE_ID_CURRENT_SITE' => ( ! empty( $snapshot->meta['site_id_current_site'] ) ) ? $snapshot->meta['site_id_current_site'] : 1,
-								'BLOG_ID_CURRENT_SITE' => ( ! empty( $snapshot->meta['blog_id_current_site'] ) ) ? $snapshot->meta['blog_id_current_site'] : 1,
-							],
-							$path . 'wp-config.php'
-						);
-
-						Log::instance()->write( 'Multisite constants added to wp-config.php.' );
-					}
-				}
-			} else {
-				if ( ! empty( $site_mapping ) ) {
-					$new_home_url = $site_mapping[0]['home_url'];
-					$new_site_url = $site_mapping[0]['site_url'];
-				} else {
-					$home_question = new Question( 'Home URL (defaults to home URL in snapshot: ' . $snapshot->meta['sites'][0]['home_url'] . '): ', $snapshot->meta['sites'][0]['home_url'] );
-					$home_question->setValidator( $url_validator );
-
-					$new_home_url = $helper->ask( $input, $output, $home_question );
-
-					$site_question = new Question( 'Site URL (defaults to site URL in snapshot: ' . $snapshot->meta['sites'][0]['site_url'] . '): ', $snapshot->meta['sites'][0]['site_url'] );
-					$site_question->setValidator( $url_validator );
-
-					$new_site_url = $helper->ask( $input, $output, $site_question );
-				}
-
-				$first_home_url = $new_home_url;
-
-				Log::instance()->write( 'Running replacement... This may take awhile depending on the size of the database.' );
-
-				$tables_to_update = [];
-
-				foreach ( $wp_tables as $table ) {
-					$raw_table = str_replace( $current_table_prefix, '', $table );
-
-					if ( ! in_array( $raw_table, $skip_table_search_replace ) ) {
-						$tables_to_update[] = $table;
-					}
-				}
-
-				Log::instance()->write( 'Search and replacing tables: ' . implode( ', ', $tables_to_update ), 1 );
-
-				new SearchReplace( $snapshot->meta['sites'][0]['home_url'], $new_home_url, $tables_to_update );
-
-				if ( $snapshot->meta['sites'][0]['home_url'] !== $snapshot->meta['sites'][0]['site_url'] ) {
-					new SearchReplace( $snapshot->meta['sites'][0]['site_url'], $new_site_url, $tables_to_update );
-				}
-
-				Log::instance()->write( 'URLs replaced.' );
 			}
+
+			/**
+			 * Create wpsnapshots user
+			 */
+			Log::instance()->write( 'Cleaning wpsnapshots user...', 1 );
+
+			$user = get_user_by( 'login', 'wpsnapshots' );
+
+			$user_args = [
+				'user_login' => 'wpsnapshots',
+				'user_pass'  => 'password',
+				'user_email' => 'wpsnapshots@wpsnapshots.test',
+				'role'       => 'administrator',
+			];
+
+			if ( ! empty( $user ) ) {
+				$user_args['ID']        = $user->ID;
+				$user_args['user_pass'] = wp_hash_password( 'password' );
+			}
+
+			$user_id = wp_insert_user( $user_args );
+
+			if ( ! empty( $snapshot->meta['multisite'] ) ) {
+				$site_admins_rows = $wpdb->get_results( 'SELECT * FROM ' . Utils\esc_sql_name( $current_table_prefix . 'sitemeta' ) . ' WHERE meta_key="site_admins"', ARRAY_A );
+
+				if ( ! empty( $site_admins_rows ) ) {
+					foreach ( $site_admins_rows as $site_admin_row ) {
+						$admins = unserialize( $site_admin_row['meta_value'] );
+
+						$admins[] = 'wpsnapshots';
+
+						$wpdb->update(
+							$current_table_prefix . 'sitemeta',
+							[
+								'meta_value' => serialize( array_unique( $admins ) ),
+							],
+							[
+								'meta_id' => $site_admin_row['meta_id'],
+							]
+						);
+					}
+				}
+			}
+		}
+
+		if ( $pull_files ) {
+			Log::instance()->write( 'Pulling files...' );
+
+			Log::instance()->write( 'Replacing wp-content/...' );
+
+			Log::instance()->write( 'wp-content path set to ' . WP_CONTENT_DIR, 1 );
+
+			Log::instance()->write( 'Removing old wp-content/...', 1 );
+			exec( 'rm -rf ' . Utils\escape_shell_path( WP_CONTENT_DIR ) . '/..?* ' . Utils\escape_shell_path( WP_CONTENT_DIR ) . '/.[!.]* ' . Utils\escape_shell_path( WP_CONTENT_DIR ) . '/*' );
+
+			Log::instance()->write( 'Extracting snapshot wp-content/...', 1 );
+
+			exec( 'mkdir -p ' . Utils\escape_shell_path( WP_CONTENT_DIR ) );
+
+			exec( 'tar -C ' . Utils\escape_shell_path( WP_CONTENT_DIR ) . ' -xf ' . Utils\escape_shell_path( $snapshot_path ) . 'files.tar.gz ' . $verbose_pipe );
 		}
 
 		/**
@@ -730,60 +850,20 @@ define('BLOG_ID_CURRENT_SITE', " . ( ( ! empty( $snapshot->meta['blog_id_current
 		 */
 		Log::instance()->write( 'Cleaning up temporary files...', 1 );
 
-		@unlink( $snapshot_path . 'wp.tar.gz' );
-		@unlink( $snapshot_path . 'data.sql' );
-
-		/**
-		 * Create wpsnapshots user
-		 */
-		Log::instance()->write( 'Cleaning wpsnapshots user...', 1 );
-
-		$user = get_user_by( 'login', 'wpsnapshots' );
-
-		$user_args = [
-			'user_login' => 'wpsnapshots',
-			'user_pass'  => 'password',
-			'user_email' => 'wpsnapshots@wpsnapshots.test',
-			'role'       => 'administrator',
-		];
-
-		if ( ! empty( $user ) ) {
-			$user_args['ID']        = $user->ID;
-			$user_args['user_pass'] = wp_hash_password( 'password' );
-		}
-
-		$user_id = wp_insert_user( $user_args );
-
-		if ( ! empty( $snapshot->meta['multisite'] ) ) {
-			$site_admins_rows = $wpdb->get_results( 'SELECT * FROM ' . Utils\esc_sql_name( $current_table_prefix . 'sitemeta' ) . ' WHERE meta_key="site_admins"', ARRAY_A );
-
-			if ( ! empty( $site_admins_rows ) ) {
-				foreach ( $site_admins_rows as $site_admin_row ) {
-					$admins = unserialize( $site_admin_row['meta_value'] );
-
-					$admins[] = 'wpsnapshots';
-
-					$wpdb->update(
-						$current_table_prefix . 'sitemeta',
-						[
-							'meta_value' => serialize( array_unique( $admins ) ),
-						],
-						[
-							'meta_id' => $site_admin_row['meta_id'],
-						]
-					);
-				}
-			}
-		}
+		unlink( $snapshot_path . 'data.sql' );
+		unlink( $snapshot_path . 'wp.tar.gz' );
 
 		Log::instance()->write( 'Pull finished.', 0, 'success' );
-		Log::instance()->write( 'Visit in your browser: ' . $first_home_url, 0, 'success' );
 
-		if ( 'localhost' !== parse_url( $first_home_url, PHP_URL_HOST ) ) {
-			Log::instance()->write( 'Make sure the following entry is in your hosts file: "127.0.0.1 ' . parse_url( $first_home_url, PHP_URL_HOST ) . '"', 0, 'success' );
+		if ( $pull_db ) {
+			Log::instance()->write( 'Visit in your browser: ' . $first_home_url, 0, 'success' );
+
+			if ( 'localhost' !== parse_url( $first_home_url, PHP_URL_HOST ) ) {
+				Log::instance()->write( 'Make sure the following entry is in your hosts file: "127.0.0.1 ' . parse_url( $first_home_url, PHP_URL_HOST ) . '"', 0, 'success' );
+			}
+
+			Log::instance()->write( 'Admin login: username - "wpsnapshots", password - "password"', 0, 'success' );
 		}
-
-		Log::instance()->write( 'Admin login: username - "wpsnapshots", password - "password"', 0, 'success' );
 	}
 
 }

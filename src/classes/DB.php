@@ -133,28 +133,19 @@ class DB {
 	/**
 	 * Insert a snapshot into the DB
 	 *
-	 * @param  string $id Snapshot ID
-	 * @param  array  $snapshot Description of snapshot
+	 * @param  Snapshot $snapshot Snapshot to insert
 	 * @return array|bool
 	 */
-	public function insertSnapshot( $id, $snapshot ) {
+	public function insertSnapshot( Snapshot $snapshot ) {
 		$marshaler = new Marshaler();
 
 		$snapshot_item = [
-			'project'           => strtolower( $snapshot['project'] ),
-			'id'                => $id,
-			'time'              => time(),
-			'description'       => $snapshot['description'],
-			'author'            => $snapshot['author'],
-			'multisite'         => $snapshot['multisite'],
-			'sites'             => $snapshot['sites'],
-			'table_prefix'      => $snapshot['table_prefix'],
-			'subdomain_install' => $snapshot['subdomain_install'],
-			'size'              => $snapshot['size'],
-			'wp_version'        => $snapshot['wp_version'],
-			'repository'        => $snapshot['repository'],
+			'project' => strtolower( $snapshot->meta['project'] ),
+			'id'      => $snapshot->id,
+			'time'    => time(),
 		];
 
+		$snapshot_item = array_merge( $snapshot_item, $snapshot->meta->toArray() );
 		$snapshot_json = json_encode( $snapshot_item );
 
 		try {

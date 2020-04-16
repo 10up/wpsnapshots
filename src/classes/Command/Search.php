@@ -52,7 +52,7 @@ class Search extends Command {
 
 		$instances = $repository->getDB()->search( $input->getArgument( 'search_text' ) );
 
-		if ( ! $instances ) {
+		if ( false === $instances ) {
 			Log::instance()->write( 'An error occured while searching.', 0, 'success' );
 		}
 
@@ -62,7 +62,7 @@ class Search extends Command {
 		}
 
 		$table = new Table( $output );
-		$table->setHeaders( [ 'ID', 'Project', 'Description', 'Author', 'Size', 'Multisite', 'Created' ] );
+		$table->setHeaders( [ 'ID', 'Project', 'Files', 'Database', 'Description', 'Author', 'Size', 'Multisite', 'Created' ] );
 
 		$rows = [];
 
@@ -71,14 +71,47 @@ class Search extends Command {
 				$instance['time'] = time();
 			}
 
+			// Defaults to yes for backwards compat since old snapshots dont have this meta.
+			$contains_files = 'Yes';
+			$contains_db    = 'Yes';
+
+			if ( isset( $instance['contains_files'] ) ) {
+				$contains_files = $instance['contains_files'] ? 'Yes' : 'No';
+			}
+
+			if ( isset( $instance['contains_db'] ) ) {
+				$contains_db = $instance['contains_db'] ? 'Yes' : 'No';
+			}
+
+			$size = '-';
+
+			if ( empty( $instance['files_size'] ) && empty( $instance['db_size'] ) ) {
+				// This is for backwards compat with old snapshots
+				if ( ! empty( $instance['size'] ) ) {
+					$size = Utils\format_bytes( (int) $instance['size'] );
+				}
+			} else {
+				$size = 0;
+
+				if ( ! empty( $instance['files_size'] ) ) {
+					$size += (int) $instance['files_size'];
+				} if ( ! empty( $instance['db_size'] ) ) {
+					$size += (int) $instance['db_size'];
+				}
+
+				$size = Utils\format_bytes( $size );
+			}
+
 			$rows[ $instance['time'] ] = [
-				'id'          => ( ! empty( $instance['id'] ) ) ? $instance['id'] : '',
-				'project'     => ( ! empty( $instance['project'] ) ) ? $instance['project'] : '',
-				'description' => ( ! empty( $instance['description'] ) ) ? $instance['description'] : '',
-				'author'      => ( ! empty( $instance['author']['name'] ) ) ? $instance['author']['name'] : '',
-				'size'        => ( ! empty( $instance['size'] ) ) ? Utils\format_bytes( (int) $instance['size'] ) : '',
-				'multisite'   => ( ! empty( $instance['multisite'] ) ) ? 'Yes' : 'No',
-				'created'     => ( ! empty( $instance['time'] ) ) ? date( 'F j, Y, g:i a', $instance['time'] ) : '',
+				'id'             => ( ! empty( $instance['id'] ) ) ? $instance['id'] : '',
+				'project'        => ( ! empty( $instance['project'] ) ) ? $instance['project'] : '',
+				'contains_files' => $contains_files,
+				'contains_db'    => $contains_db,
+				'description'    => ( ! empty( $instance['description'] ) ) ? $instance['description'] : '',
+				'author'         => ( ! empty( $instance['author']['name'] ) ) ? $instance['author']['name'] : '',
+				'size'           => $size,
+				'multisite'      => ( ! empty( $instance['multisite'] ) ) ? 'Yes' : 'No',
+				'created'        => ( ! empty( $instance['time'] ) ) ? date( 'F j, Y, g:i a', $instance['time'] ) : '',
 			];
 		}
 
