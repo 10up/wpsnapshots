@@ -850,8 +850,8 @@ class Pull extends Command {
 		 */
 		Log::instance()->write( 'Cleaning up temporary files...', 1 );
 
-		unlink( $snapshot_path . 'data.sql' );
-		unlink( $snapshot_path . 'wp.tar.gz' );
+		@unlink( $snapshot_path . 'data.sql' );
+		@unlink( $snapshot_path . 'wp.tar.gz' );
 
 		Log::instance()->write( 'Pull finished.', 0, 'success' );
 
