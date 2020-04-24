@@ -428,8 +428,7 @@ class Snapshot {
 				}
 			}
 
-			$sterile_password = wp_hash_password( 'password' );
-			$sterile_email    = 'user%d@example.com';
+			$sterile_email = sprintf( '%s_user%d@example.com' );
 
 			Log::instance()->write( 'Opening users export...', 1 );
 
@@ -451,13 +450,15 @@ class Snapshot {
 				$chunk = fread( $users_handle, 4096 );
 
 				foreach ( $all_hashed_passwords as $password ) {
-					$chunk = str_replace( "'$password'", "'$sterile_password'", $chunk );
+					$sterile_password = wp_hash_password( wp_generate_password( 20, true, true ) );
+					$chunk            = str_replace( "'$password'", "'$sterile_password'", $chunk );
 				}
 
 				foreach ( $all_emails as $index => $email ) {
-					$chunk = str_replace(
+					$random_string = wp_generate_password( 8, false );
+					$chunk         = str_replace(
 						"'$email'",
-						sprintf( "'$sterile_email'", $index ),
+						sprintf( "'$sterile_email'", $random_string, $index ),
 						$chunk
 					);
 				}
