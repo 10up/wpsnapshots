@@ -106,7 +106,7 @@ class Create extends Command {
 		}
 
 		if ( empty( $input->getOption( 'include_files' ) ) ) {
-			$files_question = new ConfirmationQuestion( 'Include files in snapshot? (yes|no) ', true );
+			$files_question = new ConfirmationQuestion( 'Include files in snapshot? (Y/n) ', true );
 
 			$include_files = $helper->ask( $input, $output, $files_question );
 		} else {
@@ -114,7 +114,7 @@ class Create extends Command {
 		}
 
 		if ( empty( $input->getOption( 'include_db' ) ) ) {
-			$db_question = new ConfirmationQuestion( 'Include database in snapshot? (yes|no) ', true );
+			$db_question = new ConfirmationQuestion( 'Include database in snapshot? (Y/n) ', true );
 
 			$include_db = $helper->ask( $input, $output, $db_question );
 		} else {
