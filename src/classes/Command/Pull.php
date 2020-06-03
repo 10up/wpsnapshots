@@ -111,7 +111,7 @@ class Pull extends Command {
 		}
 
 		if ( ! empty( $remote_meta ) && ! empty( $local_meta ) ) {
-			$overwrite_local = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot exists locally. Do you want to overwrite it with the remote copy? (no|yes) ', false ) );
+			$overwrite_local = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot exists locally. Do you want to overwrite it with the remote copy? (y/N) ', false ) );
 		}
 
 		if ( empty( $local_meta ) && ! empty( $remote_meta ) ) {
@@ -147,7 +147,7 @@ class Pull extends Command {
 		if ( $meta['contains_files'] && $meta['contains_db'] ) {
 			if ( $meta['contains_files'] ) {
 				if ( empty( $input->getOption( 'include_files' ) ) ) {
-					$pull_files = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to pull files? (yes|no) ', true ) );
+					$pull_files = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to pull files? (Y/n) ', true ) );
 				} else {
 					$pull_files = true;
 				}
@@ -157,7 +157,7 @@ class Pull extends Command {
 
 			if ( $meta['contains_db'] ) {
 				if ( empty( $input->getOption( 'include_db' ) ) ) {
-					$pull_db = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to pull the database? (yes|no) ', true ) );
+					$pull_db = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to pull the database? (Y/n) ', true ) );
 				} else {
 					$pull_db = true;
 				}
@@ -189,7 +189,7 @@ class Pull extends Command {
 			Log::instance()->write( 'This is not a WordPress install. WordPress needs to be present in order to pull a snapshot.', 0, 'error' );
 
 			if ( empty( $input->getOption( 'confirm_wp_download' ) ) ) {
-				$download_wp = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to download WordPress? (yes|no) ', false ) );
+				$download_wp = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to download WordPress? (y/N) ', false ) );
 
 				if ( ! $download_wp ) {
 					return 1;
@@ -233,7 +233,7 @@ class Pull extends Command {
 			Log::instance()->write( 'No wp-config.php file present. wp-config.php needs to be setup in order to pull a snapshot.', 0, 'error' );
 
 			if ( empty( $input->getOption( 'confirm_config_create' ) ) ) {
-				$create_config = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to create a wp-config.php file? (yes|no) ', false ) );
+				$create_config = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to create a wp-config.php file? (y/N) ', false ) );
 
 				if ( ! $create_config ) {
 					return 1;
@@ -333,7 +333,7 @@ class Pull extends Command {
 
 		if ( empty( $confirm ) ) {
 
-			$confirm = $helper->ask( $input, $output, new ConfirmationQuestion( 'Are you sure you want to do this? This is a potentially destructive operation. You should run a back up first. (yes|no) ', false ) );
+			$confirm = $helper->ask( $input, $output, new ConfirmationQuestion( 'Are you sure you want to do this? This is a potentially destructive operation. You should run a back up first. (y/N) ', false ) );
 
 			if ( ! $confirm ) {
 				return 1;
@@ -436,7 +436,7 @@ class Pull extends Command {
 				$change_wp_version = true;
 
 				if ( empty( $confirm_wp_version_change ) ) {
-					$change_wp_version = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot is running WordPress version ' . $snapshot->meta['wp_version'] . ', and you are running ' . $wp_version . '. Do you want to change your WordPress version to ' . $snapshot->meta['wp_version'] . '? (yes|no) ', true ) );
+					$change_wp_version = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot is running WordPress version ' . $snapshot->meta['wp_version'] . ', and you are running ' . $wp_version . '. Do you want to change your WordPress version to ' . $snapshot->meta['wp_version'] . '? (Y/n) ', true ) );
 				}
 
 				if ( ! empty( $change_wp_version ) ) {
@@ -708,7 +708,7 @@ class Pull extends Command {
 						$update_ms_constants = $input->getOption( 'confirm_ms_constant_update' );
 
 						if ( ! $update_ms_constants ) {
-							$update_ms_constants = $helper->ask( $input, $output, new ConfirmationQuestion( 'Constants need to be updated in your wp-config.php file. Want WP Snapshots to do this automatically? (yes|no) ', true ) );
+							$update_ms_constants = $helper->ask( $input, $output, new ConfirmationQuestion( 'Constants need to be updated in your wp-config.php file. Want WP Snapshots to do this automatically? (Y/n) ', true ) );
 						}
 
 						if ( ! $update_ms_constants ) {
