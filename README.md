@@ -6,6 +6,7 @@
 
 ## Table of Contents  
 * [Overview](#overview)
+* [2.0 Upgrade Notice](#upgrade)
 * [Installation](#install)
   * [Windows-specific Installation](#windows)
 * [Configure](#configure)
@@ -15,9 +16,13 @@
 
 ## Overview
 
-WP Snapshots stores snapshots in a centralized repository (AWS). Users setup up WP Snapshots with their team's AWS credentials. Users can then push, pull, and search for snapshots. When a user pushes a snapshot, an instance of their current environment (`wp-content/` , database, etc.) is pushed to Amazon and associated with a particular project slug. When a snapshot is pulled, files are pulled from the cloud either by creating a new WordPress install with the pulled database or by replacing `wp-content/` and intelligently merging the database. WP Snapshots will ensure your local version of WordPress matches the snapshot.
+WP Snapshots stores snapshots in a centralized repository (AWS). Users setup up WP Snapshots with their team's AWS credentials. Users can then push, pull, and search for snapshots. When a user pushes a snapshot, an instance of their current environment (`wp-content/`, database, etc.) is pushed to Amazon and associated with a particular project slug. When a snapshot is pulled, files are pulled from the cloud either by creating a new WordPress install with the pulled database or by replacing `wp-content/` and intelligently merging the database. WP Snapshots will ensure your local version of WordPress matches the snapshot..
 
-Snapshot files (`wp-content/`) and WordPress database tables are stored in Amazon S3. General snapshot meta data is stored in Amazon DynamoDB.
+A snapshot can contain files, the database, or both. Snapshot files (`wp-content/`) and WordPress database tables are stored in Amazon S3. General snapshot meta data is stored in Amazon DynamoDB.
+
+## Upgrade
+
+WP Snapshots 2.0+ allows users to store database and files independently. As such, some snapshots may only have files or vice-versa. Therefore, WP Snapshots pre 2.0 will break when attempting to pull a 2.0+ snapshot that contains only files or database. WP Snapshots 2.0 works perfectly with older snapshots. If you are running an older version of WP Snapshots, you should upgrade immediately.
 
 ## Install
 
@@ -73,19 +78,19 @@ WP Snapshots revolves around pushing, pulling, and searching for snapshots. WP S
 
 Documentation for each operation is as follows:
 
-* __wpsnapshots push [\<snapshot-id\>] [--exclude_uploads] [--exclude] [--no_scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose] [--small]__
+* __wpsnapshots push [\<snapshot-id\>] [--exclude_uploads] [--exclude] [--scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose] [--small] [--slug] [--description] [--include_files] [--include_db]
 
-  This command pushes a snapshot of a WordPress install to the repository. The command will return a snapshot ID once it's finished that you could pass to a team member.
+  This command pushes a snapshot of a WordPress install to the repository. The command will return a snapshot ID once it's finished that you could pass to a team member. When pushing a snapshot, you can include files and/or the database.
 
-  By default all passwords are converted to `password` and emails to `user@example.com`. The `--no_scrub` option will disable scrubbing.
+  WP Snapshots scrubs all user information by default including names, emails, and passwords.
 
   Pushing a snapshot will not replace older snapshots with the same name. There's been discussion on this. It seems easier and safer not to delete old snapshots (otherwise we have to deal with permissions).
 
   `--small` will take 250 posts from each post type along with the associated terms and post meta and delete the rest of the data. This will modify your local database so be careful.
 
-* __wpsnapshots pull \<snapshot-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose]__
+* __wpsnapshots pull \<snapshot-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose] [--include_files] [--include_db]__
 
-  This command pulls an existing snapshot from the repository into your current WordPress install replacing your database and `wp-content` directory entirely. If a WordPress install does not exist, it will prompt you to create it. The command will interactively prompt you to map URLs to be search and replaced. If the snapshot is a multisite, you will have to map URLs interactively for each blog in the network. This command will also (optionally) match your current version of WordPress with the snapshots.
+  This command pulls an existing snapshot from the repository into your current WordPress install replacing your database and/or `wp-content` directory entirely. If a WordPress install does not exist, it will prompt you to create it. The command will interactively prompt you to map URLs to be search and replaced. If the snapshot is a multisite, you will have to map URLs interactively for each blog in the network. This command will also (optionally) match your current version of WordPress with the snapshots.
 
   After pulling, you can login as admin with the user `wpsnapshots`, password `password`.
 

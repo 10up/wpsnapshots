@@ -79,48 +79,55 @@ class S3 {
 	}
 
 	/**
-	 * Upload a snapshot to S3 given a path to files.tar.gz and data.sql.gz
+	 * Upload a snapshot to S3
 	 *
-	 * @param  string $id         Snapshot ID
-	 * @param  string $project    Project slug
-	 * @param  string $db_path    Path to data.sql.gz
-	 * @param  string $files_path Path to files.tar.gz
+	 * @param  Snapshot $snapshot Snapshot to push
 	 * @return bool|error
 	 */
-	public function putSnapshot( $id, $project, $db_path, $files_path ) {
+	public function putSnapshot( Snapshot $snapshot ) {
 		try {
-			$db_result = $this->client->putObject(
-				[
-					'Bucket'     => self::getBucketName( $this->repository ),
-					'Key'        => $project . '/' . $id . '/data.sql.gz',
-					'SourceFile' => realpath( $db_path ),
-				]
-			);
+			$files_result = null;
 
-			$files_result = $this->client->putObject(
-				[
-					'Bucket'     => self::getBucketName( $this->repository ),
-					'Key'        => $project . '/' . $id . '/files.tar.gz',
-					'SourceFile' => realpath( $files_path ),
-				]
-			);
+			if ( $snapshot->meta['contains_db'] ) {
+				$db_result = $this->client->putObject(
+					[
+						'Bucket'     => self::getBucketName( $this->repository ),
+						'Key'        => $snapshot->meta['project'] . '/' . $snapshot->id . '/data.sql.gz',
+						'SourceFile' => realpath( Utils\get_snapshot_directory() . $snapshot->id . '/data.sql.gz' ),
+					]
+				);
+			}
+
+			if ( $snapshot->meta['contains_files'] ) {
+				$files_result = $this->client->putObject(
+					[
+						'Bucket'     => self::getBucketName( $this->repository ),
+						'Key'        => $snapshot->meta['project'] . '/' . $snapshot->id . '/files.tar.gz',
+						'SourceFile' => realpath( Utils\get_snapshot_directory() . $snapshot->id . '/files.tar.gz' ),
+					]
+				);
+			}
 
 			/**
 			 * Wait for files first since that will probably take longer
 			 */
-			$this->client->waitUntil(
-				'ObjectExists', [
-					'Bucket' => self::getBucketName( $this->repository ),
-					'Key'    => $project . '/' . $id . '/files.tar.gz',
-				]
-			);
+			if ( $snapshot->meta['contains_files'] ) {
+				$this->client->waitUntil(
+					'ObjectExists', [
+						'Bucket' => self::getBucketName( $this->repository ),
+						'Key'    => $snapshot->meta['project'] . '/' . $snapshot->id . '/files.tar.gz',
+					]
+				);
+			}
 
-			$this->client->waitUntil(
-				'ObjectExists', [
-					'Bucket' => self::getBucketName( $this->repository ),
-					'Key'    => $project . '/' . $id . '/data.sql.gz',
-				]
-			);
+			if ( $snapshot->meta['contains_db'] ) {
+				$this->client->waitUntil(
+					'ObjectExists', [
+						'Bucket' => self::getBucketName( $this->repository ),
+						'Key'    => $snapshot->meta['project'] . '/' . $snapshot->id . '/data.sql.gz',
+					]
+				);
+			}
 		} catch ( \Exception $e ) {
 			if ( ! empty( $files_result ) && 'AccessDenied' === $files_result->data['aws_error_code'] ) {
 				Log::instance()->write( 'Access denied. You might not have access to this project.', 0, 'error' );
@@ -140,29 +147,30 @@ class S3 {
 	/**
 	 * Download a snapshot given an id. Must specify where to download files/data
 	 *
-	 * @param  string $id         Snapshot id
-	 * @param  string $project    Project slug
-	 * @param  string $db_path    Where to download data.sql.gz
-	 * @param  string $files_path Where to download files.tar.gz
+	 * @param  Snapshot $snapshot Snapshot to be downloaded
 	 * @return array|error
 	 */
-	public function downloadSnapshot( $id, $project, $db_path, $files_path ) {
+	public function downloadSnapshot( Snapshot $snapshot ) {
 		try {
-			$db_download = $this->client->getObject(
-				[
-					'Bucket' => self::getBucketName( $this->repository ),
-					'Key'    => $project . '/' . $id . '/data.sql.gz',
-					'SaveAs' => $db_path,
-				]
-			);
+			if ( $snapshot->meta['contains_db'] ) {
+				$db_download = $this->client->getObject(
+					[
+						'Bucket' => self::getBucketName( $this->repository ),
+						'Key'    => $snapshot->meta['project'] . '/' . $snapshot->id . '/data.sql.gz',
+						'SaveAs' => Utils\get_snapshot_directory() . $snapshot->id . '/data.sql.gz',
+					]
+				);
+			}
 
-			$files_download = $this->client->getObject(
-				[
-					'Bucket' => self::getBucketName( $this->repository ),
-					'Key'    => $project . '/' . $id . '/files.tar.gz',
-					'SaveAs' => $files_path,
-				]
-			);
+			if ( $snapshot->meta['contains_files'] ) {
+				$files_download = $this->client->getObject(
+					[
+						'Bucket' => self::getBucketName( $this->repository ),
+						'Key'    => $snapshot->meta['project'] . '/' . $snapshot->id . '/files.tar.gz',
+						'SaveAs' => Utils\get_snapshot_directory() . $snapshot->id . '/files.tar.gz',
+					]
+				);
+			}
 		} catch ( \Exception $e ) {
 			if ( 'AccessDenied' === $e->getAwsErrorCode() ) {
 				Log::instance()->write( 'Access denied. You might not have access to this snapshot.', 0, 'error' );
