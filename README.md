@@ -22,7 +22,7 @@ A snapshot can contain files, the database, or both. Snapshot files (`wp-content
 
 ## Upgrade
 
-WP Snapshots 2.0+ allows users to store database and files independently. As such, some snapshots may only have files or vice-versa. Therefore, WP Snapshots pre 2.0 will break when attempting to pull a 2.0+ snapshot that contains only files or database. WP Snapshots 2.0 works perfectly with older snapshots.
+WP Snapshots 2.0+ allows users to store database and files independently. As such, some snapshots may only have files or vice-versa. Therefore, WP Snapshots pre 2.0 will break when attempting to pull a 2.0+ snapshot that contains only files or database. WP Snapshots 2.0 works perfectly with older snapshots. If you are running an older version of WP Snapshots, you should upgrade immediately.
 
 ## Install
 
