@@ -475,7 +475,7 @@ function get_tables( $wp = true ) {
 		$table      = $table_info[0];
 
 		if ( $wp ) {
-			if ( 0 === strpos( $table, $GLOBALS['table_prefix'] ) ) {
+			if ( 0 === strpos( $table, $wpdb->base_prefix ) ) {
 				$tables[] = $table;
 			}
 		} else {

@@ -395,7 +395,7 @@ class Snapshot {
 			/**
 			 * Dump sql to .wpsnapshots/data.sql
 			 */
-			$command          = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
+			$command          = '/usr/bin/env mysqldump --no-defaults --single-transaction --column-statistics=0 %s';
 			$command_esc_args = array( DB_NAME );
 			$command         .= ' --tables';
 
@@ -408,11 +408,11 @@ class Snapshot {
 
 			foreach ( $tables as $table ) {
 				// We separate the users/meta table for scrubbing
-				if ( 0 < $args['scrub'] && $GLOBALS['table_prefix'] . 'users' === $table ) {
+				if ( 0 < $args['scrub'] && $wpdb->users === $table ) {
 					continue;
 				}
 
-				if ( 2 === $args['scrub'] && $GLOBALS['table_prefix'] . 'usermeta' === $table ) {
+				if ( 2 === $args['scrub'] && $wpdb->usermeta === $table ) {
 					continue;
 				}
 
@@ -439,12 +439,12 @@ class Snapshot {
 
 			if ( 1 === $args['scrub'] ) {
 
-				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
+				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction --column-statistics=0 %s';
 
 				$command_esc_args = array( DB_NAME );
 
 				$command           .= ' --tables %s';
-				$command_esc_args[] = $GLOBALS['table_prefix'] . 'users';
+				$command_esc_args[] = $wpdb->users;
 
 				$mysql_args = [
 					'host'        => DB_HOST,
@@ -574,12 +574,12 @@ class Snapshot {
 					$offset += 1000;
 				}
 
-				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
+				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction --column-statistics=0 %s';
 
 				$command_esc_args = array( DB_NAME );
 
 				$command           .= ' --tables %s';
-				$command_esc_args[] = $GLOBALS['table_prefix'] . 'users_temp';
+				$command_esc_args[] = $wpdb->users . '_temp';
 
 				$mysql_args = [
 					'host'        => DB_HOST,
@@ -618,12 +618,12 @@ class Snapshot {
 					$wpdb->query( "UPDATE {$wpdb->usermeta}_temp SET meta_value='{$dummy_user['first_name']}' WHERE meta_key='nickname' AND user_id='{$user_id}'" );
 				}
 
-				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
+				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction --column-statistics=0 %s';
 
 				$command_esc_args = array( DB_NAME );
 
 				$command           .= ' --tables %s';
-				$command_esc_args[] = $GLOBALS['table_prefix'] . 'usermeta_temp';
+				$command_esc_args[] = $wpdb->usermeta . '_temp';
 
 				$mysql_args = [
 					'host'        => DB_HOST,
