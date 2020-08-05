@@ -568,7 +568,15 @@ class Snapshot {
 
 						$dummy_user = $dummy_users[ $user_id % 1000 ];
 
-						$wpdb->query( "UPDATE {$wpdb->users}_temp SET user_pass='{$password}', user_email='{$dummy_user['email']}', user_url='', user_activation_key='', display_name='{$user['user_login']}' WHERE ID='{$user['ID']}'" );
+						$wpdb->query(
+							$wpdb->prepare(
+								"UPDATE {$wpdb->users}_temp SET user_pass=%s, user_email=%s, user_url='', user_activation_key='', display_name=%s WHERE ID=%d",
+								$password,
+								$dummy_user['email'],
+								$user['user_login'],
+								$user['ID']
+							)
+						);
 					}
 
 					$offset += 1000;
