@@ -395,7 +395,7 @@ class Snapshot {
 			/**
 			 * Dump sql to .wpsnapshots/data.sql
 			 */
-			$command          = '/usr/bin/env mysqldump --no-defaults --single-transaction --column-statistics=0 --no-tablespaces %s';
+			$command          = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
 			$command_esc_args = array( DB_NAME );
 			$command         .= ' --tables';
 
@@ -439,7 +439,7 @@ class Snapshot {
 
 			if ( 1 === $args['scrub'] ) {
 
-				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction --column-statistics=0 --no-tablespaces %s';
+				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
 
 				$command_esc_args = array( DB_NAME );
 
@@ -582,7 +582,7 @@ class Snapshot {
 					$offset += 1000;
 				}
 
-				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction --column-statistics=0 --no-tablespaces %s';
+				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
 
 				$command_esc_args = array( DB_NAME );
 
@@ -626,7 +626,7 @@ class Snapshot {
 					$wpdb->query( "UPDATE {$wpdb->usermeta}_temp SET meta_value='{$dummy_user['first_name']}' WHERE meta_key='nickname' AND user_id='{$user_id}'" );
 				}
 
-				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction --column-statistics=0 --no-tablespaces %s';
+				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
 
 				$command_esc_args = array( DB_NAME );
 
