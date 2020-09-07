@@ -73,7 +73,7 @@ class Download extends Command {
 		if ( ! empty( $remote_meta['contains_files'] ) && ! empty( $remote_meta['contains_db'] ) ) {
 			$files = $input->getOption( 'include_files' );
 			if ( false === $files ) {
-				$files_question = new ConfirmationQuestion( 'Include files in snapshot? (yes|no) ', true );
+				$files_question = new ConfirmationQuestion( 'Include files in snapshot? (Y/n) ', true );
 
 				$include_files = $helper->ask( $input, $output, $files_question );
 			} else {
@@ -82,7 +82,7 @@ class Download extends Command {
 
 			$database = $input->getOption( 'include_db' );
 			if ( false === $database ) {
-				$db_question = new ConfirmationQuestion( 'Include database in snapshot? (yes|no) ', true );
+				$db_question = new ConfirmationQuestion( 'Include database in snapshot? (Y/n) ', true );
 
 				$include_db = $helper->ask( $input, $output, $db_question );
 			} else {
@@ -96,7 +96,7 @@ class Download extends Command {
 		$local_meta = Meta::getLocal( $id, $repository->getName() );
 
 		if ( ! empty( $local_meta ) && $local_meta['contains_files'] === $include_files && $local_meta['contains_db'] === $include_db ) {
-			$overwrite_snapshot = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot exists locally. Do you want to overwrite it? (yes|no) ', true ) );
+			$overwrite_snapshot = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot exists locally. Do you want to overwrite it? (Y/n) ', true ) );
 
 			if ( empty( $overwrite_snapshot ) ) {
 				Log::instance()->write( 'No action needed.', 0, 'success' );

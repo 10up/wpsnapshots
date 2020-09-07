@@ -6,6 +6,7 @@
 
 ## Table of Contents  
 * [Overview](#overview)
+* [2.0 Upgrade Notice](#upgrade)
 * [Installation](#install)
   * [Windows-specific Installation](#windows)
 * [Configure](#configure)
@@ -18,6 +19,10 @@
 WP Snapshots stores snapshots in a centralized repository (AWS). Users setup up WP Snapshots with their team's AWS credentials. Users can then push, pull, and search for snapshots. When a user pushes a snapshot, an instance of their current environment (`wp-content/`, database, etc.) is pushed to Amazon and associated with a particular project slug. When a snapshot is pulled, files are pulled from the cloud either by creating a new WordPress install with the pulled database or by replacing `wp-content/` and intelligently merging the database. WP Snapshots will ensure your local version of WordPress matches the snapshot..
 
 A snapshot can contain files, the database, or both. Snapshot files (`wp-content/`) and WordPress database tables are stored in Amazon S3. General snapshot meta data is stored in Amazon DynamoDB.
+
+## Upgrade
+
+WP Snapshots 2.0+ allows users to store database and files independently. As such, some snapshots may only have files or vice-versa. Therefore, WP Snapshots pre 2.0 will break when attempting to pull a 2.0+ snapshot that contains only files or database. WP Snapshots 2.0 works perfectly with older snapshots. If you are running an older version of WP Snapshots, you should upgrade immediately.
 
 ## Install
 

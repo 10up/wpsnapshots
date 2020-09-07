@@ -133,7 +133,7 @@ class Push extends Command {
 
 			$files = $input->getOption( 'include_files' );
 			if ( false === $files ) {
-				$files_question = new ConfirmationQuestion( 'Include files in snapshot? (yes|no) ', true );
+				$files_question = new ConfirmationQuestion( 'Include files in snapshot? (Y/n) ', true );
 
 				$include_files = $helper->ask( $input, $output, $files_question );
 			} else {
@@ -142,7 +142,7 @@ class Push extends Command {
 
 			$database = $input->getOption( 'include_db' );
 			if ( false === $database ) {
-				$db_question = new ConfirmationQuestion( 'Include database in snapshot? (yes|no) ', true );
+				$db_question = new ConfirmationQuestion( 'Include database in snapshot? (Y/n) ', true );
 
 				$include_db = $helper->ask( $input, $output, $db_question );
 			} else {
