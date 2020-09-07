@@ -44,8 +44,8 @@ class Pull extends Command {
 		$this->addOption( 'confirm_config_create', null, InputOption::VALUE_NONE, 'Confirm wp-config.php create.' );
 		$this->addOption( 'confirm_wp_version_change', null, InputOption::VALUE_NONE, 'Confirm changing WP version to match snapshot.' );
 		$this->addOption( 'confirm_ms_constant_update', null, InputOption::VALUE_NONE, 'Confirm updating constants in wp-config.php for multisite.' );
-		$this->addOption( 'include_files', null, InputOption::VALUE_NONE, 'Pull files within snapshot.' );
-		$this->addOption( 'include_db', null, InputOption::VALUE_NONE, 'Pull database within snapshot.' );
+		$this->addOption( 'include_files', null, InputOption::VALUE_OPTIONAL, 'Pull files within snapshot.', false );
+		$this->addOption( 'include_db', null, InputOption::VALUE_OPTIONAL, 'Pull database within snapshot.', false );
 
 		$this->addOption( 'config_db_host', null, InputOption::VALUE_REQUIRED, 'Config database host.' );
 		$this->addOption( 'config_db_name', null, InputOption::VALUE_REQUIRED, 'Config database name.' );
@@ -146,20 +146,22 @@ class Pull extends Command {
 
 		if ( $meta['contains_files'] && $meta['contains_db'] ) {
 			if ( $meta['contains_files'] ) {
-				if ( empty( $input->getOption( 'include_files' ) ) ) {
+				$files = $input->getOption( 'include_files' );
+				if ( false === $files ) {
 					$pull_files = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to pull files? (yes|no) ', true ) );
 				} else {
-					$pull_files = true;
+					$pull_files = is_null( $files ) || filter_var( $files, FILTER_VALIDATE_BOOLEAN ); // is_null( $files ) when `--include_files` is used without a value
 				}
 			} else {
 				$pull_files = false;
 			}
 
 			if ( $meta['contains_db'] ) {
-				if ( empty( $input->getOption( 'include_db' ) ) ) {
+				$database = $input->getOption( 'include_db' );
+				if ( false === $database ) {
 					$pull_db = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to pull the database? (yes|no) ', true ) );
 				} else {
-					$pull_db = true;
+					$pull_db = is_null( $database ) || filter_var( $database, FILTER_VALIDATE_BOOLEAN ); // is_null( $database ) when `--include_db` is used without a value
 				}
 			} else {
 				$pull_db = false;
