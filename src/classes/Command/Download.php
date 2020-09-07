@@ -73,7 +73,7 @@ class Download extends Command {
 		if ( ! empty( $remote_meta['contains_files'] ) && ! empty( $remote_meta['contains_db'] ) ) {
 			$files = $input->getOption( 'include_files' );
 			if ( false === $files ) {
-				$files_question = new ConfirmationQuestion( 'Include files in snapshot? (Y/n) ', true );
+				$files_question = new ConfirmationQuestion( 'Do you want to download snapshot files? (Y/n) ', true );
 
 				$include_files = $helper->ask( $input, $output, $files_question );
 			} else {
@@ -82,7 +82,7 @@ class Download extends Command {
 
 			$database = $input->getOption( 'include_db' );
 			if ( false === $database ) {
-				$db_question = new ConfirmationQuestion( 'Include database in snapshot? (Y/n) ', true );
+				$db_question = new ConfirmationQuestion( 'Do you want to download the snapshot database? (Y/n) ', true );
 
 				$include_db = $helper->ask( $input, $output, $db_question );
 			} else {
