@@ -94,9 +94,11 @@ Documentation for each operation is as follows:
 
   After pulling, you can login as admin with the user `wpsnapshots`, password `password`.
 
-* __wpsnapshots search \<search-text\>__
+* __wpsnapshots search \<search-text\>... [--format]__
 
-  This command searches the repository for snapshots. `<search-text>` will be compared against project names and authors. Searching for "\*" will return all snapshots.
+  This command searches the repository for snapshots. `<search-text>` will be compared against project names and authors. Multiple queries can be used to search snapshots in different projects. Searching for "\*" will return all snapshots.
+
+  `--format` will render output using selected format. Supported formats are `table` and `json`. Default value is `table`.
 
 * __wpsnapshots delete \<snapshot-id\> [--verbose]__
 
