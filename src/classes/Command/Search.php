@@ -31,7 +31,7 @@ class Search extends Command {
 	protected function configure() {
 		$this->setName( 'search' );
 		$this->setDescription( 'Search for snapshots within a repository.' );
-		$this->addArgument( 'search_text', InputArgument::REQUIRED, 'Text to search against snapshots.' );
+		$this->addArgument( 'search_text', InputArgument::REQUIRED | InputArgument::IS_ARRAY, 'Text to search against snapshots. If multiple queries are used, they must match exactly to project names or snapshot ids.' );
 		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
 		$this->addOption( 'format', null, InputOption::VALUE_OPTIONAL, 'Render output in a particular format. Available options: table and json. Defaults to table.', 'table' );
 	}
