@@ -42,7 +42,7 @@ class Pull extends Command {
 		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
 		$this->addOption( 'confirm_wp_download', null, InputOption::VALUE_NONE, 'Confirm WordPress download.' );
 		$this->addOption( 'confirm_config_create', null, InputOption::VALUE_NONE, 'Confirm wp-config.php create.' );
-		$this->addOption( 'confirm_wp_version_change', null, InputOption::VALUE_NONE, 'Confirm changing WP version to match snapshot.' );
+		$this->addOption( 'confirm_wp_version_change', null, InputOption::VALUE_OPTIONAL, 'Confirm changing WP version to match snapshot.', false );
 		$this->addOption( 'confirm_ms_constant_update', null, InputOption::VALUE_NONE, 'Confirm updating constants in wp-config.php for multisite.' );
 		$this->addOption( 'include_files', null, InputOption::VALUE_OPTIONAL, 'Pull files within snapshot.', false );
 		$this->addOption( 'include_db', null, InputOption::VALUE_OPTIONAL, 'Pull database within snapshot.', false );
@@ -437,8 +437,10 @@ class Pull extends Command {
 
 				$change_wp_version = true;
 
-				if ( empty( $confirm_wp_version_change ) ) {
+				if ( false === $confirm_wp_version_change ) {
 					$change_wp_version = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot is running WordPress version ' . $snapshot->meta['wp_version'] . ', and you are running ' . $wp_version . '. Do you want to change your WordPress version to ' . $snapshot->meta['wp_version'] . '? (Y/n) ', true ) );
+				} else {
+					$change_wp_version = is_null( $confirm_wp_version_change ) || filter_var( $confirm_wp_version_change, FILTER_VALIDATE_BOOLEAN ); // is_null( $confirm_wp_version_change ) when `--confirm_wp_version_change` is used without a value
 				}
 
 				if ( ! empty( $change_wp_version ) ) {
