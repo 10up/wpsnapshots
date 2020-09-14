@@ -338,7 +338,7 @@ class Pull extends Command {
 
 		if ( empty( $confirm ) ) {
 
-			$confirm = $helper->ask( $input, $output, new ConfirmationQuestion( 'Are you sure you want to do this? This is a potentially destructive operation. You should run a back up first. (y/N) ', false ) );
+			$confirm = $helper->ask( $input, $output, new ConfirmationQuestion( 'The snapshot is ready, please, can you confirm that you want to apply it? It is a potentially destructive operation, please, run a back up first. (y/N) ', false ) );
 
 			if ( ! $confirm ) {
 				return 1;
