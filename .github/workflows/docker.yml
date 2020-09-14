@@ -1,16 +1,42 @@
+# https://docs.github.com/en/actions/language-and-framework-guides/publishing-docker-images#publishing-images-to-docker-hub
+# https://github.com/marketplace/actions/build-and-push-docker-images
+
 name: Docker Hub
 
 on:
   release:
     types:
       - published
+      - unpublished
+      - deleted
 
 jobs:
   publish:
     name: Publish Image
     runs-on: ubuntu-latest
+    if: github.event.action == 'published'
     steps:
-      - name: Dump GitHub context
+      - uses: actions/checkout@v2
+      - name: Build and push
+        uses: docker/build-push-action@v2
         env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
+          WPSNAPSHOTS_VERSION: ${{ github.event.release.tag_name }}
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          platforms: linux/amd64,linux/arm64,linux/386
+          push: false
+          build-args: |
+            WPSNAPSHOTS_VERSION=${WPSNAPSHOTS_VERSION}
+          tags: |
+            10up/wpsnapshots:latest
+            10up/wpsnapshots:${WPSNAPSHOTS_VERSION}
+            10up/wpsnapshots:${}
+      - name: Update major tag
+        run: echo "${{ github.event.release.tag_name }}" | sed -e 's/\..*//'
+  unpublish:
+    name: Unpublish Image
+    runs-on: ubuntu-latest
+    if: github.event.action == 'unpublished' || github.event.action == 'deleted'
+    steps:
+      - name: Unpublish
