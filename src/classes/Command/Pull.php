@@ -46,6 +46,7 @@ class Pull extends Command {
 		$this->addOption( 'confirm_ms_constant_update', null, InputOption::VALUE_NONE, 'Confirm updating constants in wp-config.php for multisite.' );
 		$this->addOption( 'include_files', null, InputOption::VALUE_NONE, 'Pull files within snapshot.' );
 		$this->addOption( 'include_db', null, InputOption::VALUE_NONE, 'Pull database within snapshot.' );
+		$this->addOption( 'overwrite_local_copy', null, InputOption::VALUE_NONE, 'Overwrite a local copy of the snapshot if there is one.' );
 
 		$this->addOption( 'config_db_host', null, InputOption::VALUE_REQUIRED, 'Config database host.' );
 		$this->addOption( 'config_db_name', null, InputOption::VALUE_REQUIRED, 'Config database name.' );
@@ -111,7 +112,11 @@ class Pull extends Command {
 		}
 
 		if ( ! empty( $remote_meta ) && ! empty( $local_meta ) ) {
-			$overwrite_local = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot exists locally. Do you want to overwrite it with the remote copy? (y/N) ', false ) );
+			if ( empty( $input->getOption( 'overwrite_local_copy' ) ) ) {
+				$overwrite_local = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot exists locally. Do you want to overwrite it with the remote copy? (y/N) ', false ) );
+			} else {
+				$overwrite_local = true;
+			}
 		}
 
 		if ( empty( $local_meta ) && ! empty( $remote_meta ) ) {
