@@ -2,6 +2,7 @@ FROM 10up/phpfpm
 
 # use "--build-arg WPSNAPSHOTS_VERSION=2.0"
 ARG WPSNAPSHOTS_VERSION
+ENV WPSNAPSHOTS_VERSION $WPSNAPSHOTS_VERSION
 
 RUN useradd wpsnapshots && \
     mkdir -p /home/wpsnapshots && \
@@ -17,5 +18,5 @@ ENV PATH="/home/wpsnapshots/.composer/vendor/bin:${PATH}"
 COPY ./snapshots.sh /
 COPY entrypoint.sh /entrypoint.sh
 
-ENTRYPOINT ["/entrypoint.sh"]
-CMD [ "sh", "-c", "trap 'echo dying; exit' SIGINT SIGTERM; while true; do sleep 2; done"]
+ENTRYPOINT [ "/entrypoint.sh" ]
+CMD [ "sh", "-c", "trap 'echo dying; exit' SIGINT SIGTERM; while true; do sleep 2; done" ]
