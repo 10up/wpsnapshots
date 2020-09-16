@@ -6,7 +6,7 @@ ENV WPSNAPSHOTS_ARCHIVE $WPSNAPSHOTS_ARCHIVE
 WORKDIR /opt/wpsnapshots
 
 RUN wget -q -c ${WPSNAPSHOTS_ARCHIVE} -O - | tar -xz --strip 1 && \
-    composer install --no-dev && \
+    composer install --no-dev --no-progress && \
     composer clear-cache
 
 WORKDIR /var/www/html
