@@ -13,9 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build Image
-        run: docker build --tag 10up/wpsnapshots --build-arg WPSNAPSHOTS_VERSION ./docker
+        run: docker build --tag 10up/wpsnapshots --build-arg WPSNAPSHOTS_ARCHIVE ./docker
         env:
-          WPSNAPSHOTS_VERSION: ${{ github.event.release.name }}
+          WPSNAPSHOTS_ARCHIVE: ${{ github.event.release.tarball_url }}
       - name: Tag Images
         run: |
           docker tag 10up/wpsnapshots 10up/wpsnapshots:${WPSNAPSHOTS_VERSION:0:1}
@@ -23,7 +23,7 @@ jobs:
         env:
           WPSNAPSHOTS_VERSION: ${{ github.event.release.name }}
       - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKER_ACCESS_TOKEN }}" | docker login --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        run: echo "${{ secrets.DOCKERHUB_ACCESS_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
       - name: Push Images
         run: |
           docker push 10up/wpsnapshots:latest
