@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.action == 'published'
     steps:
+      - uses: actions/checkout@v2
       - name: Build Image
         run: docker build --tag 10up/wpsnapshots --build-arg WPSNAPSHOTS_ARCHIVE ./docker
         env:
