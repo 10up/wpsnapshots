@@ -61,7 +61,7 @@ class RepositoryManager {
 
 		$this->repositories[ $repository_name ] = $repository;
 
-		Log::instance()->write( 'Setup repository: ' . $repository_name );
+		Log::instance()->write( 'Setup repository: ' . $repository_name, 1 );
 
 		return $repository;
 	}

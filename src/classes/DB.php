@@ -81,7 +81,7 @@ class DB {
 	 * Use DynamoDB scan to search tables for snapshots where project, id, or author information
 	 * matches search text. Searching for "*" returns all snapshots.
 	 *
-	 * @param  string $query Search query string
+	 * @param  string|array $query Search query string
 	 * @return array
 	 */
 	public function search( $query ) {
@@ -91,21 +91,26 @@ class DB {
 			'TableName' => 'wpsnapshots-' . $this->repository,
 		];
 
-		if ( '*' !== $query ) {
-			$args['ConditionalOperator'] = 'OR';
+		if ( ! is_array( $query ) ) {
+			$query = [ $query ];
+		}
 
-			$args['ScanFilter'] = [
+		if ( ! in_array( '*', $query ) ) {
+			$attribute_value_list = array_map( function( $text ) {
+				return [ 'S' => strtolower( $text ) ];
+			}, $query );
+
+			$is_multiple_queries = count( $attribute_value_list ) > 1;
+
+			$args['ConditionalOperator'] = 'OR';
+			$args['ScanFilter']          = [
 				'project' => [
-					'AttributeValueList' => [
-						[ 'S' => strtolower( $query ) ],
-					],
-					'ComparisonOperator' => 'CONTAINS',
+					'AttributeValueList' => $attribute_value_list,
+					'ComparisonOperator' => $is_multiple_queries ? 'IN' : 'CONTAINS',
 				],
 				'id'      => [
-					'AttributeValueList' => [
-						[ 'S' => strtolower( $query ) ],
-					],
-					'ComparisonOperator' => 'EQ',
+					'AttributeValueList' => $attribute_value_list,
+					'ComparisonOperator' => $is_multiple_queries ? 'IN' : 'EQ',
 				],
 			];
 		}
