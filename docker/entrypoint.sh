@@ -9,4 +9,4 @@ if [ -d /home/wpsnapshots/.wpsnapshots ]; then
 	fi
 fi
 
-exec su - wpsnapshots -c "/opt/wpsnapshots/bin/wpsnapshots $*"
+exec su - wpsnapshots -c "cd /var/www/html; /opt/wpsnapshots/bin/wpsnapshots $*"

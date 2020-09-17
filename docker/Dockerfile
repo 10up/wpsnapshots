@@ -13,8 +13,6 @@ RUN useradd wpsnapshots && \
     composer clear-cache && \
     chown -R wpsnapshots:wpsnapshots /opt/wpsnapshots
 
-WORKDIR /var/www/html
-
 COPY entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT [ "/entrypoint.sh" ]
