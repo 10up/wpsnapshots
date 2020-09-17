@@ -34,8 +34,8 @@ class Download extends Command {
 		$this->setDescription( 'Download a snapshot from the repository.' );
 		$this->addArgument( 'snapshot_id', InputArgument::REQUIRED, 'Snapshot ID to download.' );
 		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
-		$this->addOption( 'include_files', null, InputOption::VALUE_NONE, 'Include files in snapshot.' );
-		$this->addOption( 'include_db', null, InputOption::VALUE_NONE, 'Include database in snapshot.' );
+		$this->addOption( 'include_files', null, InputOption::VALUE_OPTIONAL, 'Include files in snapshot.', false );
+		$this->addOption( 'include_db', null, InputOption::VALUE_OPTIONAL, 'Include database in snapshot.', false );
 	}
 
 	/**
@@ -71,20 +71,22 @@ class Download extends Command {
 		$helper = $this->getHelper( 'question' );
 
 		if ( ! empty( $remote_meta['contains_files'] ) && ! empty( $remote_meta['contains_db'] ) ) {
-			if ( empty( $input->getOption( 'include_files' ) ) ) {
+			$files = $input->getOption( 'include_files' );
+			if ( false === $files ) {
 				$files_question = new ConfirmationQuestion( 'Do you want to download snapshot files? (Y/n) ', true );
 
 				$include_files = $helper->ask( $input, $output, $files_question );
 			} else {
-				$include_files = true;
+				$include_files = is_null( $files ) || filter_var( $files, FILTER_VALIDATE_BOOLEAN ); // is_null( $files ) when `--include_files` is used without a value
 			}
 
-			if ( empty( $input->getOption( 'include_db' ) ) ) {
+			$database = $input->getOption( 'include_db' );
+			if ( false === $database ) {
 				$db_question = new ConfirmationQuestion( 'Do you want to download the snapshot database? (Y/n) ', true );
 
 				$include_db = $helper->ask( $input, $output, $db_question );
 			} else {
-				$include_db = true;
+				$include_db = is_null( $database ) || filter_var( $database, FILTER_VALIDATE_BOOLEAN ); // is_null( $database ) when `--include_db` is used without a value
 			}
 		} else {
 			$include_db    = true;
@@ -103,6 +105,7 @@ class Download extends Command {
 			}
 		}
 
+		var_dump( $include_files, $include_db );exit;
 		$snapshot = Snapshot::getRemote( $id, $repository->getName(), ! $include_files, ! $include_db );
 
 		if ( is_a( $snapshot, '\WPSnapshots\Snapshot' ) ) {
