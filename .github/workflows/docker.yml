@@ -29,7 +29,10 @@ jobs:
             echo "::set-env name=WPSNAPSHOTS_ARCHIVE::${ARCHIVE_URL/\{\/ref\}/\/$GITHUB_REF}"
           fi
       - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKERHUB_ACCESS_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+        run: echo "$DOCKER_ACCESS_TOKEN" | docker login --username $DOCKER_USERNAME --password-stdin
+        env:
+          DOCKER_ACCESS_TOKEN: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+          DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       - name: Build Image
         run: docker build --tag 10up/wpsnapshots --build-arg WPSNAPSHOTS_ARCHIVE ./docker
       - name: Push Images
