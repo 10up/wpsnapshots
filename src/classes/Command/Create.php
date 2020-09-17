@@ -36,8 +36,8 @@ class Create extends Command {
 		$this->addOption( 'exclude_uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
 		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
 		$this->addOption( 'small', false, InputOption::VALUE_NONE, 'Trim data and files to create a small snapshot. Note that this action will modify your local.' );
-		$this->addOption( 'include_files', null, InputOption::VALUE_NONE, 'Include files in snapshot.' );
-		$this->addOption( 'include_db', null, InputOption::VALUE_NONE, 'Include database in snapshot.' );
+		$this->addOption( 'include_files', null, InputOption::VALUE_OPTIONAL, 'Include files in snapshot.', false );
+		$this->addOption( 'include_db', null, InputOption::VALUE_OPTIONAL, 'Include database in snapshot.', false );
 
 		$this->addOption( 'slug', null, InputOption::VALUE_REQUIRED, 'Project slug for snapshot.' );
 		$this->addOption( 'description', null, InputOption::VALUE_OPTIONAL, 'Description of snapshot.' );
@@ -105,20 +105,22 @@ class Create extends Command {
 			$exclude[] = './uploads';
 		}
 
-		if ( empty( $input->getOption( 'include_files' ) ) ) {
+		$files = $input->getOption( 'include_files' );
+		if ( false === $files ) {
 			$files_question = new ConfirmationQuestion( 'Include files in snapshot? (Y/n) ', true );
 
 			$include_files = $helper->ask( $input, $output, $files_question );
 		} else {
-			$include_files = true;
+			$include_files = is_null( $files ) || filter_var( $files, FILTER_VALIDATE_BOOLEAN ); // is_null( $files ) when `--include_files` is used without a value
 		}
 
-		if ( empty( $input->getOption( 'include_db' ) ) ) {
+		$database = $input->getOption( 'include_db' );
+		if ( false === $database ) {
 			$db_question = new ConfirmationQuestion( 'Include database in snapshot? (Y/n) ', true );
 
 			$include_db = $helper->ask( $input, $output, $db_question );
 		} else {
-			$include_db = true;
+			$include_db = is_null( $database ) || filter_var( $database, FILTER_VALIDATE_BOOLEAN ); // is_null( $database ) when `--include_db` is used without a value
 		}
 
 		if ( empty( $include_files ) && empty( $include_db ) ) {
