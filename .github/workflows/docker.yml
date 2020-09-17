@@ -1,33 +1,50 @@
 name: Docker Hub
 
 on:
+  push:
+    branches:
+      - develop
   release:
     types:
       - published
 
 jobs:
   publish:
-    name: Publish Image
+    name: Publish Images
     runs-on: ubuntu-latest
-    if: github.event.action == 'published'
     steps:
       - uses: actions/checkout@v2
+      - name: Setup Environment
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            RELEASE_NAME="${{ github.event.release.name }}"
+
+            echo "::set-env name=TARGET_TAGS::latest,${RELEASE_NAME},${RELEASE_NAME%%.*}"
+            echo "::set-env name=WPSNAPSHOTS_ARCHIVE::${{ github.event.release.tarball_url }}"
+          else
+            ARCHIVE_URL="${{ github.event.repository.archive_url }}"
+            ARCHIVE_URL=${ARCHIVE_URL/\{archive_format\}/tarball}
+
+            echo "::set-env name=TARGET_TAGS::${GITHUB_REF##*/}"
+            echo "::set-env name=WPSNAPSHOTS_ARCHIVE::${ARCHIVE_URL/\{\/ref\}/\/$GITHUB_REF}"
+          fi
+      - name: Login
+        run: echo "$DOCKER_ACCESS_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
+        env:
+          DOCKER_ACCESS_TOKEN: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+          DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       - name: Build Image
         run: docker build --tag 10up/wpsnapshots --build-arg WPSNAPSHOTS_ARCHIVE ./docker
-        env:
-          WPSNAPSHOTS_ARCHIVE: ${{ github.event.release.tarball_url }}
-      - name: Tag Images
-        run: |
-          docker tag 10up/wpsnapshots 10up/wpsnapshots:${WPSNAPSHOTS_VERSION:0:1}
-          docker tag 10up/wpsnapshots 10up/wpsnapshots:${WPSNAPSHOTS_VERSION}
-        env:
-          WPSNAPSHOTS_VERSION: ${{ github.event.release.name }}
-      - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKERHUB_ACCESS_TOKEN }}" | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
       - name: Push Images
         run: |
-          docker push 10up/wpsnapshots:latest
-          docker push 10up/wpsnapshots:${WPSNAPSHOTS_VERSION:0:1}
-          docker push 10up/wpsnapshots:${WPSNAPSHOTS_VERSION}
-        env:
-          WPSNAPSHOTS_VERSION: ${{ github.event.release.name }}
+          IFS=','
+          read -a tags <<< "$TARGET_TAGS"
+          for tag in "${tags[@]}"; do
+            if [ $tag != 'latest' ]; then
+              docker tag 10up/wpsnapshots 10up/wpsnapshots:$tag
+            fi
+            docker push 10up/wpsnapshots:$tag
+          done
+      - name: Logout
+        if: always()
+        run: docker logout
