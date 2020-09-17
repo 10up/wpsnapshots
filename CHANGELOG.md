@@ -13,5 +13,5 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Changed `--confirm_wp_version_change` flag of the `pull` command to accept negative values.
 - Fixed empty line issue rendered at the beginning of all commands.
 
-[Unreleased]: https://github.com/10up/wp-local-docker-v2/compare/2.1.0...develop
-[2.1.0]: https://github.com/10up/wp-local-docker-v2/compare/2.0.1...2.1.0
+[Unreleased]: https://github.com/10up/wpsnapshots/compare/2.1.0...develop
+[2.1.0]: https://github.com/10up/wpsnapshots/compare/2.0.1...2.1.0
