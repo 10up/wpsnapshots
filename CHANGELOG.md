@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file, per [the Ke
 ## [2.1.0] - TBD
 
 - Added `--overwirte_local_copy` flag to the `pull` command.
+- Added `--suppress_instructions` flag to the `pull` command.
 - Added `--format` option to the search command that accepts json and table values.
 - Changed the search command arguments to allow multiple queries.
 - Changed `--include_files` and `--include_db` flags of `create`, `download`, `pull` and `push` commands to accept negative values.

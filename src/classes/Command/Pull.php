@@ -45,6 +45,7 @@ class Pull extends Command {
 		$this->addOption( 'confirm_wp_version_change', null, InputOption::VALUE_OPTIONAL, 'Confirm changing WP version to match snapshot.', false );
 		$this->addOption( 'confirm_ms_constant_update', null, InputOption::VALUE_NONE, 'Confirm updating constants in wp-config.php for multisite.' );
 
+		$this->addOption( 'suppress_instructions', null, InputOption::VALUE_NONE, 'Suppress instructions after successful installation.' );
 		$this->addOption( 'overwrite_local_copy', null, InputOption::VALUE_NONE, 'Overwrite a local copy of the snapshot if there is one.' );
 		$this->addOption( 'include_files', null, InputOption::VALUE_OPTIONAL, 'Pull files within snapshot.', false );
 		$this->addOption( 'include_db', null, InputOption::VALUE_OPTIONAL, 'Pull database within snapshot.', false );
@@ -865,7 +866,7 @@ class Pull extends Command {
 
 		Log::instance()->write( 'Pull finished.', 0, 'success' );
 
-		if ( $pull_db ) {
+		if ( $pull_db && empty( $input->getOption( 'suppress_instructions' ) ) ) {
 			Log::instance()->write( 'Visit in your browser: ' . $first_home_url, 0, 'success' );
 
 			if ( 'localhost' !== parse_url( $first_home_url, PHP_URL_HOST ) ) {
