@@ -28,8 +28,8 @@ jobs:
             echo "::set-env name=TARGET_TAGS::${GITHUB_REF##*/}"
             echo "::set-env name=WPSNAPSHOTS_ARCHIVE::${ARCHIVE_URL/\{\/ref\}/\/$GITHUB_REF}"
           fi
-      - name: Login to Docker Hub
-        run: echo "$DOCKER_ACCESS_TOKEN" | docker login --username $DOCKER_USERNAME --password-stdin
+      - name: Login
+        run: echo "$DOCKER_ACCESS_TOKEN" | docker login --username "$DOCKER_USERNAME" --password-stdin
         env:
           DOCKER_ACCESS_TOKEN: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
           DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -45,3 +45,6 @@ jobs:
             fi
             docker push 10up/wpsnapshots:$tag
           done
+      - name: Logout
+        if: always()
+        run: docker logout
