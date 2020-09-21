@@ -28,8 +28,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
       - name: Prepare Environment
         id: prep
-        env:
-          CFPACK_VERSION: ${{ github.event.release.name }}
         run: |
           DOCKER_IMAGE=10up/wpsnapshots
 
