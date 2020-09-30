@@ -463,7 +463,7 @@ class Pull extends Command {
 					$headers = [ 'Accept' => 'application/json' ];
 					$options = [
 						'timeout'  => 600,
-						'filename' => $snapshot_path . ( false !== stripos( $download_url, '.zip' ) ? 'wp.zip' : 'wp.tar.gz' ),
+						'filename' => $snapshot_path . ( stripos( $download_url, '.zip' ) ? 'wp.zip' : 'wp.tar.gz' ),
 					];
 
 					Log::instance()->write( 'Downloading WordPress ' . $snapshot->meta['wp_version'] . '...', 1 );
@@ -472,7 +472,7 @@ class Pull extends Command {
 
 					Log::instance()->write( 'Extracting WordPress...', 1 );
 
-					if ( false !== stripos( $download_url, '.zip' ) ) {
+					if ( stripos( $download_url, '.zip' ) ) {
 						exec( 'unzip -d ' . Utils\escape_shell_path( $path ) . ' ' . Utils\escape_shell_path( $snapshot_path ) . 'wp.zip ' . $verbose_pipe );
 					} else {
 						exec( 'tar -C ' . Utils\escape_shell_path( $path ) . ' -xf ' . Utils\escape_shell_path( $snapshot_path ) . 'wp.tar.gz ' . $verbose_pipe );
