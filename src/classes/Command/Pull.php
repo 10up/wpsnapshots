@@ -472,7 +472,7 @@ class Pull extends Command {
 
 					Log::instance()->write( 'Extracting WordPress...', 1 );
 
-					if ( strpos( $download_url, 'zip' ) ) {
+					if ( false !== stripos( $download_url, '.zip' ) ) {
 						exec( 'unzip -d ' . Utils\escape_shell_path( $path ) . ' ' . Utils\escape_shell_path( $snapshot_path ) . 'wp.zip ' . $verbose_pipe );
 					} else {
 						exec( 'tar -C ' . Utils\escape_shell_path( $path ) . ' -xf ' . Utils\escape_shell_path( $snapshot_path ) . 'wp.tar.gz ' . $verbose_pipe );
