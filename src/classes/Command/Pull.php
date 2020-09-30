@@ -463,7 +463,7 @@ class Pull extends Command {
 					$headers = [ 'Accept' => 'application/json' ];
 					$options = [
 						'timeout'  => 600,
-						'filename' => strpos( $download_url, 'zip' ) ? $snapshot_path . 'wp.zip' :$snapshot_path . 'wp.tar.gz',
+						'filename' => $snapshot_path . ( false !== stripos( $download_url, '.zip' ) ? 'wp.zip' : 'wp.tar.gz' ),
 					];
 
 					Log::instance()->write( 'Downloading WordPress ' . $snapshot->meta['wp_version'] . '...', 1 );
