@@ -473,7 +473,13 @@ class Pull extends Command {
 					Log::instance()->write( 'Extracting WordPress...', 1 );
 
 					if ( stripos( $download_url, '.zip' ) ) {
-						exec( 'unzip -d ' . Utils\escape_shell_path( $path ) . ' ' . Utils\escape_shell_path( $snapshot_path ) . 'wp.zip ' . $verbose_pipe );
+						$zip = new \ZipArchive;
+						if ( $zip->open( Utils\escape_shell_path( $snapshot_path ) . 'wp.zip' ) === true ) {
+							$zip->extractTo( Utils\escape_shell_path( $path ) );
+							$zip->close();
+						} else {
+							exec( 'unzip -d ' . Utils\escape_shell_path( $path ) . ' ' . Utils\escape_shell_path( $snapshot_path ) . 'wp.zip ' . $verbose_pipe );
+						}
 					} else {
 						exec( 'tar -C ' . Utils\escape_shell_path( $path ) . ' -xf ' . Utils\escape_shell_path( $snapshot_path ) . 'wp.tar.gz ' . $verbose_pipe );
 					}
