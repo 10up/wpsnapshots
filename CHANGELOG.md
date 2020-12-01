@@ -6,14 +6,20 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 ## [2.1.0] - TBD
 ### Added
-- `--overwirte_local_copy` flag to the `pull` command.
-- `--suppress_instructions` flag to the `pull` command.
-- `--format` option to the search command that accepts json and table values.
+- `--overwirte_local_copy` flag to the `pull` command (props [@eugene-manuilov](https://github.com/eugene-manuilov) via [#71](https://github.com/10up/wpsnapshots/pull/71)).
+- `--suppress_instructions` flag to the `pull` command (props [@eugene-manuilov](https://github.com/eugene-manuilov) via [#76](https://github.com/10up/wpsnapshots/pull/76)).
+- `--format` option to the search command that accepts json and table values (props [@eugene-manuilov](https://github.com/eugene-manuilov) via [#70](https://github.com/10up/wpsnapshots/pull/70)).
+- GitHub actions to build and push a new docker image when a new release is published (props [@eugene-manuilov](https://github.com/eugene-manuilov) via [#72](https://github.com/10up/wpsnapshots/pull/72), [#73](https://github.com/10up/wpsnapshots/pull/73)).
 
 ### Changed
 - Search command arguments to allow multiple queries.
 - `--include_files` and `--include_db` flags of `create`, `download`, `pull` and `push` commands to accept negative values.
 - `--confirm_wp_version_change` flag of the `pull` command to accept negative values.
+- Documentation updates (props [@eugene-manuilov](https://github.com/eugene-manuilov), [@jeffpaul](https://github.com/jeffpaul) via [#75](https://github.com/10up/wpsnapshots/pull/75)).
+- Docker image to be compatible with the current version of `10up/wpsnapshots:dev` (props [@eugene-manuilov](https://github.com/eugene-manuilov) via [#74](https://github.com/10up/wpsnapshots/pull/74)).
+
+### Removed
+- `--column-statistics=0 --no-tablespaces` parameters (props [@felipeelia](https://github.com/felipeelia) via [#68](https://github.com/10up/wpsnapshots/pull/68)).
 
 ### Fixed
 - Empty line issue rendered at the beginning of all commands.
