@@ -61,7 +61,7 @@ class RepositoryManager {
 
 		$this->repositories[ $repository_name ] = $repository;
 
-		Log::instance()->write( 'Setup repository: ' . $repository_name );
+		Log::instance()->write( 'Setup repository: ' . $repository_name, 1 );
 
 		return $repository;
 	}
@@ -76,9 +76,19 @@ class RepositoryManager {
 			return false;
 		}
 
-		$config = array_values( $this->config['repositories'] );
+		$repos = $this->config['repositories'];
 
-		return $config[0]['repository'];
+		if ( 1 === count( $repos ) && ! empty( $repos['local'] ) ) {
+			return 'local';
+		}
+
+		if ( ! empty( $repos['local'] ) ) {
+			unset( $repos['local'] );
+		}
+
+		$repos = array_values( $repos );
+
+		return $repos[0]['repository'];
 	}
 
 	/**
@@ -86,6 +96,22 @@ class RepositoryManager {
 	 */
 	private function __construct() {
 		$this->config = Config::get();
+
+		// Add local repository
+		$repositories = [];
+
+		if ( empty( $this->config ) || empty( $this->repositories ) ) {
+			$repositories = $this->config['repositories'];
+		}
+
+		$repositories['local'] = [
+			'repository'        => 'local',
+			'access_key_id'     => '',
+			'secret_access_key' => '',
+			'region'            => '',
+		];
+
+		$this->config['repositories'] = $repositories;
 	}
 
 	/**

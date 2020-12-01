@@ -47,47 +47,76 @@ class Snapshot {
 	/**
 	 * Snapshot constructor. Snapshot must already exist locally in $path.
 	 *
-	 * @param string $id Snapshot id
-	 * @param string $repository_name Name of rpo
-	 * @param array  $meta Snapshot meta data
-	 * @param bool   $remote Does snapshot exist remotely or not
+	 * @param string         $id Snapshot id
+	 * @param string         $repository_name Name of rpo
+	 * @param array|Snapshot $meta Snapshot meta data
+	 * @param bool           $remote Does snapshot exist remotely or not
 	 * @throws Exception Throw exception if files don't exist.
 	 */
 	public function __construct( $id, $repository_name, $meta, $remote = false ) {
 		$this->id              = $id;
 		$this->repository_name = $repository_name;
-		$this->meta            = $meta;
 		$this->remote          = $remote;
 
-		if ( ! file_exists( Utils\get_snapshot_directory() . $id . '/data.sql.gz' ) || ! file_exists( Utils\get_snapshot_directory() . $id . '/files.tar.gz' ) ) {
-			throw new Exception( 'Snapshot data or files do not exist locally.' );
+		if ( is_a( $meta, '\WPSnapshots\Meta' ) ) {
+			$this->meta = $meta;
+		} else {
+			$this->meta = new Meta( $id, $meta );
 		}
+	}
+
+	/**
+	 * Get a snapshot. First try locally and then remote.
+	 *
+	 * @param   string $id Snapshot id
+	 * @param   string $repository_name Name of repo
+	 * @param   bool   $no_files If set to true, files will not be downloaded even if available. Defaults to false.
+	 * @param   bool   $no_db If set to true, db will not be downloaded even if available. Defaults to false.
+	 * @return  bool|Snapshot
+	 */
+	public static function get( $id, $repository_name, $no_files = false, $no_db = false ) {
+		$local_snapshot = self::getLocal( $id, $repository_name, $no_files, $no_db );
+
+		if ( ! empty( $local_snapshot ) ) {
+			Log::instance()->write( 'Snapshot found in cache.' );
+
+			return $local_snapshot;
+		}
+
+		return self::getRemote( $id, $repository_name, $no_files, $no_db );
 	}
 
 	/**
 	 * Given an ID, create a WP Snapshots object
 	 *
-	 * @param  string $id Snapshot ID
-	 * @return Snapshot
+	 * @param   string $id Snapshot id
+	 * @param   string $repository_name Name of repo
+	 * @param   bool   $no_files If set to true, files will not be downloaded even if available. Defaults to false.
+	 * @param   bool   $no_db If set to true, db will not be downloaded even if available. Defaults to false.
+	 * @return  bool|Snapshot
 	 */
-	public static function get( $id ) {
-		if ( file_exists( Utils\get_snapshot_directory() . $id . '/meta.json' ) ) {
-			$meta_file_contents = file_get_contents( Utils\get_snapshot_directory() . $id . '/meta.json' );
-			$meta               = json_decode( $meta_file_contents, true );
-		} else {
-			$meta = [];
+	public static function getLocal( $id, $repository_name, $no_files = false, $no_db = false ) {
+		if ( $no_files && $no_db ) {
+			Log::instance()->write( 'Either files or database must be in snapshot.', 0, 'error' );
+
+			return false;
 		}
 
-		/**
-		 * Backwards compant - need to fill in repo before we started saving repo in meta.
-		 */
-		if ( empty( $meta['repository'] ) ) {
-			Log::instance()->write( 'Legacy snapshot found without repository. Assuming default repository.', 1, 'warning' );
+		$meta = Meta::getLocal( $id, $repository_name );
 
-			$meta['repository'] = RepositoryManager::instance()->getDefault();
+		if ( empty( $meta ) ) {
+			return false;
 		}
 
-		return new self( $id, $meta['repository'], $meta );
+		if ( $no_files ) {
+			$meta['contains_files'] = false;
+		}
+
+		if ( $no_db ) {
+			$meta['contains_db'] = false;
+		}
+
+		return new self( $id, $repository_name, $meta );
 	}
 
 	/**
@@ -152,273 +181,539 @@ class Snapshot {
 			return false;
 		}
 
-		global $wpdb;
+		global $wpdb, $wp_version;
 
-		$meta = [
-			'author'      => [],
-			'repository'  => $args['repository'],
-			'description' => $args['description'],
-			'project'     => $args['project'],
-		];
-
-		$author_info = RepositoryManager::instance()->getAuthorInfo();
-
-		if ( ! empty( $author_info['name'] ) ) {
-			$meta['author']['name'] = $author_info['name'];
-		}
-
-		if ( ! empty( $author_info['email'] ) ) {
-			$meta['author']['email'] = $author_info['email'];
-		}
-
-		$meta['multisite']            = false;
-		$meta['subdomain_install']    = false;
-		$meta['domain_current_site']  = false;
-		$meta['path_current_site']    = false;
-		$meta['site_id_current_site'] = false;
-		$meta['blog_id_current_site'] = false;
-		$meta['sites']                = [];
-
-		if ( is_multisite() ) {
-			$meta['multisite'] = true;
-
-			if ( defined( 'SUBDOMAIN_INSTALL' ) && SUBDOMAIN_INSTALL ) {
-				$meta['subdomain_install'] = true;
-			}
-
-			if ( defined( 'DOMAIN_CURRENT_SITE' ) ) {
-				$meta['domain_current_site'] = DOMAIN_CURRENT_SITE;
-			}
-
-			if ( defined( 'PATH_CURRENT_SITE' ) ) {
-				$meta['path_current_site'] = PATH_CURRENT_SITE;
-			}
-
-			if ( defined( 'SITE_ID_CURRENT_SITE' ) ) {
-				$meta['site_id_current_site'] = SITE_ID_CURRENT_SITE;
-			}
-
-			if ( defined( 'BLOG_ID_CURRENT_SITE' ) ) {
-				$meta['blog_id_current_site'] = BLOG_ID_CURRENT_SITE;
-			}
-
-			$sites = get_sites( [ 'number' => 500 ] );
-
-			foreach ( $sites as $site ) {
-				$meta['sites'][] = [
-					'blog_id'  => $site->blog_id,
-					'domain'   => $site->domain,
-					'path'     => $site->path,
-					'site_url' => get_blog_option( $site->blog_id, 'siteurl' ),
-					'home_url' => get_blog_option( $site->blog_id, 'home' ),
-					'blogname' => get_blog_option( $site->blog_id, 'blogname' ),
-				];
-			}
-		} else {
-			$meta['sites'][] = [
-				'site_url' => get_option( 'siteurl' ),
-				'home_url' => get_option( 'home' ),
-				'blogname' => get_option( 'blogname' ),
-			];
-		}
-
-		$main_blog_id = ( defined( 'BLOG_ID_CURRENT_SITE' ) ) ? BLOG_ID_CURRENT_SITE : null;
-
-		$meta['table_prefix'] = $wpdb->get_blog_prefix( $main_blog_id );
-
-		global $wp_version;
+		$meta = new Meta(
+			$id,
+			[
+				'author'         => [],
+				'repository'     => $args['repository'],
+				'description'    => $args['description'],
+				'project'        => $args['project'],
+				'contains_files' => $args['contains_files'],
+				'contains_db'    => $args['contains_db'],
+			]
+		);
 
 		$meta['wp_version'] = ( ! empty( $wp_version ) ) ? $wp_version : '';
 
-		/**
-		 * Dump sql to .wpsnapshots/data.sql
-		 */
-		$command          = '/usr/bin/env mysqldump --no-defaults %s';
-		$command_esc_args = array( DB_NAME );
-		$command         .= ' --tables';
+		$author_info = RepositoryManager::instance()->getAuthorInfo();
+		$author      = [];
 
-		/**
-		 * We only export tables with WP prefix
-		 */
-		Log::instance()->write( 'Getting WordPress tables...', 1 );
-
-		$tables = Utils\get_tables();
-
-		foreach ( $tables as $table ) {
-			// We separate the users table for scrubbing
-			if ( ! $args['no_scrub'] && $GLOBALS['table_prefix'] . 'users' === $table ) {
-				continue;
-			}
-
-			$command           .= ' %s';
-			$command_esc_args[] = trim( $table );
+		if ( ! empty( $author_info['name'] ) ) {
+			$author['name'] = $author_info['name'];
 		}
+
+		if ( ! empty( $author_info['email'] ) ) {
+			$author['email'] = $author_info['email'];
+		}
+
+		$meta['author'] = $author;
+
+		$verbose_pipe = ( empty( Log::instance()->getVerbosity() ) ) ? '> /dev/null' : '';
 
 		$snapshot_path = Utils\get_snapshot_directory() . $id . '/';
 
-		$mysql_args = [
-			'host'        => DB_HOST,
-			'pass'        => DB_PASSWORD,
-			'user'        => DB_USER,
-			'result-file' => $snapshot_path . 'data.sql',
-		];
+		if ( $args['contains_db'] ) {
 
-		if ( defined( 'DB_CHARSET' ) && constant( 'DB_CHARSET' ) ) {
-			$mysql_args['default-character-set'] = constant( 'DB_CHARSET' );
-		}
+			if ( ! empty( $args['small'] ) ) {
+				if ( is_multisite() ) {
+					$sites = get_sites();
+				} else {
+					Log::instance()->write( 'Trimming snapshot data and files...' );
+				}
 
-		$escaped_command = call_user_func_array( '\WPSnapshots\Utils\esc_cmd', array_merge( array( $command ), $command_esc_args ) );
+				while ( true ) {
+					$prefix = $wpdb->prefix;
 
-		Log::instance()->write( 'Exporting database...' );
+					if ( is_multisite() ) {
+						if ( empty( $sites ) ) {
+							break;
+						}
 
-		Utils\run_mysql_command( $escaped_command, $mysql_args );
+						$site = array_shift( $sites );
 
-		if ( ! $args['no_scrub'] ) {
-			$command = '/usr/bin/env mysqldump --no-defaults %s';
+						Log::instance()->write( 'Trimming snapshot data and files blog ' . $site->blog_id . '...' );
 
+						switch_to_blog( $site->blog_id );
+
+						$prefix = $wpdb->get_blog_prefix( $site->blog_id );
+					}
+
+					// Trim posts
+					$post_ids = [];
+
+					$post_types_args = [
+						'public'   => false,
+						'_builtin' => true,
+					];
+
+					$post_types = $wpdb->get_results( "SELECT DISTINCT post_type FROM {$prefix}posts", ARRAY_A );
+
+					if ( ! empty( $post_types ) ) {
+
+						Log::instance()->write( 'Trimming posts...', 1 );
+
+						foreach ( $post_types as $post_type ) {
+							$post_type = $post_type['post_type'];
+
+							$posts = $wpdb->get_results( $wpdb->prepare( "SELECT ID FROM {$prefix}posts WHERE post_type='%s' ORDER BY ID DESC LIMIT 300", $post_type ), ARRAY_A );
+
+							foreach ( $posts as $post ) {
+								$post_ids[] = (int) $post['ID'];
+							}
+						}
+
+						if ( ! empty( $post_ids ) ) {
+							// Delete other posts
+							$wpdb->query( "DELETE FROM {$prefix}posts WHERE ID NOT IN (" . implode( ',', $post_ids ) . ')' );
+
+							// Delete orphan comments
+							$wpdb->query( "DELETE FROM {$prefix}comments WHERE comment_post_ID NOT IN (" . implode( ',', $post_ids ) . ')' );
+
+							// Delete orphan meta
+							$wpdb->query( "DELETE FROM {$prefix}postmeta WHERE post_id NOT IN (" . implode( ',', $post_ids ) . ')' );
+						}
+					}
+
+					Log::instance()->write( 'Trimming comments...', 1 );
+
+					$comments = $wpdb->get_results( "SELECT comment_ID FROM {$prefix}comments ORDER BY comment_ID DESC LIMIT 500", ARRAY_A );
+
+					// Delete comments
+					if ( ! empty( $comments ) ) {
+						$comment_ids = [];
+
+						foreach ( $comments as $comment ) {
+							$comment_ids[] = (int) $comment['ID'];
+						}
+
+						$wpdb->query( "DELETE FROM {$prefix}comments WHERE comment_ID NOT IN (" . implode( ',', $comment_ids ) . ')' );
+
+						$wpdb->query( "DELETE FROM {$prefix}commentmeta WHERE comment_id NOT IN (" . implode( ',', $comment_ids ) . ')' );
+					}
+
+					// Terms
+					Log::instance()->write( 'Trimming terms...', 1 );
+
+					$wpdb->query( "DELETE FROM {$prefix}term_relationships WHERE object_id NOT IN (" . implode( ',', array_unique( $post_ids ) ) . ')' );
+
+					$term_relationships = $wpdb->get_results( "SELECT * FROM {$prefix}term_relationships ORDER BY term_taxonomy_id DESC", ARRAY_A );
+
+					if ( ! empty( $term_relationships ) ) {
+						$term_taxonomy_ids = [];
+
+						foreach ( $term_relationships as $term_relationship ) {
+							$term_taxonomy_ids[] = (int) $term_relationship['term_taxonomy_id'];
+						}
+
+						$wpdb->query( "DELETE FROM {$prefix}term_taxonomy WHERE term_taxonomy_id NOT IN (" . implode( ',', array_unique( $term_taxonomy_ids ) ) . ')' );
+					}
+
+					$term_taxonomy = $wpdb->get_results( "SELECT * FROM {$prefix}term_taxonomy ORDER BY term_taxonomy_id DESC", ARRAY_A );
+
+					if ( ! empty( $term_taxonomy ) ) {
+						$term_ids = [];
+
+						foreach ( $term_taxonomy as $term_taxonomy_row ) {
+							$term_ids[] = (int) $term_taxonomy_row['term_id'];
+						}
+
+						// Delete excess terms
+						$wpdb->query( "DELETE FROM {$prefix}terms WHERE term_id NOT IN (" . implode( ',', array_unique( $term_ids ) ) . ')' );
+
+						// Delete excess term meta
+						$wpdb->query( "DELETE FROM {$prefix}termmeta WHERE term_id NOT IN (" . implode( ',', array_unique( $term_ids ) ) . ')' );
+					}
+
+					if ( is_multisite() ) {
+						restore_current_blog();
+					} else {
+						break;
+					}
+				}
+			}
+
+			$meta['multisite']            = false;
+			$meta['subdomain_install']    = false;
+			$meta['domain_current_site']  = false;
+			$meta['path_current_site']    = false;
+			$meta['site_id_current_site'] = false;
+			$meta['blog_id_current_site'] = false;
+
+			$meta_sites = [];
+
+			if ( is_multisite() ) {
+				$meta['multisite'] = true;
+
+				if ( defined( 'SUBDOMAIN_INSTALL' ) && SUBDOMAIN_INSTALL ) {
+					$meta['subdomain_install'] = true;
+				}
+
+				if ( defined( 'DOMAIN_CURRENT_SITE' ) ) {
+					$meta['domain_current_site'] = DOMAIN_CURRENT_SITE;
+				}
+
+				if ( defined( 'PATH_CURRENT_SITE' ) ) {
+					$meta['path_current_site'] = PATH_CURRENT_SITE;
+				}
+
+				if ( defined( 'SITE_ID_CURRENT_SITE' ) ) {
+					$meta['site_id_current_site'] = SITE_ID_CURRENT_SITE;
+				}
+
+				if ( defined( 'BLOG_ID_CURRENT_SITE' ) ) {
+					$meta['blog_id_current_site'] = BLOG_ID_CURRENT_SITE;
+				}
+
+				$sites = get_sites( [ 'number' => 500 ] );
+
+				foreach ( $sites as $site ) {
+					$meta_sites[] = [
+						'blog_id'  => $site->blog_id,
+						'domain'   => $site->domain,
+						'path'     => $site->path,
+						'site_url' => get_blog_option( $site->blog_id, 'siteurl' ),
+						'home_url' => get_blog_option( $site->blog_id, 'home' ),
+						'blogname' => get_blog_option( $site->blog_id, 'blogname' ),
+					];
+				}
+			} else {
+				$meta_sites[] = [
+					'site_url' => get_option( 'siteurl' ),
+					'home_url' => get_option( 'home' ),
+					'blogname' => get_option( 'blogname' ),
+				];
+			}
+
+			$meta['sites'] = $meta_sites;
+
+			$main_blog_id = ( defined( 'BLOG_ID_CURRENT_SITE' ) ) ? BLOG_ID_CURRENT_SITE : null;
+
+			$meta['table_prefix'] = $wpdb->get_blog_prefix( $main_blog_id );
+
+			/**
+			 * Dump sql to .wpsnapshots/data.sql
+			 */
+			$command          = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
 			$command_esc_args = array( DB_NAME );
+			$command         .= ' --tables';
 
-			$command           .= ' --tables %s';
-			$command_esc_args[] = $GLOBALS['table_prefix'] . 'users';
+			/**
+			 * We only export tables with WP prefix
+			 */
+			Log::instance()->write( 'Getting WordPress tables...', 1 );
+
+			$tables = Utils\get_tables();
+
+			foreach ( $tables as $table ) {
+				// We separate the users/meta table for scrubbing
+				if ( 0 < $args['scrub'] && $wpdb->users === $table ) {
+					continue;
+				}
+
+				if ( 2 === $args['scrub'] && $wpdb->usermeta === $table ) {
+					continue;
+				}
+
+				$command           .= ' %s';
+				$command_esc_args[] = trim( $table );
+			}
 
 			$mysql_args = [
 				'host'        => DB_HOST,
 				'pass'        => DB_PASSWORD,
 				'user'        => DB_USER,
-				'result-file' => $snapshot_path . 'data-users.sql',
+				'result-file' => $snapshot_path . 'data.sql',
 			];
+
+			if ( defined( 'DB_CHARSET' ) && constant( 'DB_CHARSET' ) ) {
+				$mysql_args['default-character-set'] = constant( 'DB_CHARSET' );
+			}
 
 			$escaped_command = call_user_func_array( '\WPSnapshots\Utils\esc_cmd', array_merge( array( $command ), $command_esc_args ) );
 
-			Log::instance()->write( 'Exporting users...', 1 );
+			Log::instance()->write( 'Exporting database...' );
 
 			Utils\run_mysql_command( $escaped_command, $mysql_args );
 
-			Log::instance()->write( 'Scrubbing user database...' );
+			if ( 1 === $args['scrub'] ) {
 
-			$all_hashed_passwords = [];
-			$all_emails           = [];
+				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
 
-			Log::instance()->write( 'Getting users...', 1 );
+				$command_esc_args = array( DB_NAME );
 
-			$user_rows = $wpdb->get_results( "SELECT user_pass, user_email FROM $wpdb->users", ARRAY_A );
+				$command           .= ' --tables %s';
+				$command_esc_args[] = $wpdb->users;
 
-			foreach ( $user_rows as $user_row ) {
-				$all_hashed_passwords[] = $user_row['user_pass'];
-				if ( $user_row['user_email'] ) {
-					$all_emails[] = $user_row['user_email'];
-				}
-			}
+				$mysql_args = [
+					'host'        => DB_HOST,
+					'pass'        => DB_PASSWORD,
+					'user'        => DB_USER,
+					'result-file' => $snapshot_path . 'data-users.sql',
+				];
 
-			$sterile_password = wp_hash_password( 'password' );
-			$sterile_email    = 'user%d@example.com';
+				$escaped_command = call_user_func_array( '\WPSnapshots\Utils\esc_cmd', array_merge( array( $command ), $command_esc_args ) );
 
-			Log::instance()->write( 'Opening users export...', 1 );
+				Log::instance()->write( 'Exporting users...', 1 );
 
-			$users_handle = @fopen( $snapshot_path . 'data-users.sql', 'r' );
-			$data_handle  = @fopen( $snapshot_path . 'data.sql', 'a' );
+				Utils\run_mysql_command( $escaped_command, $mysql_args );
 
-			if ( ! $users_handle || ! $data_handle ) {
-				Log::instance()->write( 'Could not scrub users.', 0, 'error' );
+				Log::instance()->write( 'Scrubbing user database...' );
 
-				return false;
-			}
+				Log::instance()->write( 'Scrub severity is 1.', 1 );
 
-			$buffer = '';
-			$i      = 0;
+				$all_hashed_passwords = [];
+				$all_emails           = [];
 
-			Log::instance()->write( 'Writing scrubbed user data and merging exports...', 1 );
+				Log::instance()->write( 'Getting users...', 1 );
 
-			while ( ! feof( $users_handle ) ) {
-				$chunk = fread( $users_handle, 4096 );
+				$user_rows = $wpdb->get_results( "SELECT user_pass, user_email FROM $wpdb->users", ARRAY_A );
 
-				foreach ( $all_hashed_passwords as $password ) {
-					$chunk = str_replace( "'$password'", "'$sterile_password'", $chunk );
+				foreach ( $user_rows as $user_row ) {
+					$all_hashed_passwords[] = $user_row['user_pass'];
+					if ( $user_row['user_email'] ) {
+						$all_emails[] = $user_row['user_email'];
+					}
 				}
 
-				foreach ( $all_emails as $index => $email ) {
-					$chunk = str_replace(
-						"'$email'",
-						sprintf( "'$sterile_email'", $index ),
-						$chunk
-					);
+				$sterile_password = wp_hash_password( 'password' );
+				$sterile_email    = 'user%d@example.com';
+
+				Log::instance()->write( 'Opening users export...', 1 );
+
+				$users_handle = @fopen( $snapshot_path . 'data-users.sql', 'r' );
+				$data_handle  = @fopen( $snapshot_path . 'data.sql', 'a' );
+
+				if ( ! $users_handle || ! $data_handle ) {
+					Log::instance()->write( 'Could not scrub users.', 0, 'error' );
+
+					return false;
 				}
 
-				$buffer .= $chunk;
+				$buffer = '';
+				$i      = 0;
 
-				if ( 0 === $i % 10000 ) {
+				Log::instance()->write( 'Writing scrubbed user data and merging exports...', 1 );
+
+				while ( ! feof( $users_handle ) ) {
+					$chunk = fread( $users_handle, 4096 );
+
+					foreach ( $all_hashed_passwords as $password ) {
+						$chunk = str_replace( "'$password'", "'$sterile_password'", $chunk );
+					}
+
+					foreach ( $all_emails as $index => $email ) {
+						$chunk = str_replace(
+							"'$email'",
+							sprintf( "'$sterile_email'", $index ),
+							$chunk
+						);
+					}
+
+					$buffer .= $chunk;
+
+					if ( 0 === $i % 10000 ) {
+						fwrite( $data_handle, $buffer );
+						$buffer = '';
+					}
+
+					$i++;
+				}
+
+				if ( ! empty( $buffer ) ) {
 					fwrite( $data_handle, $buffer );
 					$buffer = '';
 				}
 
-				$i++;
+				fclose( $data_handle );
+				fclose( $users_handle );
+
+				Log::instance()->write( 'Removing old users SQL...', 1 );
+
+				unlink( $snapshot_path . 'data-users.sql' );
+			} elseif ( 2 === $args['scrub'] ) {
+				Log::instance()->write( 'Scrubbing users...' );
+
+				$dummy_users = Utils\get_dummy_users();
+
+				Log::instance()->write( 'Duplicating users table..', 1 );
+
+				$wpdb->query( "CREATE TABLE {$wpdb->users}_temp LIKE $wpdb->users" );
+				$wpdb->query( "INSERT INTO {$wpdb->users}_temp SELECT * FROM $wpdb->users" );
+
+				Log::instance()->write( 'Scrub each user record..', 1 );
+
+				$offset = 0;
+
+				$password = wp_hash_password( 'password' );
+
+				$user_ids = [];
+
+				while ( true ) {
+					$users = $wpdb->get_results( $wpdb->prepare( "SELECT ID, user_login FROM {$wpdb->users}_temp LIMIT 1000 OFFSET %d", $offset ), ARRAY_A );
+
+					if ( empty( $users ) ) {
+						break;
+					}
+
+					if ( 1000 <= $offset ) {
+						usleep( 100 );
+					}
+
+					foreach ( $users as $user ) {
+						$user_id = (int) $user['ID'];
+
+						$user_ids[] = $user_id;
+
+						$dummy_user = $dummy_users[ $user_id % 1000 ];
+
+						$wpdb->query(
+							$wpdb->prepare(
+								"UPDATE {$wpdb->users}_temp SET user_pass=%s, user_email=%s, user_url='', user_activation_key='', display_name=%s WHERE ID=%d",
+								$password,
+								$dummy_user['email'],
+								$user['user_login'],
+								$user['ID']
+							)
+						);
+					}
+
+					$offset += 1000;
+				}
+
+				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
+
+				$command_esc_args = array( DB_NAME );
+
+				$command           .= ' --tables %s';
+				$command_esc_args[] = $wpdb->users . '_temp';
+
+				$mysql_args = [
+					'host'        => DB_HOST,
+					'pass'        => DB_PASSWORD,
+					'user'        => DB_USER,
+					'result-file' => $snapshot_path . 'data-users.sql',
+				];
+
+				$escaped_command = call_user_func_array( '\WPSnapshots\Utils\esc_cmd', array_merge( array( $command ), $command_esc_args ) );
+
+				Log::instance()->write( 'Exporting users...', 1 );
+
+				Utils\run_mysql_command( $escaped_command, $mysql_args );
+
+				$users_sql = file_get_contents( $snapshot_path . 'data-users.sql' );
+
+				Log::instance()->write( 'Duplicating user meta table..', 1 );
+
+				$wpdb->query( "CREATE TABLE {$wpdb->usermeta}_temp LIKE $wpdb->usermeta" );
+				$wpdb->query( "INSERT INTO {$wpdb->usermeta}_temp SELECT * FROM $wpdb->usermeta" );
+
+				// Just truncate these fields
+				$wpdb->query( "UPDATE {$wpdb->usermeta}_temp SET meta_value='' WHERE meta_key='description' OR meta_key='session_tokens'" );
+
+				for ( $i = 0; $i < count( $user_ids ); $i++ ) {
+					if ( 1 < $i && 0 === $i % 1000 ) {
+						usleep( 100 );
+					}
+
+					$user_id = $user_ids[ $i ];
+
+					$dummy_user = $dummy_users[ $user_id % 1000 ];
+
+					$wpdb->query( "UPDATE {$wpdb->usermeta}_temp SET meta_value='{$dummy_user['first_name']}' WHERE meta_key='first_name' AND user_id='{$user_id}'" );
+					$wpdb->query( "UPDATE {$wpdb->usermeta}_temp SET meta_value='{$dummy_user['last_name']}' WHERE meta_key='last_name' AND user_id='{$user_id}'" );
+					$wpdb->query( "UPDATE {$wpdb->usermeta}_temp SET meta_value='{$dummy_user['first_name']}' WHERE meta_key='nickname' AND user_id='{$user_id}'" );
+				}
+
+				$command = '/usr/bin/env mysqldump --no-defaults --single-transaction %s';
+
+				$command_esc_args = array( DB_NAME );
+
+				$command           .= ' --tables %s';
+				$command_esc_args[] = $wpdb->usermeta . '_temp';
+
+				$mysql_args = [
+					'host'        => DB_HOST,
+					'pass'        => DB_PASSWORD,
+					'user'        => DB_USER,
+					'result-file' => $snapshot_path . 'data-usermeta.sql',
+				];
+
+				$escaped_command = call_user_func_array( '\WPSnapshots\Utils\esc_cmd', array_merge( array( $command ), $command_esc_args ) );
+
+				Log::instance()->write( 'Exporting usermeta...', 1 );
+
+				Utils\run_mysql_command( $escaped_command, $mysql_args );
+
+				$usermeta_sql = file_get_contents( $snapshot_path . 'data-usermeta.sql' );
+
+				Log::instance()->write( 'Appending scrubbed SQL to dump file...', 1 );
+
+				file_put_contents( $snapshot_path . 'data.sql', preg_replace( '#`' . $wpdb->users . '_temp`#', $wpdb->users, $users_sql ) . preg_replace( '#`' . $wpdb->usermeta . '_temp`#', $wpdb->usermeta, $usermeta_sql ), FILE_APPEND );
+
+				Log::instance()->write( 'Removing temporary tables...', 1 );
+
+				$wpdb->query( "DROP TABLE {$wpdb->usermeta}_temp" );
+				$wpdb->query( "DROP TABLE {$wpdb->users}_temp" );
+
+				Log::instance()->write( 'Removing old users and usermeta SQL...', 1 );
+
+				unlink( $snapshot_path . 'data-users.sql' );
+				unlink( $snapshot_path . 'data-usermeta.sql' );
 			}
 
-			if ( ! empty( $buffer ) ) {
-				fwrite( $data_handle, $buffer );
-				$buffer = '';
-			}
+			Log::instance()->write( 'Compressing database backup...', 1 );
 
-			fclose( $data_handle );
-			fclose( $users_handle );
-
-			Log::instance()->write( 'Removing old SQL...', 1 );
-
-			unlink( $snapshot_path . 'data-users.sql' );
+			exec( 'gzip -9 ' . Utils\escape_shell_path( $snapshot_path ) . 'data.sql ' . $verbose_pipe );
 		}
-
-		$verbose_pipe = ( empty( Log::instance()->getVerbosity() ) ) ? '> /dev/null' : '';
 
 		/**
 		 * Create file back up of wp-content in .wpsnapshots/files.tar.gz
 		 */
 
-		Log::instance()->write( 'Saving file back up...' );
+		if ( $args['contains_files'] ) {
+			Log::instance()->write( 'Saving files...' );
 
-		$excludes = '';
+			$excludes = '';
 
-		if ( ! empty( $args['exclude'] ) ) {
-			foreach ( $args['exclude'] as $exclude ) {
-				$exclude = trim( $exclude );
+			if ( ! empty( $args['exclude'] ) ) {
+				foreach ( $args['exclude'] as $exclude ) {
+					$exclude = trim( $exclude );
 
-				if ( ! preg_match( '#^\./.*#', $exclude ) ) {
-					$exclude = './' . $exclude;
+					if ( ! preg_match( '#^\./.*#', $exclude ) ) {
+						$exclude = './' . $exclude;
+					}
+
+					Log::instance()->write( 'Excluding ' . $exclude, 1 );
+
+					$excludes .= ' --exclude="' . $exclude . '"';
 				}
-
-				Log::instance()->write( 'Excluding ' . $exclude, 1 );
-
-				$excludes .= ' --exclude="' . $exclude . '"';
 			}
+
+			Log::instance()->write( 'Compressing files...', 1 );
+
+			$v_flag = ( ! empty( Log::instance()->getVerbosity() ) ) ? 'v' : '';
+
+			$command = 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zc' . $v_flag . 'f ' . Utils\escape_shell_path( $snapshot_path ) . 'files.tar.gz . ' . $verbose_pipe;
+
+			Log::instance()->write( $command, 2 );
+
+			exec( $command );
 		}
 
-		Log::instance()->write( 'Compressing files...', 1 );
+		if ( $args['contains_db'] ) {
+			$meta['db_size'] = filesize( $snapshot_path . 'data.sql.gz' );
+		}
 
-		$v_flag = ( ! empty( Log::instance()->getVerbosity() ) ) ? 'v' : '';
-
-		$command = 'cd ' . escapeshellarg( WP_CONTENT_DIR ) . '/ && tar ' . $excludes . ' -zc' . $v_flag . 'f ' . Utils\escape_shell_path( $snapshot_path ) . 'files.tar.gz . ' . $verbose_pipe;
-
-		Log::instance()->write( $command, 2 );
-
-		exec( $command );
-
-		Log::instance()->write( 'Compressing database backup...', 1 );
-
-		exec( 'gzip -9 ' . Utils\escape_shell_path( $snapshot_path ) . 'data.sql ' . $verbose_pipe );
-
-		$meta['size'] = filesize( $snapshot_path . 'data.sql.gz' ) + filesize( $snapshot_path . 'files.tar.gz' );
+		if ( $args['contains_files'] ) {
+			$meta['files_size'] = filesize( $snapshot_path . 'files.tar.gz' );
+		}
 
 		/**
 		 * Finally save snapshot meta to meta.json
 		 */
-		$meta_handle = @fopen( $snapshot_path . 'meta.json', 'x' ); // Create file and fail if it exists.
-
-		if ( ! $meta_handle ) {
-			Log::instance()->write( 'Could not create .wpsnapshots/SNAPSHOT_ID/meta.json.', 0, 'error' );
-
-			return false;
-		}
-
-		fwrite( $meta_handle, json_encode( $meta, JSON_PRETTY_PRINT ) );
+		$meta->saveLocal();
 
 		$snapshot = new self( $id, $args['repository'], $meta );
 
@@ -426,20 +721,22 @@ class Snapshot {
 	}
 
 	/**
-	 * Download snapshot.
+	 * Download snapshot from remote DB.
 	 *
 	 * @param   string $id Snapshot id
 	 * @param   string $repository_name Name of repo
+	 * @param   bool   $no_files If set to true, files will not be downloaded even if available. Defaults to false.
+	 * @param   bool   $no_db If set to true, db will not be downloaded even if available. Defaults to false.
 	 * @return  bool|Snapshot
 	 */
-	public static function download( $id, $repository_name ) {
-		if ( Utils\is_snapshot_cached( $id ) ) {
-			Log::instance()->write( 'Snapshot found in cache.' );
+	public static function getRemote( $id, $repository_name, $no_files = false, $no_db = false ) {
+		if ( $no_files && $no_db ) {
+			Log::instance()->write( 'Either files or database must be downloaded.', 0, 'error' );
 
-			return self::get( $id );
+			return false;
 		}
 
-		$create_dir = Utils\create_snapshot_directory( $id );
+		$create_dir = Utils\create_snapshot_directory( $id, true );
 
 		if ( ! $create_dir ) {
 			Log::instance()->write( 'Cannot create necessary snapshot directories.', 0, 'error' );
@@ -457,31 +754,52 @@ class Snapshot {
 
 		Log::instance()->write( 'Getting snapshot information...' );
 
-		$snapshot = $repository->getDB()->getSnapshot( $id );
+		$meta = Meta::getRemote( $id, $repository_name );
 
-		if ( ! $snapshot ) {
+		if ( empty( $meta ) ) {
 			Log::instance()->write( 'Could not get snapshot from database.', 0, 'error' );
 
 			return false;
 		}
 
-		if ( empty( $snapshot ) || empty( $snapshot['project'] ) ) {
+		if ( empty( $meta['project'] ) ) {
 			Log::instance()->write( 'Missing critical snapshot data.', 0, 'error' );
+
 			return false;
+		}
+
+		if ( $no_files ) {
+			$meta['contains_files'] = false;
+		}
+
+		if ( $no_db ) {
+			$meta['contains_db'] = false;
 		}
 
 		/**
 		 * Backwards compant. Add repository to meta before we started saving it.
 		 */
-		if ( empty( $snapshot['repository'] ) ) {
-			$snapshot['repository'] = $repository_name;
+		if ( empty( $meta['repository'] ) ) {
+			$meta['repository'] = $repository_name;
 		}
 
-		Log::instance()->write( 'Downloading snapshot files and database (' . Utils\format_bytes( $snapshot['size'] ) . ')...' );
+		$formatted_size = '';
 
-		$snapshot_path = Utils\get_snapshot_directory() . $id . '/';
+		if ( empty( $meta['files_size'] ) && empty( $meta['db_size'] ) ) {
+			if ( $meta['contains_files'] && $meta['contains_db'] ) {
+				$formatted_size = ' (' . Utils\format_bytes( $meta['size'] ) . ')';
+			}
+		} else {
+			$size = (int) $meta['files_size'] + (int) $meta['db_size'];
 
-		$download = $repository->getS3()->downloadSnapshot( $id, $snapshot['project'], $snapshot_path . 'data.sql.gz', $snapshot_path . 'files.tar.gz' );
+			$formatted_size = ' (' . Utils\format_bytes( $size ) . ')';
+		}
+
+		$snapshot = new self( $id, $repository_name, $meta, true );
+
+		Log::instance()->write( 'Downloading snapshot' . $formatted_size . '...' );
+
+		$download = $repository->getS3()->downloadSnapshot( $snapshot );
 
 		if ( ! $download ) {
 			Log::instance()->write( 'Failed to download snapshot.', 0, 'error' );
@@ -492,17 +810,16 @@ class Snapshot {
 		/**
 		 * Finally save snapshot meta to meta.json
 		 */
-		$meta_handle = @fopen( $snapshot_path . 'meta.json', 'x' ); // Create file and fail if it exists.
 
-		if ( ! $meta_handle ) {
-			Log::instance()->write( 'Could not create meta.json.', 0, 'error' );
+		$save_local = $meta->saveLocal();
+
+		if ( ! $save_local ) {
+			Log::instance()->write( 'Could not create .wpsnapshots/' . $id . '/meta.json.', 0, 'error' );
 
 			return false;
 		}
 
-		fwrite( $meta_handle, json_encode( $snapshot, JSON_PRETTY_PRINT ) );
-
-		return new self( $id, $repository_name, $snapshot, true );
+		return $snapshot;
 	}
 
 	/**
@@ -527,9 +844,9 @@ class Snapshot {
 		/**
 		 * Put files to S3
 		 */
-		Log::instance()->write( 'Uploading files (' . Utils\format_bytes( $this->meta['size'] ) . ')...' );
+		Log::instance()->write( 'Uploading files (' . Utils\format_bytes( ( (int) $this->meta['files_size'] + (int) $this->meta['db_size'] ) ) . ')...' );
 
-		$s3_add = $repository->getS3()->putSnapshot( $this->id, $this->meta['project'], Utils\get_snapshot_directory() . $this->id . '/data.sql.gz', Utils\get_snapshot_directory() . $this->id . '/files.tar.gz' );
+		$s3_add = $repository->getS3()->putSnapshot( $this );
 
 		if ( ! $s3_add ) {
 			Log::instance()->write( 'Could not upload files to S3.', 0, 'error' );
@@ -542,7 +859,7 @@ class Snapshot {
 		 */
 		Log::instance()->write( 'Adding snapshot to database...' );
 
-		$inserted_snapshot = $repository->getDB()->insertSnapshot( $this->id, $this->meta );
+		$inserted_snapshot = $repository->getDB()->insertSnapshot( $this );
 
 		if ( ! $inserted_snapshot ) {
 			Log::instance()->write( 'Could not add snapshot to database.', 0, 'error' );

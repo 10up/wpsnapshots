@@ -15,6 +15,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use WPSnapshots\Utils;
 use WPSnapshots\RepositoryManager;
 use WPSnapshots\Log;
@@ -30,8 +31,9 @@ class Search extends Command {
 	protected function configure() {
 		$this->setName( 'search' );
 		$this->setDescription( 'Search for snapshots within a repository.' );
-		$this->addArgument( 'search_text', InputArgument::REQUIRED, 'Text to search against snapshots.' );
+		$this->addArgument( 'search_text', InputArgument::REQUIRED | InputArgument::IS_ARRAY, 'Text to search against snapshots. If multiple queries are used, they must match exactly to project names or snapshot ids.' );
 		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
+		$this->addOption( 'format', null, InputOption::VALUE_OPTIONAL, 'Render output in a particular format. Available options: table and json. Defaults to table.', 'table' );
 	}
 
 	/**
@@ -52,7 +54,7 @@ class Search extends Command {
 
 		$instances = $repository->getDB()->search( $input->getArgument( 'search_text' ) );
 
-		if ( ! $instances ) {
+		if ( false === $instances ) {
 			Log::instance()->write( 'An error occured while searching.', 0, 'success' );
 		}
 
@@ -61,32 +63,77 @@ class Search extends Command {
 			return;
 		}
 
-		$table = new Table( $output );
-		$table->setHeaders( [ 'ID', 'Project', 'Description', 'Author', 'Size', 'Multisite', 'Created' ] );
-
 		$rows = [];
+		$output_format = $input->getOption( 'format' );
+
+		$date_format = 'F j, Y, g:i a';
+		if ( 'json' === $output_format ) {
+			$date_format = 'U';
+		}
 
 		foreach ( $instances as $instance ) {
 			if ( empty( $instance['time'] ) ) {
 				$instance['time'] = time();
 			}
 
+			// Defaults to yes for backwards compat since old snapshots dont have this meta.
+			$contains_files = 'Yes';
+			$contains_db    = 'Yes';
+
+			if ( isset( $instance['contains_files'] ) ) {
+				$contains_files = $instance['contains_files'] ? 'Yes' : 'No';
+			}
+
+			if ( isset( $instance['contains_db'] ) ) {
+				$contains_db = $instance['contains_db'] ? 'Yes' : 'No';
+			}
+
+			$size = '-';
+
+			if ( empty( $instance['files_size'] ) && empty( $instance['db_size'] ) ) {
+				// This is for backwards compat with old snapshots
+				if ( ! empty( $instance['size'] ) ) {
+					$size = Utils\format_bytes( (int) $instance['size'] );
+				}
+			} else {
+				$size = 0;
+
+				if ( ! empty( $instance['files_size'] ) ) {
+					$size += (int) $instance['files_size'];
+				} if ( ! empty( $instance['db_size'] ) ) {
+					$size += (int) $instance['db_size'];
+				}
+
+				$size = Utils\format_bytes( $size );
+			}
+
 			$rows[ $instance['time'] ] = [
-				'id'          => ( ! empty( $instance['id'] ) ) ? $instance['id'] : '',
-				'project'     => ( ! empty( $instance['project'] ) ) ? $instance['project'] : '',
-				'description' => ( ! empty( $instance['description'] ) ) ? $instance['description'] : '',
-				'author'      => ( ! empty( $instance['author']['name'] ) ) ? $instance['author']['name'] : '',
-				'size'        => ( ! empty( $instance['size'] ) ) ? Utils\format_bytes( (int) $instance['size'] ) : '',
-				'multisite'   => ( ! empty( $instance['multisite'] ) ) ? 'Yes' : 'No',
-				'created'     => ( ! empty( $instance['time'] ) ) ? date( 'F j, Y, g:i a', $instance['time'] ) : '',
+				'id'             => ( ! empty( $instance['id'] ) ) ? $instance['id'] : '',
+				'project'        => ( ! empty( $instance['project'] ) ) ? $instance['project'] : '',
+				'contains_files' => $contains_files,
+				'contains_db'    => $contains_db,
+				'description'    => ( ! empty( $instance['description'] ) ) ? $instance['description'] : '',
+				'author'         => ( ! empty( $instance['author']['name'] ) ) ? $instance['author']['name'] : '',
+				'size'           => $size,
+				'multisite'      => ( ! empty( $instance['multisite'] ) ) ? 'Yes' : 'No',
+				'created'        => ( ! empty( $instance['time'] ) ) ? date( $date_format, $instance['time'] ) : '',
 			];
 		}
 
 		ksort( $rows );
 
-		$table->setRows( $rows );
-
-		$table->render();
+		switch( $output_format ) {
+			case 'json':
+				$io = new SymfonyStyle( $input, $output );
+				$io->write( json_encode( array_values( $rows ) ) . PHP_EOL );
+				break;
+			default:
+				$table = new Table( $output );
+				$table->setHeaders( [ 'ID', 'Project', 'Files', 'Database', 'Description', 'Author', 'Size', 'Multisite', 'Created' ] );
+				$table->setRows( $rows );
+				$table->render();
+				break;
+		}
 	}
 
 }

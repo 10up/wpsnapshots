@@ -72,6 +72,7 @@ class DB {
 				],
 				'region'      => $region,
 				'version'     => '2012-08-10',
+				'csm'         => false,
 			]
 		);
 	}
@@ -80,7 +81,7 @@ class DB {
 	 * Use DynamoDB scan to search tables for snapshots where project, id, or author information
 	 * matches search text. Searching for "*" returns all snapshots.
 	 *
-	 * @param  string $query Search query string
+	 * @param  string|array $query Search query string
 	 * @return array
 	 */
 	public function search( $query ) {
@@ -90,21 +91,26 @@ class DB {
 			'TableName' => 'wpsnapshots-' . $this->repository,
 		];
 
-		if ( '*' !== $query ) {
-			$args['ConditionalOperator'] = 'OR';
+		if ( ! is_array( $query ) ) {
+			$query = [ $query ];
+		}
 
-			$args['ScanFilter'] = [
+		if ( ! in_array( '*', $query ) ) {
+			$attribute_value_list = array_map( function( $text ) {
+				return [ 'S' => strtolower( $text ) ];
+			}, $query );
+
+			$is_multiple_queries = count( $attribute_value_list ) > 1;
+
+			$args['ConditionalOperator'] = 'OR';
+			$args['ScanFilter']          = [
 				'project' => [
-					'AttributeValueList' => [
-						[ 'S' => strtolower( $query ) ],
-					],
-					'ComparisonOperator' => 'CONTAINS',
+					'AttributeValueList' => $attribute_value_list,
+					'ComparisonOperator' => $is_multiple_queries ? 'IN' : 'CONTAINS',
 				],
 				'id'      => [
-					'AttributeValueList' => [
-						[ 'S' => strtolower( $query ) ],
-					],
-					'ComparisonOperator' => 'EQ',
+					'AttributeValueList' => $attribute_value_list,
+					'ComparisonOperator' => $is_multiple_queries ? 'IN' : 'EQ',
 				],
 			];
 		}
@@ -132,28 +138,19 @@ class DB {
 	/**
 	 * Insert a snapshot into the DB
 	 *
-	 * @param  string $id Snapshot ID
-	 * @param  array  $snapshot Description of snapshot
+	 * @param  Snapshot $snapshot Snapshot to insert
 	 * @return array|bool
 	 */
-	public function insertSnapshot( $id, $snapshot ) {
+	public function insertSnapshot( Snapshot $snapshot ) {
 		$marshaler = new Marshaler();
 
 		$snapshot_item = [
-			'project'           => strtolower( $snapshot['project'] ),
-			'id'                => $id,
-			'time'              => time(),
-			'description'       => $snapshot['description'],
-			'author'            => $snapshot['author'],
-			'multisite'         => $snapshot['multisite'],
-			'sites'             => $snapshot['sites'],
-			'table_prefix'      => $snapshot['table_prefix'],
-			'subdomain_install' => $snapshot['subdomain_install'],
-			'size'              => $snapshot['size'],
-			'wp_version'        => $snapshot['wp_version'],
-			'repository'        => $snapshot['repository'],
+			'project' => strtolower( $snapshot->meta['project'] ),
+			'id'      => $snapshot->id,
+			'time'    => time(),
 		];
 
+		$snapshot_item = array_merge( $snapshot_item, $snapshot->meta->toArray() );
 		$snapshot_json = json_encode( $snapshot_item );
 
 		try {

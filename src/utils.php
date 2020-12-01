@@ -336,12 +336,13 @@ function locate_wp_config( $path ) {
 /**
  * Create snapshots cache. Providing an id creates the subdirectory as well.
  *
- * @param  string $id Optional ID. Setting this will create the snapshot directory.
+ * @param  string $id   Optional ID. Setting this will create the snapshot directory.
+ * @param  bool   $hard Overwrite an existing snapshot
  * @return bool
  */
-function create_snapshot_directory( $id = null ) {
+function create_snapshot_directory( $id = null, $hard = false ) {
 	if ( ! file_exists( get_snapshot_directory() ) ) {
-		$dir_result = mkdir( get_snapshot_directory(), 0755 );
+		$dir_result = @mkdir( get_snapshot_directory(), 0755 );
 
 		if ( ! $dir_result ) {
 			return false;
@@ -353,6 +354,15 @@ function create_snapshot_directory( $id = null ) {
 	}
 
 	if ( ! empty( $id ) ) {
+		if ( $hard && file_exists( get_snapshot_directory() . $id . '/' ) ) {
+			array_map( 'unlink', glob( get_snapshot_directory() . $id . '/*.*' ) );
+			$rm_result = rmdir( get_snapshot_directory() . $id . '/' );
+
+			if ( ! $rm_result ) {
+				return false;
+			}
+		}
+
 		if ( ! file_exists( get_snapshot_directory() . $id . '/' ) ) {
 			$dir_result = mkdir( get_snapshot_directory() . $id . '/', 0755 );
 
@@ -465,7 +475,7 @@ function get_tables( $wp = true ) {
 		$table      = $table_info[0];
 
 		if ( $wp ) {
-			if ( 0 === strpos( $table, $GLOBALS['table_prefix'] ) ) {
+			if ( 0 === strpos( $table, $wpdb->base_prefix ) ) {
 				$tables[] = $table;
 			}
 		} else {
@@ -611,4 +621,33 @@ function check_proc_available() {
 	}
 
 	return true;
+}
+
+/**
+ * Get array of dummy user data to use for scrubbing
+ *
+ * @return array
+ */
+function get_dummy_users() {
+	static $users = [];
+
+	if ( empty( $users ) ) {
+		$file = fopen( __DIR__ . '/data/users.csv', 'r' );
+
+		while ( false !== ( $line = fgetcsv( $file ) ) ) {
+
+			$user = [
+				'username'   => $line[0],
+				'first_name' => $line[1],
+				'last_name'  => $line[2],
+				'email'      => $line[3],
+			];
+
+			$users[] = $user;
+		}
+
+		fclose( $file );
+	}
+
+	return $users;
 }
