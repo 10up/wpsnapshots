@@ -52,6 +52,8 @@ class Push extends Command {
 		$this->addOption( 'db_password', null, InputOption::VALUE_REQUIRED, 'Database password.' );
 		$this->addOption( 'exclude', false, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Exclude a file or directory from the snapshot.' );
 		$this->addOption( 'exclude_uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
+
+		$this->addOption( 'wp_version', null, InputOption::VALUE_OPTIONAL, 'Override the WordPress version.' );
 	}
 /**
 	 * Executes the command
@@ -175,6 +177,7 @@ class Push extends Command {
 					'repository'     => $repository->getName(),
 					'contains_db'    => $include_db,
 					'contains_files' => $include_files,
+					'wp_version'     => $input->getOption( 'wp_version' ),
 				], $output, $verbose
 			);
 		}
