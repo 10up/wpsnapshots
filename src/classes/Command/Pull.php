@@ -42,10 +42,13 @@ class Pull extends Command {
 		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
 		$this->addOption( 'confirm_wp_download', null, InputOption::VALUE_NONE, 'Confirm WordPress download.' );
 		$this->addOption( 'confirm_config_create', null, InputOption::VALUE_NONE, 'Confirm wp-config.php create.' );
-		$this->addOption( 'confirm_wp_version_change', null, InputOption::VALUE_NONE, 'Confirm changing WP version to match snapshot.' );
+		$this->addOption( 'confirm_wp_version_change', null, InputOption::VALUE_OPTIONAL, 'Confirm changing WP version to match snapshot.', false );
 		$this->addOption( 'confirm_ms_constant_update', null, InputOption::VALUE_NONE, 'Confirm updating constants in wp-config.php for multisite.' );
-		$this->addOption( 'include_files', null, InputOption::VALUE_NONE, 'Pull files within snapshot.' );
-		$this->addOption( 'include_db', null, InputOption::VALUE_NONE, 'Pull database within snapshot.' );
+
+		$this->addOption( 'suppress_instructions', null, InputOption::VALUE_NONE, 'Suppress instructions after successful installation.' );
+		$this->addOption( 'overwrite_local_copy', null, InputOption::VALUE_NONE, 'Overwrite a local copy of the snapshot if there is one.' );
+		$this->addOption( 'include_files', null, InputOption::VALUE_OPTIONAL, 'Pull files within snapshot.', false );
+		$this->addOption( 'include_db', null, InputOption::VALUE_OPTIONAL, 'Pull database within snapshot.', false );
 
 		$this->addOption( 'config_db_host', null, InputOption::VALUE_REQUIRED, 'Config database host.' );
 		$this->addOption( 'config_db_name', null, InputOption::VALUE_REQUIRED, 'Config database name.' );
@@ -111,7 +114,11 @@ class Pull extends Command {
 		}
 
 		if ( ! empty( $remote_meta ) && ! empty( $local_meta ) ) {
-			$overwrite_local = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot exists locally. Do you want to overwrite it with the remote copy? (y/N) ', false ) );
+			if ( empty( $input->getOption( 'overwrite_local_copy' ) ) ) {
+				$overwrite_local = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot exists locally. Do you want to overwrite it with the remote copy? (y/N) ', false ) );
+			} else {
+				$overwrite_local = true;
+			}
 		}
 
 		if ( empty( $local_meta ) && ! empty( $remote_meta ) ) {
@@ -146,20 +153,22 @@ class Pull extends Command {
 
 		if ( $meta['contains_files'] && $meta['contains_db'] ) {
 			if ( $meta['contains_files'] ) {
-				if ( empty( $input->getOption( 'include_files' ) ) ) {
+				$files = $input->getOption( 'include_files' );
+				if ( false === $files ) {
 					$pull_files = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to pull files? (Y/n) ', true ) );
 				} else {
-					$pull_files = true;
+					$pull_files = is_null( $files ) || filter_var( $files, FILTER_VALIDATE_BOOLEAN ); // is_null( $files ) when `--include_files` is used without a value
 				}
 			} else {
 				$pull_files = false;
 			}
 
 			if ( $meta['contains_db'] ) {
-				if ( empty( $input->getOption( 'include_db' ) ) ) {
+				$database = $input->getOption( 'include_db' );
+				if ( false === $database ) {
 					$pull_db = $helper->ask( $input, $output, new ConfirmationQuestion( 'Do you want to pull the database? (Y/n) ', true ) );
 				} else {
-					$pull_db = true;
+					$pull_db = is_null( $database ) || filter_var( $database, FILTER_VALIDATE_BOOLEAN ); // is_null( $database ) when `--include_db` is used without a value
 				}
 			} else {
 				$pull_db = false;
@@ -333,7 +342,7 @@ class Pull extends Command {
 
 		if ( empty( $confirm ) ) {
 
-			$confirm = $helper->ask( $input, $output, new ConfirmationQuestion( 'Are you sure you want to do this? This is a potentially destructive operation. You should run a back up first. (y/N) ', false ) );
+			$confirm = $helper->ask( $input, $output, new ConfirmationQuestion( 'The snapshot is ready, please, can you confirm that you want to apply it? It is a potentially destructive operation, please, run a back up first. (y/N) ', false ) );
 
 			if ( ! $confirm ) {
 				return 1;
@@ -358,7 +367,7 @@ class Pull extends Command {
 
 			Log::instance()->write( 'Decompressing database backup file...' );
 
-			exec( 'cd ' . Utils\escape_shell_path( $snapshot_path ) . ' && gzip -d -k -f data.sql.gz ' . $verbose_pipe );
+			exec( 'cd ' . Utils\escape_shell_path( $snapshot_path ) . ' && cat data.sql.gz | gzip -d - | tee data.sql ' . $verbose_pipe );
 
 			/**
 			 * Import tables
@@ -435,8 +444,10 @@ class Pull extends Command {
 
 				$change_wp_version = true;
 
-				if ( empty( $confirm_wp_version_change ) ) {
+				if ( false === $confirm_wp_version_change ) {
 					$change_wp_version = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot is running WordPress version ' . $snapshot->meta['wp_version'] . ', and you are running ' . $wp_version . '. Do you want to change your WordPress version to ' . $snapshot->meta['wp_version'] . '? (Y/n) ', true ) );
+				} else {
+					$change_wp_version = is_null( $confirm_wp_version_change ) || filter_var( $confirm_wp_version_change, FILTER_VALIDATE_BOOLEAN ); // is_null( $confirm_wp_version_change ) when `--confirm_wp_version_change` is used without a value
 				}
 
 				if ( ! empty( $change_wp_version ) ) {
@@ -855,7 +866,7 @@ class Pull extends Command {
 
 		Log::instance()->write( 'Pull finished.', 0, 'success' );
 
-		if ( $pull_db ) {
+		if ( $pull_db && empty( $input->getOption( 'suppress_instructions' ) ) ) {
 			Log::instance()->write( 'Visit in your browser: ' . $first_home_url, 0, 'success' );
 
 			if ( 'localhost' !== parse_url( $first_home_url, PHP_URL_HOST ) ) {

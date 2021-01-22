@@ -1,6 +1,6 @@
 # WP Snapshots
 
-> WP Snapshots is a project sharing tool for WordPress. Operated via the command line, this tool empowers developers to easily push snapshots of projects into the cloud for sharing with team members. Team members can pull snapshots, either creating new WordPress development environments or into existing installs such that everything "just works". No more downloading files, matching WordPress versions, SQL dumps, fixing table prefixes, running search/replace commands, etc. WP Snapshots even works with multisite.
+>  A project sharing tool for WordPress.
 
 [![Support Level](https://img.shields.io/badge/support-active-green.svg)](#support-level) [![Release Version](https://img.shields.io/github/tag/10up/wpsnapshots.svg?label=release)](https://github.com/10up/wpsnapshots/releases/latest) [![MIT License](https://img.shields.io/github/license/10up/wpsnapshots.svg)](https://github.com/10up/wpsnapshots/blob/develop/LICENSE.md)
 
@@ -15,6 +15,8 @@
 * [Troubleshooting](#troubleshooting)
 
 ## Overview
+
+WP Snapshots is a project sharing tool for WordPress. Operated via the command line, this tool empowers developers to easily push snapshots of projects into the cloud for sharing with team members. Team members can pull snapshots, either creating new WordPress development environments or into existing installs such that everything "just works". No more downloading files, matching WordPress versions, SQL dumps, fixing table prefixes, running search/replace commands, etc. WP Snapshots even works with multisite.
 
 WP Snapshots stores snapshots in a centralized repository (AWS). Users setup up WP Snapshots with their team's AWS credentials. Users can then push, pull, and search for snapshots. When a user pushes a snapshot, an instance of their current environment (`wp-content/`, database, etc.) is pushed to Amazon and associated with a particular project slug. When a snapshot is pulled, files are pulled from the cloud either by creating a new WordPress install with the pulled database or by replacing `wp-content/` and intelligently merging the database. WP Snapshots will ensure your local version of WordPress matches the snapshot..
 
@@ -78,7 +80,7 @@ WP Snapshots revolves around pushing, pulling, and searching for snapshots. WP S
 
 Documentation for each operation is as follows:
 
-* __wpsnapshots push [\<snapshot-id\>] [--exclude_uploads] [--exclude] [--scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose] [--small] [--slug] [--description] [--include_files] [--include_db]
+* __wpsnapshots push [\<snapshot-id\>] [--exclude_uploads] [--exclude] [--scrub] [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose] [--small] [--slug] [--description] [--include_files] [--include_db]__
 
   This command pushes a snapshot of a WordPress install to the repository. The command will return a snapshot ID once it's finished that you could pass to a team member. When pushing a snapshot, you can include files and/or the database.
 
@@ -88,15 +90,17 @@ Documentation for each operation is as follows:
 
   `--small` will take 250 posts from each post type along with the associated terms and post meta and delete the rest of the data. This will modify your local database so be careful.
 
-* __wpsnapshots pull \<snapshot-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose] [--include_files] [--include_db]__
+* __wpsnapshots pull \<snapshot-id\> [--path] [--db_host] [--db_name] [--db_user] [--db_password] [--verbose] [--include_files] [--include_db] [--overwrite_local_copy]__
 
   This command pulls an existing snapshot from the repository into your current WordPress install replacing your database and/or `wp-content` directory entirely. If a WordPress install does not exist, it will prompt you to create it. The command will interactively prompt you to map URLs to be search and replaced. If the snapshot is a multisite, you will have to map URLs interactively for each blog in the network. This command will also (optionally) match your current version of WordPress with the snapshots.
 
   After pulling, you can login as admin with the user `wpsnapshots`, password `password`.
 
-* __wpsnapshots search \<search-text\>__
+* __wpsnapshots search \<search-text\>... [--format]__
 
-  This command searches the repository for snapshots. `<search-text>` will be compared against project names and authors. Searching for "\*" will return all snapshots.
+  This command searches the repository for snapshots. `<search-text>` will be compared against project names and authors. Multiple queries can be used to search snapshots in different projects. Searching for "\*" will return all snapshots.
+
+  `--format` will render output using selected format. Supported formats are `table` and `json`. Default value is `table`.
 
 * __wpsnapshots delete \<snapshot-id\> [--verbose]__
 
@@ -141,4 +145,4 @@ WP Snapshots has been used successfully inside [Windows Subsystem for Linux](htt
 
 ## Like what you see?
 
-<a href="http://10up.com/contact/"><img src="https://10updotcom-wpengine.s3.amazonaws.com/uploads/2016/10/10up-Github-Banner.png" width="850" alt="Work with us at 10up"></a>
+<a href="http://10up.com/contact/"><img src="https://10up.com/uploads/2016/10/10up-Github-Banner.png" width="850" alt="Work with us at 10up"></a>
