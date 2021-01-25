@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 ## [Unreleased] - TBD
 
-## [2.1.0] - TBD
+## [2.1.0] - 2021-01-22
 ### Added
 - `--overwirte_local_copy` flag to the `pull` command (props [@eugene-manuilov](https://github.com/eugene-manuilov) via [#71](https://github.com/10up/wpsnapshots/pull/71)).
 - `--suppress_instructions` flag to the `pull` command (props [@eugene-manuilov](https://github.com/eugene-manuilov) via [#76](https://github.com/10up/wpsnapshots/pull/76)).
