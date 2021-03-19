@@ -98,6 +98,8 @@ class Pull extends Command {
 			return 1;
 		}
 
+		$output->writeln( '<comment>Security Warning: WPSnapshots creates copies of your codebase and database. This could result in data retention policy issues, please exercise extreme caution when using production data.</comment>' );
+
 		$id = $input->getArgument( 'snapshot_id' );
 
 		$helper = $this->getHelper( 'question' );
