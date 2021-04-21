@@ -153,21 +153,51 @@ class S3 {
 	public function downloadSnapshot( Snapshot $snapshot ) {
 		try {
 			if ( $snapshot->meta['contains_db'] ) {
+				$object_key  = $snapshot->meta['project'] . '/' . $snapshot->id . '/data.sql.gz';
 				$db_download = $this->client->getObject(
 					[
 						'Bucket' => self::getBucketName( $this->repository ),
-						'Key'    => $snapshot->meta['project'] . '/' . $snapshot->id . '/data.sql.gz',
+						'Key'    => $object_key,
 						'SaveAs' => Utils\get_snapshot_directory() . $snapshot->id . '/data.sql.gz',
+					]
+				);
+				$put_tagging = $this->client->putObjectTagging(
+					[
+						'Bucket'  => self::getBucketName( $this->repository ),
+						'Key'     => $object_key,
+						'Tagging' => [
+							'TagSet' => [
+								[
+									'Key'   => 'lastPullDate',
+									'Value' => strval( time() ),
+								],
+							],
+						],
 					]
 				);
 			}
 
 			if ( $snapshot->meta['contains_files'] ) {
+				$object_key     = $snapshot->meta['project'] . '/' . $snapshot->id . '/files.tar.gz';
 				$files_download = $this->client->getObject(
 					[
 						'Bucket' => self::getBucketName( $this->repository ),
-						'Key'    => $snapshot->meta['project'] . '/' . $snapshot->id . '/files.tar.gz',
+						'Key'    => $object_key,
 						'SaveAs' => Utils\get_snapshot_directory() . $snapshot->id . '/files.tar.gz',
+					]
+				);
+				$put_tagging    = $this->client->putObjectTagging(
+					[
+						'Bucket'  => self::getBucketName( $this->repository ),
+						'Key'     => $object_key,
+						'Tagging' => [
+							'TagSet' => [
+								[
+									'Key'   => 'lastPullDate',
+									'Value' => strval( time() ),
+								],
+							],
+						],
 					]
 				);
 			}
