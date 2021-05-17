@@ -52,6 +52,8 @@ class Push extends Command {
 		$this->addOption( 'db_password', null, InputOption::VALUE_REQUIRED, 'Database password.' );
 		$this->addOption( 'exclude', false, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Exclude a file or directory from the snapshot.' );
 		$this->addOption( 'exclude_uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
+
+		$this->addOption( 'wp_version', null, InputOption::VALUE_OPTIONAL, 'Override the WordPress version.' );
 	}
 /**
 	 * Executes the command
@@ -68,6 +70,8 @@ class Push extends Command {
 			Log::instance()->write( 'Could not setup repository.', 0, 'error' );
 			return 1;
 		}
+
+		$output->writeln( '<comment>Security Warning: WP Snapshots creates copies of your codebase and database. This could result in data retention policy issues, please exercise extreme caution when using production data.</comment>' );
 
 		$snapshot_id = $input->getArgument( 'snapshot_id' );
 
@@ -175,6 +179,7 @@ class Push extends Command {
 					'repository'     => $repository->getName(),
 					'contains_db'    => $include_db,
 					'contains_files' => $include_files,
+					'wp_version'     => $input->getOption( 'wp_version' ),
 				], $output, $verbose
 			);
 		}

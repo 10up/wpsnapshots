@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 ## [Unreleased] - TBD
 
-## [2.1.0] - TBD
+## [2.2.0] - 2021-05-17
+* Support overriding version for create and push as well as setting version to `nightly`. Props [dinhtungdu](https://github.com/dinhtungdu).
+* Better error handling for `get_download_url`. Props [paulschreiber](https://github.com/paulschreiber).
+* Message warning users about using production databases
+* Update `rmccue/requests` version
+
+## [2.1.0] - 2021-01-22
 ### Added
 - `--overwirte_local_copy` flag to the `pull` command (props [@eugene-manuilov](https://github.com/eugene-manuilov) via [#71](https://github.com/10up/wpsnapshots/pull/71)).
 - `--suppress_instructions` flag to the `pull` command (props [@eugene-manuilov](https://github.com/eugene-manuilov) via [#76](https://github.com/10up/wpsnapshots/pull/76)).

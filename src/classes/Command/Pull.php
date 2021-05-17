@@ -98,6 +98,8 @@ class Pull extends Command {
 			return 1;
 		}
 
+		$output->writeln( '<comment>Security Warning: WP Snapshots creates copies of your codebase and database. This could result in data retention policy issues, please exercise extreme caution when using production data.</comment>' );
+
 		$id = $input->getArgument( 'snapshot_id' );
 
 		$helper = $this->getHelper( 'question' );
@@ -225,7 +227,13 @@ class Pull extends Command {
 
 			Log::instance()->write( 'Extracting WordPress...', 1 );
 
-			exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress && tar -C ' . Utils\escape_shell_path( $path ) . ' -xf ' . Utils\escape_shell_path( $snapshot_path ) . 'wp.tar.gz ' . $verbose_pipe );
+			exec( 'rm -rf ' . Utils\escape_shell_path( $path ) . 'wordpress' );
+
+			$this->extractArchive(
+				Utils\escape_shell_path( $snapshot_path ) . 'wp.tar.gz',
+				Utils\escape_shell_path( $path ),
+				$verbose_pipe
+			);
 
 			Log::instance()->write( 'Moving WordPress files...', 1 );
 
@@ -461,10 +469,12 @@ class Pull extends Command {
 
 					$download_url = Utils\get_download_url( $snapshot->meta['wp_version'] );
 
+					$downloaded_file_path = Utils\escape_shell_path( $snapshot_path ) . ( strpos( $download_url, '.zip' ) ? 'wp.zip' : 'wp.tar.gz' );
+
 					$headers = [ 'Accept' => 'application/json' ];
 					$options = [
 						'timeout'  => 600,
-						'filename' => $snapshot_path . 'wp.tar.gz',
+						'filename' => $downloaded_file_path,
 					];
 
 					Log::instance()->write( 'Downloading WordPress ' . $snapshot->meta['wp_version'] . '...', 1 );
@@ -473,7 +483,11 @@ class Pull extends Command {
 
 					Log::instance()->write( 'Extracting WordPress...', 1 );
 
-					exec( 'tar -C ' . Utils\escape_shell_path( $path ) . ' -xf ' . Utils\escape_shell_path( $snapshot_path ) . 'wp.tar.gz ' . $verbose_pipe );
+					$this->extractArchive(
+						$downloaded_file_path,
+						Utils\escape_shell_path( $path ),
+						$verbose_pipe
+					);
 
 					Log::instance()->write( 'Moving WordPress files...', 1 );
 
@@ -853,7 +867,11 @@ class Pull extends Command {
 
 			exec( 'mkdir -p ' . Utils\escape_shell_path( WP_CONTENT_DIR ) );
 
-			exec( 'tar -C ' . Utils\escape_shell_path( WP_CONTENT_DIR ) . ' -xf ' . Utils\escape_shell_path( $snapshot_path ) . 'files.tar.gz ' . $verbose_pipe );
+			$this->extractArchive(
+				Utils\escape_shell_path( $snapshot_path ) . 'files.tar.gz',
+				Utils\escape_shell_path( WP_CONTENT_DIR ),
+				$verbose_pipe
+			);
 		}
 
 		/**
@@ -877,4 +895,26 @@ class Pull extends Command {
 		}
 	}
 
+	/**
+	 * Extract archive file helper. Support tar and zip file
+	 *
+	 * @param string $file_path        Archive file path.
+	 * @param string $destination_path Destination path.
+	 */
+	private function extractArchive( $file_path, $destination_path, $verbose_pipe = '' ) {
+		if ( strpos( $file_path, '.tar' ) ) {
+			return exec( 'tar -C ' . $destination_path . ' -xf ' . $file_path . ' ' . $verbose_pipe );
+		}
+
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			return exec( 'unzip -d ' . $destination_path . ' ' . $file_path . ' ' . $verbose_pipe );
+		}
+
+		$zip = new \ZipArchive;
+		if ( $zip->open( $file_path ) === true ) {
+			$zip->extractTo( $destination_path );
+			$zip->close();
+		}
+	}
 }
+

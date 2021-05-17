@@ -9,7 +9,7 @@ namespace WPSnapshots;
 
 use \Symfony\Component\Console\Application;
 
-define( 'WPSNAPSHOTS_VERSION', '2.1.0' );
+define( 'WPSNAPSHOTS_VERSION', '2.2.0' );
 
 require_once __DIR__ . '/utils.php';
 

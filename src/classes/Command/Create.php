@@ -49,6 +49,8 @@ class Create extends Command {
 		$this->addOption( 'db_name', null, InputOption::VALUE_REQUIRED, 'Database name.' );
 		$this->addOption( 'db_user', null, InputOption::VALUE_REQUIRED, 'Database user.' );
 		$this->addOption( 'db_password', null, InputOption::VALUE_REQUIRED, 'Database password.' );
+
+		$this->addOption( 'wp_version', null, InputOption::VALUE_OPTIONAL, 'Override the WordPress version.' );
 	}
 
 	/**
@@ -149,6 +151,7 @@ class Create extends Command {
 				'repository'     => $repository->getName(),
 				'contains_db'    => $include_db,
 				'contains_files' => $include_files,
+				'wp_version'     => $input->getOption( 'wp_version' ),
 			],
 			$output,
 			$input->getOption( 'verbose' )
