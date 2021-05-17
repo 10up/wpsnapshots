@@ -69,6 +69,8 @@ class Push extends Command {
 			return 1;
 		}
 
+		$output->writeln( '<comment>Security Warning: WP Snapshots creates copies of your codebase and database. This could result in data retention policy issues, please exercise extreme caution when using production data.</comment>' );
+
 		$snapshot_id = $input->getArgument( 'snapshot_id' );
 
 		if ( ! empty( $snapshot_id ) ) {
