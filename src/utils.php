@@ -261,6 +261,10 @@ function create_config_file( $path, $path_to_template, $constants = [] ) {
  * @return string|bool
  */
 function get_download_url( $version = 'latest', $locale = 'en_US' ) {
+	if ( ! $version ) {
+		return false;
+	}
+	
 	if ( 'nightly' === $version ) {
 		return 'https://wordpress.org/nightly-builds/wordpress-latest.zip';
 	}
@@ -287,7 +291,7 @@ function get_download_url( $version = 'latest', $locale = 'en_US' ) {
 		return str_replace( '.zip', '.tar.gz', $request_body['offers'][0]['download'] );
 	}
 
-	if ( 'en_US' === $locale ) {
+	if ( 'en_US' === $locale || ! $locale ) {
 		$url = 'https://wordpress.org/wordpress-' . $version . '.tar.gz';
 
 		return $url;
