@@ -196,6 +196,9 @@ class Snapshot {
 		);
 
 		$meta['wp_version'] = ( ! empty( $wp_version ) ) ? $wp_version : '';
+		if ( ! empty( $args['wp_version'] ) ) {
+			$meta['wp_version'] = $args['wp_version'];
+		}
 
 		$author_info = RepositoryManager::instance()->getAuthorInfo();
 		$author      = [];
