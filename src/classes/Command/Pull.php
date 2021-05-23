@@ -46,7 +46,7 @@ class Pull extends Command {
 		$this->addOption( 'confirm_ms_constant_update', null, InputOption::VALUE_NONE, 'Confirm updating constants in wp-config.php for multisite.' );
 
 		$this->addOption( 'suppress_instructions', null, InputOption::VALUE_NONE, 'Suppress instructions after successful installation.' );
-		$this->addOption( 'overwrite_local_copy', null, InputOption::VALUE_NONE, 'Overwrite a local copy of the snapshot if there is one.' );
+		$this->addOption( 'overwrite_local_copy', null, InputOption::VALUE_OPTIONAL, 'Overwrite a local copy of the snapshot if there is one.', false );
 		$this->addOption( 'include_files', null, InputOption::VALUE_OPTIONAL, 'Pull files within snapshot.', false );
 		$this->addOption( 'include_db', null, InputOption::VALUE_OPTIONAL, 'Pull database within snapshot.', false );
 
@@ -116,10 +116,11 @@ class Pull extends Command {
 		}
 
 		if ( ! empty( $remote_meta ) && ! empty( $local_meta ) ) {
-			if ( empty( $input->getOption( 'overwrite_local_copy' ) ) ) {
+			$overwrite_option = $input->getOption( 'overwrite_local_copy' );
+			if ( false === $overwrite_option ) {
 				$overwrite_local = $helper->ask( $input, $output, new ConfirmationQuestion( 'This snapshot exists locally. Do you want to overwrite it with the remote copy? (y/N) ', false ) );
 			} else {
-				$overwrite_local = true;
+				$overwrite_local = is_null( $overwrite_option ) || filter_var( $overwrite_option, FILTER_VALIDATE_BOOLEAN ); // is_null( $overwrite_option ) when `--overwrite_local_copy` is used without a value
 			}
 		}
 
