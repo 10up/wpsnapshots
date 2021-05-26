@@ -4,11 +4,15 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 ## [Unreleased] - TBD
 
+## [2.2.1] - TBD
+### Fixed
+- Allow skipping `--overwrite_local_copy` without prompt (props [dinhtungdu](https://github.com/dinhtungdu) via [#86](https://github.com/10up/wpsnapshots/pull/86)).
+
 ## [2.2.0] - 2021-05-17
-* Support overriding version for create and push as well as setting version to `nightly`. Props [dinhtungdu](https://github.com/dinhtungdu).
-* Better error handling for `get_download_url`. Props [paulschreiber](https://github.com/paulschreiber).
-* Message warning users about using production databases
-* Update `rmccue/requests` version
+- Support overriding version for create and push as well as setting version to `nightly` (props [dinhtungdu](https://github.com/dinhtungdu).
+- Better error handling for `get_download_url` (props [paulschreiber](https://github.com/paulschreiber).
+- Message warning users about using production databases.
+- Update `rmccue/requests` version.
 
 ## [2.1.0] - 2021-01-22
 ### Added
@@ -150,7 +154,8 @@ All notable changes to this project will be documented in this file, per [the Ke
 ## [1.0] - 2017-12-11
 - Initial WP Snapshots release.
 
-[Unreleased]: https://github.com/10up/wpsnapshots/compare/2.1.0...develop
+[Unreleased]: https://github.com/10up/wpsnapshots/compare/master...develop
+[2.2.0]: https://github.com/10up/wpsnapshots/compare/2.1.0...2.2.0
 [2.1.0]: https://github.com/10up/wpsnapshots/compare/2.0.1...2.1.0
 [2.0.1]: https://github.com/10up/wpsnapshots/compare/2.0...2.0.1
 [2.0]: https://github.com/10up/wpsnapshots/compare/1.6.3...2.0
