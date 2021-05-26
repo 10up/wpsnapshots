@@ -155,6 +155,7 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Initial WP Snapshots release.
 
 [Unreleased]: https://github.com/10up/wpsnapshots/compare/master...develop
+[2.2.1]: https://github.com/10up/wpsnapshots/compare/2.2.0...2.2.1
 [2.2.0]: https://github.com/10up/wpsnapshots/compare/2.1.0...2.2.0
 [2.1.0]: https://github.com/10up/wpsnapshots/compare/2.0.1...2.1.0
 [2.0.1]: https://github.com/10up/wpsnapshots/compare/2.0...2.0.1
