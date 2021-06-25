@@ -34,6 +34,7 @@ class Create extends Command {
 		$this->setDescription( 'Create a snapshot locally.' );
 		$this->addOption( 'exclude', false, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Exclude a file or directory from the snapshot.' );
 		$this->addOption( 'exclude_uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
+		$this->addOption( 'include_node_modules', false, InputOption::VALUE_NONE, 'Include node_modules folder in the snapshot (excluded by default).' );
 		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
 		$this->addOption( 'small', false, InputOption::VALUE_NONE, 'Trim data and files to create a small snapshot. Note that this action will modify your local.' );
 		$this->addOption( 'include_files', null, InputOption::VALUE_OPTIONAL, 'Include files in snapshot.', false );
@@ -105,6 +106,16 @@ class Create extends Command {
 
 		if ( ! empty( $input->getOption( 'exclude_uploads' ) ) ) {
 			$exclude[] = './uploads';
+		}
+
+		// By default exclude any node_modules folders, as they can be large and unnecessary for snapshots
+		// Can be overridden by include_node_modules option
+		if (
+				false === \in_array( 'node_modules', $args['exclude'], false ) &&
+				empty( $args['include_node_modules'] ) &&
+				empty( $input->getOption( 'include_node_modules' ) )
+			) {
+			$exclude[] = '/node_modules';
 		}
 
 		$files = $input->getOption( 'include_files' );
