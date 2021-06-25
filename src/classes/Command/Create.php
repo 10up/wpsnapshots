@@ -34,6 +34,7 @@ class Create extends Command {
 		$this->setDescription( 'Create a snapshot locally.' );
 		$this->addOption( 'exclude', false, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Exclude a file or directory from the snapshot.' );
 		$this->addOption( 'exclude_uploads', false, InputOption::VALUE_NONE, 'Exclude uploads from pushed snapshot.' );
+		$this->addOption( 'include_build_files', false, InputOption::VALUE_NONE, 'Include build files in the snapshot (excluded by default).' );
 		$this->addOption( 'repository', null, InputOption::VALUE_REQUIRED, 'Repository to use. Defaults to first repository saved in config.' );
 		$this->addOption( 'small', false, InputOption::VALUE_NONE, 'Trim data and files to create a small snapshot. Note that this action will modify your local.' );
 		$this->addOption( 'include_files', null, InputOption::VALUE_OPTIONAL, 'Include files in snapshot.', false );
@@ -105,6 +106,13 @@ class Create extends Command {
 
 		if ( ! empty( $input->getOption( 'exclude_uploads' ) ) ) {
 			$exclude[] = './uploads';
+		}
+
+		// By default exclude any build folders, as they can be large and unnecessary for snapshots
+		// Can be overridden by include_build_files option
+		if ( empty( $input->getOption( 'include_build_files' ) ) ) {
+			$exclude[] = '/bower_components';
+			$exclude[] = '/node_modules';
 		}
 
 		$files = $input->getOption( 'include_files' );
