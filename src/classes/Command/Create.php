@@ -110,7 +110,7 @@ class Create extends Command {
 
 		// By default exclude any node_modules folders, as they can be large and unnecessary for snapshots
 		// Can be overridden by include_node_modules option
-		if ( false === \in_array( 'node_modules', $args['exclude'], false ) && empty( $input->getOption( 'include_node_modules' ) ) ) {
+		if ( false === \in_array( 'node_modules', $exclude, false ) && empty( $input->getOption( 'include_node_modules' ) ) ) {
 			$exclude[] = '/node_modules';
 		}
 
