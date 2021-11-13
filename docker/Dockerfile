@@ -24,6 +24,7 @@ WORKDIR /opt/wpsnapshots
 
 COPY --from=builder --chown=wpsnapshots=wpsnapshots /opt/wpsnapshots /opt/wpsnapshots
 RUN \
+  apt-get install mariadb-client -y && apt-get clean all && \
   useradd wpsnapshots && \
   mkdir -p /home/wpsnapshots && \
   chown -R wpsnapshots:wpsnapshots /home/wpsnapshots && \
