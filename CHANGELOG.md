@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file, per [the Keep a Changelog standard](http://keepachangelog.com/).
 
-## [Unreleased] - TBD
+## [2.2.1] - 2022-03-23
+### Fixed
+* Fix download command
 
 ## [2.2.0] - 2021-05-17
 * Support overriding version for create and push as well as setting version to `nightly`. Props [dinhtungdu](https://github.com/dinhtungdu).
