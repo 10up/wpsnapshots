@@ -105,7 +105,6 @@ class Download extends Command {
 			}
 		}
 
-		var_dump( $include_files, $include_db );exit;
 		$snapshot = Snapshot::getRemote( $id, $repository->getName(), ! $include_files, ! $include_db );
 
 		if ( is_a( $snapshot, '\WPSnapshots\Snapshot' ) ) {
