@@ -1,4 +1,6 @@
-# WP Snapshots
+# (DEPRECATED) WP Snapshots
+
+## THIS PROJECT IS DEPREACTED IN FAVOR OF THE NEW [SNAPSHOTS](https://github.com/10up/snapshots) BUILT AS A WP CLI COMMAND.
 
 >  A project sharing tool for WordPress.
 
