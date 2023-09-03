@@ -60,6 +60,7 @@ jobs:
           context: ./docker
           file: ./docker/Dockerfile
           tags: ${{ steps.prep.outputs.tags }}
+          platforms: linux/amd64,linux/arm64
           build-args: |
             WPSNAPSHOTS_ARCHIVE=${{ steps.prep.outputs.archive }}
           labels: |
