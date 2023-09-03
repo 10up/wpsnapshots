@@ -10,9 +10,9 @@
     }
   ],
   "require": {
-    "symfony/console": "^3.3 || ^4.1",
+    "symfony/console": "^5.4",
     "rmccue/requests": "^1.8",
-    "php": ">=5.6",
+    "php": ">=8",
     "aws/aws-sdk-php": "^3.67"
   },
   "scripts": {
@@ -35,6 +35,11 @@
     ],
     "psr-4": {
       "WPSnapshots\\": "./src/classes"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
     }
   }
 }
