@@ -38,20 +38,20 @@ jobs:
             TAGS="$TAGS,${DOCKER_IMAGE}:${RELEASE_NAME}"
             TAGS="$TAGS,${DOCKER_IMAGE}:${RELEASE_NAME%%.*}"
 
-            echo "::set-output name=archive::${{ github.event.release.tarball_url }}"
-            echo "::set-output name=tags::${TAGS}"
-            echo "::set-output name=version::${RELEASE_NAME}"
+            echo "archive=${{ github.event.release.tarball_url }}" >> $GITHUB_OUTPUT
+            echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+            echo "version=${RELEASE_NAME}" >> $GITHUB_OUTPUT
           else
             ARCHIVE_URL="${{ github.event.repository.archive_url }}"
             ARCHIVE_URL=${ARCHIVE_URL/\{archive_format\}/tarball}
             ARCHIVE_URL=${ARCHIVE_URL/\{\/ref\}/\/$GITHUB_REF}
 
-            echo "::set-output name=archive::${ARCHIVE_URL}"
-            echo "::set-output name=tags::${DOCKER_IMAGE}:${GITHUB_REF##*/}"
-            echo "::set-output name=version::${GITHUB_REF##*/}"
+            echo "archive=${ARCHIVE_URL}" >> $GITHUB_OUTPUT
+            echo "tags=${DOCKER_IMAGE}:${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+            echo "version=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
           fi
 
-          echo "::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
       - uses: docker/build-push-action@v2
         with:
           cache-from: type=local,src=/tmp/.buildx-cache
